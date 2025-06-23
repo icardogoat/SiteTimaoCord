@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from "react";
@@ -149,12 +150,12 @@ export default function AdminUsersPage() {
                     <Table>
                         <TableHeader>
                             <TableRow>
-                                <TableHead className="text-center">Rank</TableHead>
+                                <TableHead className="w-16 text-center">Rank</TableHead>
                                 <TableHead>Usuário</TableHead>
                                 <TableHead className="hidden md:table-cell">Data de Cadastro</TableHead>
                                 <TableHead className="text-center">Status</TableHead>
                                 <TableHead className="text-right">Saldo</TableHead>
-                                <TableHead className="hidden text-right lg:table-cell">Total Apostado</TableHead>
+                                <TableHead className="hidden text-right md:table-cell">Total Apostado</TableHead>
                                 <TableHead>
                                     <span className="sr-only">Ações</span>
                                 </TableHead>
@@ -166,13 +167,13 @@ export default function AdminUsersPage() {
                                     <TableCell className="text-center font-medium">{user.rank}</TableCell>
                                     <TableCell>
                                         <div className="flex items-center gap-3">
-                                            <Avatar>
+                                            <Avatar className="hidden h-9 w-9 sm:flex">
                                                 <AvatarImage src={user.avatar} alt={user.name} data-ai-hint="user avatar"/>
                                                 <AvatarFallback>{user.name.substring(0,2).toUpperCase()}</AvatarFallback>
                                             </Avatar>
                                             <div>
                                                 <div className="font-medium">{user.name}</div>
-                                                <div className="text-sm text-muted-foreground">{user.email}</div>
+                                                <div className="hidden text-sm text-muted-foreground sm:block">{user.email}</div>
                                                 <div className="text-xs text-muted-foreground">Discord ID: {user.discordId}</div>
                                             </div>
                                         </div>
@@ -184,7 +185,7 @@ export default function AdminUsersPage() {
                                         </Badge>
                                     </TableCell>
                                     <TableCell className="text-right font-medium">R$ {user.balance.toFixed(2)}</TableCell>
-                                    <TableCell className="hidden text-right lg:table-cell">R$ {user.totalWagered.toFixed(2)}</TableCell>
+                                    <TableCell className="hidden text-right md:table-cell">R$ {user.totalWagered.toFixed(2)}</TableCell>
                                     <TableCell>
                                         <DropdownMenu>
                                             <DropdownMenuTrigger asChild>

@@ -154,10 +154,10 @@ export default function Dashboard() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Usuário</TableHead>
-                  <TableHead className="hidden xl:table-cell">
+                  <TableHead className="hidden sm:table-cell">
                     Partida
                   </TableHead>
-                  <TableHead className="hidden xl:table-cell">
+                  <TableHead className="hidden sm:table-cell">
                     Status
                   </TableHead>
                   <TableHead className="text-right">Valor</TableHead>
@@ -171,10 +171,10 @@ export default function Dashboard() {
                       zico.fiel@example.com
                     </div>
                   </TableCell>
-                  <TableCell className="hidden xl:table-cell">
+                  <TableCell className="hidden sm:table-cell">
                     Corinthians vs Palmeiras
                   </TableCell>
-                  <TableCell className="hidden xl:table-cell">
+                  <TableCell className="hidden sm:table-cell">
                     <Badge className="text-xs" variant="secondary">
                       Em Aberto
                     </Badge>
@@ -188,10 +188,10 @@ export default function Dashboard() {
                       neto10@example.com
                     </div>
                   </TableCell>
-                  <TableCell className="hidden xl:table-cell">
+                  <TableCell className="hidden sm:table-cell">
                     Flamengo vs Vasco
                   </TableCell>
-                  <TableCell className="hidden xl:table-cell">
+                  <TableCell className="hidden sm:table-cell">
                     <Badge className="text-xs" variant="outline">
                       Ganha
                     </Badge>
@@ -205,10 +205,10 @@ export default function Dashboard() {
                       vamp@example.com
                     </div>
                   </TableCell>
-                  <TableCell className="hidden xl:table-cell">
+                  <TableCell className="hidden sm:table-cell">
                     Real Madrid vs Barcelona
                   </TableCell>
-                  <TableCell className="hidden xl:table-cell">
+                  <TableCell className="hidden sm:table-cell">
                       <Badge className="text-xs" variant="destructive">
                       Perdida
                     </Badge>
@@ -222,10 +222,10 @@ export default function Dashboard() {
                       r9@example.com
                     </div>
                   </TableCell>
-                  <TableCell className="hidden xl:table-cell">
+                  <TableCell className="hidden sm:table-cell">
                     Man. City vs Liverpool
                   </TableCell>
-                  <TableCell className="hidden xl:table-cell">
+                  <TableCell className="hidden sm:table-cell">
                     <Badge className="text-xs" variant="secondary">
                       Em Aberto
                     </Badge>
@@ -239,10 +239,10 @@ export default function Dashboard() {
                       cassio12@example.com
                     </div>
                   </TableCell>
-                  <TableCell className="hidden xl:table-cell">
+                  <TableCell className="hidden sm:table-cell">
                     Bayern vs Dortmund
                   </TableCell>
-                  <TableCell className="hidden xl:table-cell">
+                  <TableCell className="hidden sm:table-cell">
                     <Badge className="text-xs" variant="outline">
                       Ganha
                     </Badge>
