@@ -13,7 +13,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { LogOut, User, Wallet } from 'lucide-react';
+import { LogOut, User, Wallet, Ticket } from 'lucide-react';
 
 export function Header() {
   const { isMobile } = useSidebar();
@@ -46,6 +46,12 @@ export function Header() {
               <Link href="#">
                 <User className="mr-2 h-4 w-4" />
                 <span>Perfil</span>
+              </Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem asChild>
+              <Link href="#">
+                <Ticket className="mr-2 h-4 w-4" />
+                <span>Minhas Apostas</span>
               </Link>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
