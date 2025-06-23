@@ -231,49 +231,51 @@ export default function AdminMatchesPage() {
                                 : 'Preencha os detalhes da nova partida e as odds para os mercados.'}
                         </DialogDescription>
                     </DialogHeader>
-                    <ScrollArea className="flex-grow pr-6 -mr-6">
-                        <div className="grid gap-4 py-4">
-                            <div className="grid grid-cols-4 items-center gap-4">
-                                <Label htmlFor="teamA" className="text-right">Time A</Label>
-                                <Input id="teamA" value={matchData.teamA} onChange={handleInputChange} className="col-span-3" />
+                    <ScrollArea className="flex-grow">
+                        <div className="pr-4">
+                            <div className="grid gap-4 py-4">
+                                <div className="grid grid-cols-4 items-center gap-4">
+                                    <Label htmlFor="teamA" className="text-right">Time A</Label>
+                                    <Input id="teamA" value={matchData.teamA} onChange={handleInputChange} className="col-span-3" />
+                                </div>
+                                <div className="grid grid-cols-4 items-center gap-4">
+                                    <Label htmlFor="teamB" className="text-right">Time B</Label>
+                                    <Input id="teamB" value={matchData.teamB} onChange={handleInputChange} className="col-span-3" />
+                                </div>
+                                <div className="grid grid-cols-4 items-center gap-4">
+                                    <Label htmlFor="league" className="text-right">Liga</Label>
+                                    <Input id="league" value={matchData.league} onChange={handleInputChange} className="col-span-3" />
+                                </div>
+                                <div className="grid grid-cols-4 items-center gap-4">
+                                    <Label htmlFor="time" className="text-right">Data/Hora</Label>
+                                    <Input id="time" type="datetime-local" value={matchData.time} onChange={handleInputChange} className="col-span-3" />
+                                </div>
                             </div>
-                            <div className="grid grid-cols-4 items-center gap-4">
-                                <Label htmlFor="teamB" className="text-right">Time B</Label>
-                                <Input id="teamB" value={matchData.teamB} onChange={handleInputChange} className="col-span-3" />
-                            </div>
-                            <div className="grid grid-cols-4 items-center gap-4">
-                                <Label htmlFor="league" className="text-right">Liga</Label>
-                                <Input id="league" value={matchData.league} onChange={handleInputChange} className="col-span-3" />
-                            </div>
-                            <div className="grid grid-cols-4 items-center gap-4">
-                                <Label htmlFor="time" className="text-right">Data/Hora</Label>
-                                <Input id="time" type="datetime-local" value={matchData.time} onChange={handleInputChange} className="col-span-3" />
-                            </div>
+                            <Accordion type="multiple" className="w-full" defaultValue={marketsConfig.map(m => m.name)}>
+                                {marketsConfig.map((market) => (
+                                    <AccordionItem value={market.name} key={market.name}>
+                                        <AccordionTrigger>{market.name}</AccordionTrigger>
+                                        <AccordionContent>
+                                            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                                                {market.odds.map((oddLabel) => (
+                                                    <div className="grid gap-2" key={oddLabel}>
+                                                        <Label htmlFor={`${market.name}-${oddLabel}`}>{oddLabel}</Label>
+                                                        <Input 
+                                                            id={`${market.name}-${oddLabel}`} 
+                                                            type="number" 
+                                                            step="0.01" 
+                                                            placeholder="1.00"
+                                                            value={(matchData.markets as any)[market.name]?.[oddLabel] || ''}
+                                                            onChange={(e) => handleOddsChange(market.name, oddLabel, e.target.value)}
+                                                        />
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </AccordionContent>
+                                    </AccordionItem>
+                                ))}
+                            </Accordion>
                         </div>
-                        <Accordion type="multiple" className="w-full" defaultValue={marketsConfig.map(m => m.name)}>
-                            {marketsConfig.map((market) => (
-                                <AccordionItem value={market.name} key={market.name}>
-                                    <AccordionTrigger>{market.name}</AccordionTrigger>
-                                    <AccordionContent>
-                                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                                            {market.odds.map((oddLabel) => (
-                                                <div className="grid gap-2" key={oddLabel}>
-                                                    <Label htmlFor={`${market.name}-${oddLabel}`}>{oddLabel}</Label>
-                                                    <Input 
-                                                        id={`${market.name}-${oddLabel}`} 
-                                                        type="number" 
-                                                        step="0.01" 
-                                                        placeholder="1.00"
-                                                        value={(matchData.markets as any)[market.name]?.[oddLabel] || ''}
-                                                        onChange={(e) => handleOddsChange(market.name, oddLabel, e.target.value)}
-                                                    />
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </AccordionContent>
-                                </AccordionItem>
-                            ))}
-                        </Accordion>
                     </ScrollArea>
                     <DialogFooter>
                          <Button variant="outline" onClick={() => setIsDialogOpen(false)}>Cancelar</Button>
