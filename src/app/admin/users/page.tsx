@@ -45,17 +45,28 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 
-// Mock data, in a real app this would come from a database
-const initialUsers = [
-    { id: "user1", name: "Zico da Fiel", email: "zico.fiel@example.com", discordId: "zicofiel#1910", joinDate: "2025-01-15", totalBets: 58, totalWagered: 1250.75, balance: 5421.50, status: "Ativo", avatar: "https://placehold.co/40x40.png" },
-    { id: "user2", name: "Craque Neto 10", email: "neto10@example.com", discordId: "craqueneto10#1990", joinDate: "2025-02-20", totalBets: 112, totalWagered: 3450.00, balance: 12876.00, status: "Ativo", avatar: "https://placehold.co/40x40.png" },
-    { id: "user3", name: "Vampeta Monstro", email: "vamp@example.com", discordId: "velhovamp#1999", joinDate: "2025-03-01", totalBets: 75, totalWagered: 2100.50, balance: 9876.50, status: "Suspenso", avatar: "https://placehold.co/40x40.png" },
-    { id: "user4", name: "Ronaldo Fenômeno", email: "r9@example.com", discordId: "ronaldofenomeno#2002", joinDate: "2025-04-10", totalBets: 45, totalWagered: 890.00, balance: 7321.75, status: "Ativo", avatar: "https://placehold.co/40x40.png" },
-    { id: "user5", name: "Cássio Gigante", email: "cassio12@example.com", discordId: "cassioramos#2012", joinDate: "2025-05-05", totalBets: 91, totalWagered: 5500.20, balance: 6987.20, status: "Ativo", avatar: "https://placehold.co/40x40.png" },
-    { id: "user6", name: "Marcelinho Carioca", email: "pe.de.anjo@example.com", discordId: "marcelinhocarioca#1995", joinDate: "2025-06-18", totalBets: 32, totalWagered: 650.00, balance: 11050.25, status: "Ativo", avatar: "https://placehold.co/40x40.png" },
-];
+type User = {
+    id: string;
+    name: string;
+    email: string;
+    discordId: number;
+    joinDate: string;
+    totalBets: number;
+    totalWagered: number;
+    balance: number;
+    status: "Ativo" | "Suspenso";
+    avatar: string;
+};
 
-type User = (typeof initialUsers)[0];
+// Mock data, in a real app this would come from a database
+const initialUsers: User[] = [
+    { id: "user1", name: "Zico da Fiel", email: "zico.fiel@example.com", discordId: 282862304804438017, joinDate: "2025-01-15", totalBets: 58, totalWagered: 1250.75, balance: 5421.50, status: "Ativo", avatar: "https://placehold.co/40x40.png" },
+    { id: "user2", name: "Craque Neto 10", email: "neto10@example.com", discordId: 292962304804438018, joinDate: "2025-02-20", totalBets: 112, totalWagered: 3450.00, balance: 12876.00, status: "Ativo", avatar: "https://placehold.co/40x40.png" },
+    { id: "user3", name: "Vampeta Monstro", email: "vamp@example.com", discordId: 303062304804438019, joinDate: "2025-03-01", totalBets: 75, totalWagered: 2100.50, balance: 9876.50, status: "Suspenso", avatar: "https://placehold.co/40x40.png" },
+    { id: "user4", name: "Ronaldo Fenômeno", email: "r9@example.com", discordId: 313162304804438020, joinDate: "2025-04-10", totalBets: 45, totalWagered: 890.00, balance: 7321.75, status: "Ativo", avatar: "https://placehold.co/40x40.png" },
+    { id: "user5", name: "Cássio Gigante", email: "cassio12@example.com", discordId: 323262304804438021, joinDate: "2025-05-05", totalBets: 91, totalWagered: 5500.20, balance: 6987.20, status: "Ativo", avatar: "https://placehold.co/40x40.png" },
+    { id: "user6", name: "Marcelinho Carioca", email: "pe.de.anjo@example.com", discordId: 333362304804438022, joinDate: "2025-06-18", totalBets: 32, totalWagered: 650.00, balance: 11050.25, status: "Ativo", avatar: "https://placehold.co/40x40.png" },
+];
 
 
 export default function AdminUsersPage() {
@@ -80,13 +91,14 @@ export default function AdminUsersPage() {
     };
 
     const handleAddUser = () => {
-        if (!newUserDiscordId) return;
+        const discordIdNumber = parseInt(newUserDiscordId, 10);
+        if (!newUserDiscordId || isNaN(discordIdNumber)) return;
 
         const newUser: User = {
             id: `user${users.length + 1}`,
-            name: newUserDiscordId,
-            email: `${newUserDiscordId.replace(/#\d+$/, '')}@discord.user`,
-            discordId: newUserDiscordId,
+            name: `Usuário ${discordIdNumber}`,
+            email: `user.${discordIdNumber}@discord.user`,
+            discordId: discordIdNumber,
             joinDate: new Date().toISOString().split('T')[0],
             totalBets: 0,
             totalWagered: 0,
@@ -141,7 +153,7 @@ export default function AdminUsersPage() {
                                             <div>
                                                 <div className="font-medium">{user.name}</div>
                                                 <div className="text-sm text-muted-foreground">{user.email}</div>
-                                                <div className="text-xs text-muted-foreground">Discord: {user.discordId}</div>
+                                                <div className="text-xs text-muted-foreground">Discord ID: {user.discordId}</div>
                                             </div>
                                         </div>
                                     </TableCell>
@@ -217,8 +229,9 @@ export default function AdminUsersPage() {
                                 </Label>
                                 <Input 
                                     id="discordId"
+                                    type="number"
                                     value={editedUser.discordId} 
-                                    onChange={(e) => setEditedUser({...editedUser, discordId: e.target.value})}
+                                    onChange={(e) => setEditedUser({...editedUser, discordId: parseInt(e.target.value) || 0})}
                                     className="col-span-3" 
                                 />
                             </div>
@@ -265,7 +278,7 @@ export default function AdminUsersPage() {
                     <DialogHeader>
                         <DialogTitle>Adicionar Novo Usuário</DialogTitle>
                         <DialogDescription>
-                            Insira a ID do Discord do usuário para adicioná-lo.
+                            Insira a ID numérica do Discord do usuário para adicioná-lo.
                         </DialogDescription>
                     </DialogHeader>
                     <div className="grid gap-4 py-4">
@@ -273,7 +286,7 @@ export default function AdminUsersPage() {
                             <Label htmlFor="new-discord-id" className="text-right">
                                 Discord ID
                             </Label>
-                            <Input id="new-discord-id" value={newUserDiscordId} onChange={(e) => setNewUserDiscordId(e.target.value)} placeholder="usuario#1234" className="col-span-3" />
+                            <Input id="new-discord-id" type="number" value={newUserDiscordId} onChange={(e) => setNewUserDiscordId(e.target.value)} placeholder="ID numérica do Discord" className="col-span-3" />
                         </div>
                     </div>
                     <DialogFooter>
