@@ -1,33 +1,43 @@
-import {
-  Activity,
-  CreditCard,
-  DollarSign,
-  Users,
-} from "lucide-react"
 
-import {
-  Avatar,
-  AvatarFallback,
-  AvatarImage,
-} from "@/components/ui/avatar"
+'use client'
+
+import { Activity, CreditCard, DollarSign, Users } from "lucide-react"
+import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts"
+import { useEffect, useState } from "react"
+
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+  type ChartConfig,
+} from "@/components/ui/chart"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+
+const chartConfig = {
+  total: {
+    label: "Total Apostado",
+    color: "hsl(var(--chart-1))",
+  },
+} satisfies ChartConfig
 
 export default function Dashboard() {
+    const [chartData, setChartData] = useState<{ date: string; total: number }[]>([]);
+
+    useEffect(() => {
+        setChartData([
+            { date: "Seg", total: Math.floor(Math.random() * 5000) + 2000 },
+            { date: "Ter", total: Math.floor(Math.random() * 5000) + 2000 },
+            { date: "Qua", total: Math.floor(Math.random() * 5000) + 2000 },
+            { date: "Qui", total: Math.floor(Math.random() * 5000) + 2000 },
+            { date: "Sex", total: Math.floor(Math.random() * 5000) + 2000 },
+            { date: "Sáb", total: Math.floor(Math.random() * 5000) + 2000 },
+            { date: "Dom", total: Math.floor(Math.random() * 5000) + 2000 },
+        ]);
+    }, []);
+
   return (
     <>
       <div className="grid gap-4 md:grid-cols-2 md:gap-8 lg:grid-cols-4">
@@ -85,6 +95,51 @@ export default function Dashboard() {
         </Card>
       </div>
       <div className="grid gap-4 md:gap-8 lg:grid-cols-2 xl:grid-cols-3">
+        <Card className="xl:col-span-3">
+            <CardHeader>
+                <CardTitle>Volume de Apostas (Últimos 7 Dias)</CardTitle>
+                <CardDescription>Total apostado por dia na última semana.</CardDescription>
+            </CardHeader>
+            <CardContent className="pl-2">
+                <ChartContainer config={chartConfig} className="h-[350px] w-full">
+                    <BarChart accessibilityLayer data={chartData}>
+                        <CartesianGrid vertical={false} />
+                        <XAxis
+                            dataKey="date"
+                            tickLine={false}
+                            tickMargin={10}
+                            axisLine={false}
+                            tickFormatter={(value) => value.slice(0, 3)}
+                        />
+                         <YAxis
+                            tickFormatter={(value) => `R$ ${value / 1000}k`}
+                         />
+                        <ChartTooltip
+                            cursor={false}
+                            content={<ChartTooltipContent
+                                indicator="dot"
+                                hideIndicator
+                                formatter={(value, name, item) => (
+                                    <div className="flex w-full items-center gap-2">
+                                        <div
+                                            className="h-2.5 w-2.5 shrink-0 rounded-[2px]"
+                                            style={{ backgroundColor: item.color }}
+                                        />
+                                        <div className="flex flex-1 justify-between">
+                                            <span className="text-muted-foreground">Total Apostado</span>
+                                            <span className="font-mono font-medium tabular-nums text-foreground">
+                                                R$ {Number(value).toLocaleString("pt-BR")}
+                                            </span>
+                                        </div>
+                                    </div>
+                                )}
+                            />}
+                        />
+                        <Bar dataKey="total" fill="var(--color-total)" radius={4} />
+                    </BarChart>
+                </ChartContainer>
+            </CardContent>
+        </Card>
         <Card className="xl:col-span-2">
           <CardHeader className="flex flex-row items-center">
             <div className="grid gap-2">
