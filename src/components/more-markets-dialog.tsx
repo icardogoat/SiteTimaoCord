@@ -1,3 +1,5 @@
+'use client';
+
 import {
   Dialog,
   DialogContent,
@@ -15,6 +17,7 @@ import {
 import { Button } from '@/components/ui/button';
 import type { Match } from '@/types';
 import { ScrollArea } from './ui/scroll-area';
+import { useBetSlip } from '@/context/bet-slip-context';
 
 interface MoreMarketsDialogProps {
   match: Match;
@@ -22,7 +25,7 @@ interface MoreMarketsDialogProps {
 }
 
 export function MoreMarketsDialog({ match, children }: MoreMarketsDialogProps) {
-  // Open all accordions by default
+  const { toggleBet, isBetSelected } = useBetSlip();
   const defaultValues = match.markets.map(m => m.name);
 
   return (
@@ -43,7 +46,12 @@ export function MoreMarketsDialog({ match, children }: MoreMarketsDialogProps) {
                 <AccordionContent>
                   <div className="grid grid-cols-2 gap-2 md:grid-cols-3">
                     {market.odds.map((odd) => (
-                      <Button variant="secondary" className="flex flex-col h-auto py-2" key={odd.label}>
+                      <Button
+                        variant={isBetSelected(`${match.id}-${market.name}-${odd.label}`) ? 'default' : 'secondary'}
+                        className="flex flex-col h-auto py-2"
+                        key={odd.label}
+                        onClick={() => toggleBet(match, market, odd)}
+                      >
                         <span className="text-xs text-muted-foreground">{odd.label}</span>
                         <span className="font-bold">{odd.value}</span>
                       </Button>

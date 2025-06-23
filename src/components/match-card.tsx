@@ -1,9 +1,12 @@
+'use client';
+
 import Image from 'next/image';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from './ui/badge';
-import type { Match, Market } from '@/types';
+import type { Match, Odd } from '@/types';
 import { MoreMarketsDialog } from './more-markets-dialog';
+import { useBetSlip } from '@/context/bet-slip-context';
 
 interface MatchCardProps {
   match: Match;
@@ -11,15 +14,19 @@ interface MatchCardProps {
 
 export function MatchCard({ match }: MatchCardProps) {
   const mainMarket = match.markets.find(m => m.name === 'Vencedor da Partida');
+  const { toggleBet, isBetSelected } = useBetSlip();
 
-  const getOddValue = (market: Market | undefined, label: string) => market?.odds.find(o => o.label === label)?.value || '-';
+  const getOddByLabel = (label: string): Odd | undefined => mainMarket?.odds.find(o => o.label === label);
 
-  const odds = {
-    home: getOddValue(mainMarket, 'Casa'),
-    draw: getOddValue(mainMarket, 'Empate'),
-    away: getOddValue(mainMarket, 'Fora'),
+  const homeOdd = getOddByLabel('Casa');
+  const drawOdd = getOddByLabel('Empate');
+  const awayOdd = getOddByLabel('Fora');
+
+  const handleBetClick = (odd: Odd | undefined) => {
+    if (!mainMarket || !odd) return;
+    toggleBet(match, mainMarket, odd);
   };
-  
+
   return (
     <Card className="flex flex-col">
       <CardHeader className="flex-row items-center justify-between pb-2">
@@ -55,18 +62,36 @@ export function MatchCard({ match }: MatchCardProps) {
       </CardContent>
       <CardFooter className="flex-col items-stretch gap-2 pt-4">
         <div className="grid grid-cols-3 gap-2">
-          <Button variant="secondary" className="flex flex-col h-auto py-2">
-            <span className="text-xs text-muted-foreground">1</span>
-            <span className="font-bold">{odds.home}</span>
-          </Button>
-          <Button variant="secondary" className="flex flex-col h-auto py-2">
-            <span className="text-xs text-muted-foreground">X</span>
-            <span className="font-bold">{odds.draw}</span>
-          </Button>
-          <Button variant="secondary" className="flex flex-col h-auto py-2">
-            <span className="text-xs text-muted-foreground">2</span>
-            <span className="font-bold">{odds.away}</span>
-          </Button>
+          {homeOdd && mainMarket && (
+            <Button
+              variant={isBetSelected(`${match.id}-${mainMarket.name}-${homeOdd.label}`) ? "default" : "secondary"}
+              className="flex flex-col h-auto py-2"
+              onClick={() => handleBetClick(homeOdd)}
+            >
+              <span className="text-xs text-muted-foreground">1</span>
+              <span className="font-bold">{homeOdd.value}</span>
+            </Button>
+          )}
+          {drawOdd && mainMarket && (
+            <Button
+              variant={isBetSelected(`${match.id}-${mainMarket.name}-${drawOdd.label}`) ? "default" : "secondary"}
+              className="flex flex-col h-auto py-2"
+              onClick={() => handleBetClick(drawOdd)}
+            >
+              <span className="text-xs text-muted-foreground">X</span>
+              <span className="font-bold">{drawOdd.value}</span>
+            </Button>
+          )}
+          {awayOdd && mainMarket &&(
+            <Button
+              variant={isBetSelected(`${match.id}-${mainMarket.name}-${awayOdd.label}`) ? "default" : "secondary"}
+              className="flex flex-col h-auto py-2"
+              onClick={() => handleBetClick(awayOdd)}
+            >
+              <span className="text-xs text-muted-foreground">2</span>
+              <span className="font-bold">{awayOdd.value}</span>
+            </Button>
+          )}
         </div>
         <MoreMarketsDialog match={match}>
           <Button variant="ghost" size="sm">
