@@ -222,7 +222,7 @@ export default function AdminMatchesPage() {
             </CardContent>
 
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-                <DialogContent className="sm:max-w-4xl h-[90vh] flex flex-col">
+                <DialogContent className="sm:max-w-3xl h-[90vh] flex flex-col">
                     <DialogHeader>
                         <DialogTitle>{editingMatch ? 'Editar Partida' : 'Criar Nova Partida'}</DialogTitle>
                         <DialogDescription>
@@ -254,22 +254,25 @@ export default function AdminMatchesPage() {
                             <Accordion type="multiple" className="w-full" defaultValue={marketsConfig.map(m => m.name)}>
                                 {marketsConfig.map((market) => (
                                     <AccordionItem value={market.name} key={market.name}>
-                                        <AccordionTrigger>{market.name}</AccordionTrigger>
+                                        <AccordionTrigger className="text-base hover:no-underline">{market.name}</AccordionTrigger>
                                         <AccordionContent>
-                                            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                                                {market.odds.map((oddLabel) => (
-                                                    <div className="grid gap-2" key={oddLabel}>
-                                                        <Label htmlFor={`${market.name}-${oddLabel}`}>{oddLabel}</Label>
-                                                        <Input 
-                                                            id={`${market.name}-${oddLabel}`} 
-                                                            type="number" 
-                                                            step="0.01" 
-                                                            placeholder="1.00"
-                                                            value={(matchData.markets as any)[market.name]?.[oddLabel] || ''}
-                                                            onChange={(e) => handleOddsChange(market.name, oddLabel, e.target.value)}
-                                                        />
-                                                    </div>
-                                                ))}
+                                            <div className="p-4 bg-muted/50 rounded-md">
+                                                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                                                    {market.odds.map((oddLabel) => (
+                                                        <div className="grid gap-1.5" key={oddLabel}>
+                                                            <Label htmlFor={`${market.name}-${oddLabel}`} className="text-xs text-muted-foreground">{oddLabel}</Label>
+                                                            <Input 
+                                                                id={`${market.name}-${oddLabel}`} 
+                                                                type="number" 
+                                                                step="0.01" 
+                                                                placeholder="1.00"
+                                                                className="h-9"
+                                                                value={(matchData.markets as any)[market.name]?.[oddLabel] || ''}
+                                                                onChange={(e) => handleOddsChange(market.name, oddLabel, e.target.value)}
+                                                            />
+                                                        </div>
+                                                    ))}
+                                                </div>
                                             </div>
                                         </AccordionContent>
                                     </AccordionItem>
