@@ -71,6 +71,7 @@ const initialUsers: User[] = [
 
 export default function AdminUsersPage() {
     const [users, setUsers] = useState<User[]>(initialUsers);
+    const [searchTerm, setSearchTerm] = useState("");
     const [selectedUser, setSelectedUser] = useState<User | null>(null);
     const [editedUser, setEditedUser] = useState<User | null>(null);
     const [isAddUserDialogOpen, setIsAddUserDialogOpen] = useState(false);
@@ -112,6 +113,12 @@ export default function AdminUsersPage() {
         setNewUserDiscordId("");
     };
 
+    const filteredUsers = users.filter((user) =>
+        user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        user.discordId.toString().includes(searchTerm)
+    );
+
     return (
         <>
             <Card>
@@ -128,6 +135,14 @@ export default function AdminUsersPage() {
                     </Button>
                 </CardHeader>
                 <CardContent>
+                    <div className="py-4">
+                        <Input
+                            placeholder="Pesquisar por nome, email ou ID do Discord..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="w-full md:max-w-sm"
+                        />
+                    </div>
                     <Table>
                         <TableHeader>
                             <TableRow>
@@ -142,7 +157,7 @@ export default function AdminUsersPage() {
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {users.map((user) => (
+                            {filteredUsers.map((user) => (
                                 <TableRow key={user.id}>
                                     <TableCell>
                                         <div className="flex items-center gap-3">
