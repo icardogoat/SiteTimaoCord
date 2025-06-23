@@ -1,7 +1,8 @@
 import Link from 'next/link';
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
 import { FielBetLogo, DiscordLogo } from '@/components/icons';
 import { ArrowRight } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 export default function TimaocordHome() {
   return (
@@ -26,12 +27,10 @@ export default function TimaocordHome() {
               Entrar no Servidor
             </Link>
           </Button>
-          <Button variant="secondary" size="lg" asChild>
-            <Link href="/bet">
-              Acessar FielBet
-              <ArrowRight className="ml-2 h-5 w-5" />
-            </Link>
-          </Button>
+          <Link href="/bet" className={cn(buttonVariants({ variant: 'secondary', size: 'lg' }))}>
+            Acessar FielBet
+            <ArrowRight className="ml-2 h-5 w-5" />
+          </Link>
         </div>
       </main>
       <footer className="flex items-center justify-center p-6 text-sm text-muted-foreground">
