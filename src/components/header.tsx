@@ -2,13 +2,11 @@
 
 import * as React from 'react';
 import { SidebarTrigger, useSidebar } from '@/components/ui/sidebar';
-import { Button } from '@/components/ui/button';
-import { FielBetLogo, DiscordLogo } from '@/components/icons';
+import { FielBetLogo } from '@/components/icons';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 export function Header() {
   const { isMobile } = useSidebar();
-  const [isLoggedIn, setIsLoggedIn] = React.useState(false);
 
   return (
     <header className="sticky top-0 z-10 flex h-16 items-center justify-between border-b bg-background/80 px-4 backdrop-blur-sm sm:px-6 lg:px-8">
@@ -20,20 +18,13 @@ export function Header() {
         </div>
       </div>
       <div>
-        {isLoggedIn ? (
-          <div className="flex items-center gap-3">
-            <span className="text-sm font-medium hidden sm:inline">Bem-vindo, Fiel!</span>
-            <Avatar className="h-9 w-9">
-              <AvatarImage src="https://placehold.co/40x40.png" alt="User Avatar" data-ai-hint="user avatar" />
-              <AvatarFallback>BT</AvatarFallback>
-            </Avatar>
-          </div>
-        ) : (
-          <Button onClick={() => setIsLoggedIn(true)}>
-            <DiscordLogo className="mr-2 h-5 w-5" />
-            Login com Discord
-          </Button>
-        )}
+        <div className="flex items-center gap-3">
+          <span className="text-sm font-medium hidden sm:inline">Bem-vindo, Fiel!</span>
+          <Avatar className="h-9 w-9">
+            <AvatarImage src="https://placehold.co/40x40.png" alt="User Avatar" data-ai-hint="user avatar" />
+            <AvatarFallback>BT</AvatarFallback>
+          </Avatar>
+        </div>
       </div>
     </header>
   );

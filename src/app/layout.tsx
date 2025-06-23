@@ -3,8 +3,8 @@ import './globals.css';
 import { Toaster } from "@/components/ui/toaster"
 
 export const metadata: Metadata = {
-  title: 'FielBet',
-  description: 'Sua plataforma de apostas esportivas.',
+  title: 'Timaocord',
+  description: 'Sua comunidade e plataforma de apostas para os verdadeiros fiéis.',
 };
 
 export default function RootLayout({
