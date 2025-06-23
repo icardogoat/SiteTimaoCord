@@ -1,6 +1,7 @@
 'use client';
 
 import type { ReactNode } from 'react';
+import Link from 'next/link';
 import {
   SidebarProvider,
   Sidebar,
@@ -30,8 +31,10 @@ export function AppLayout({ children }: AppLayoutProps) {
                 <Sidebar>
                     <SidebarHeader>
                         <div className="flex items-center gap-2">
-                            <FielBetLogo className="size-7 text-primary" />
-                            <h2 className="text-lg font-semibold font-headline text-primary">FielBet</h2>
+                            <Link href="/bet" className="flex items-center gap-2">
+                                <FielBetLogo className="size-7 text-primary" />
+                                <h2 className="text-lg font-semibold font-headline text-primary">FielBet</h2>
+                            </Link>
                             <div className="grow" />
                             <SidebarTrigger />
                         </div>
