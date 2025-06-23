@@ -48,7 +48,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
                 Apostas
               </Link>
               <Link
-                href="#"
+                href="/admin/matches"
                 className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary"
               >
                 <Trophy className="h-4 w-4" />
@@ -102,7 +102,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
                             Apostas
                         </Link>
                          <Link
-                            href="#"
+                            href="/admin/matches"
                             className="mx-[-0.65rem] flex items-center gap-4 rounded-xl px-3 py-2 text-muted-foreground hover:text-foreground"
                         >
                             <Trophy className="h-5 w-5" />
