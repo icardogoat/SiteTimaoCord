@@ -45,12 +45,12 @@ import { Label } from "@/components/ui/label";
 
 // Mock data, in a real app this would come from a database
 const allBets = [
-    { id: "bet1", user: { name: "Zico da Fiel", email: "zico.fiel@example.com" }, match: "Corinthians vs Palmeiras", selection: "Casa @ 2.50", stake: 250.00, potentialWinnings: 625.00, status: "Em Aberto" },
-    { id: "bet2", user: { name: "Craque Neto 10", email: "neto10@example.com" }, match: "Flamengo vs Vasco", selection: "Sim @ 1.85", market: "Ambos Marcam", stake: 150.00, potentialWinnings: 277.50, status: "Ganha" },
-    { id: "bet3", user: { name: "Vampeta Monstro", email: "vamp@example.com" }, match: "Real Madrid vs Barcelona", selection: "Fora @ 3.30", stake: 350.00, potentialWinnings: 1155.00, status: "Perdida" },
-    { id: "bet4", user: { name: "Ronaldo Fenômeno", email: "r9@example.com" }, match: "Man. City vs Liverpool", selection: "Acima 2.5 @ 1.70", market: "Gols", stake: 450.00, potentialWinnings: 765.00, status: "Ganha" },
-    { id: "bet5", user: { name: "Cássio Gigante", email: "cassio12@example.com" }, match: "Bayern vs Dortmund", selection: "Casa -1.5 @ 2.20", market: "Handicap", stake: 550.00, potentialWinnings: 1210.00, status: "Em Aberto" },
-    { id: "bet6", user: { name: "Marcelinho Carioca", email: "pe.de.anjo@example.com" }, match: "PSG vs Marseille", selection: "Empate @ 5.00", stake: 100.00, potentialWinnings: 500.00, status: "Perdida" },
+    { id: 1001, user: { name: "Zico da Fiel", email: "zico.fiel@example.com" }, match: "Corinthians vs Palmeiras", selection: "Casa @ 2.50", stake: 250.00, potentialWinnings: 625.00, status: "Em Aberto" },
+    { id: 1002, user: { name: "Craque Neto 10", email: "neto10@example.com" }, match: "Flamengo vs Vasco", selection: "Sim @ 1.85", market: "Ambos Marcam", stake: 150.00, potentialWinnings: 277.50, status: "Ganha" },
+    { id: 1003, user: { name: "Vampeta Monstro", email: "vamp@example.com" }, match: "Real Madrid vs Barcelona", selection: "Fora @ 3.30", stake: 350.00, potentialWinnings: 1155.00, status: "Perdida" },
+    { id: 1004, user: { name: "Ronaldo Fenômeno", email: "r9@example.com" }, match: "Man. City vs Liverpool", selection: "Acima 2.5 @ 1.70", market: "Gols", stake: 450.00, potentialWinnings: 765.00, status: "Ganha" },
+    { id: 1005, user: { name: "Cássio Gigante", email: "cassio12@example.com" }, match: "Bayern vs Dortmund", selection: "Casa -1.5 @ 2.20", market: "Handicap", stake: 550.00, potentialWinnings: 1210.00, status: "Em Aberto" },
+    { id: 1006, user: { name: "Marcelinho Carioca", email: "pe.de.anjo@example.com" }, match: "PSG vs Marseille", selection: "Empate @ 5.00", stake: 100.00, potentialWinnings: 500.00, status: "Perdida" },
 ];
 
 type Bet = typeof allBets[0];
