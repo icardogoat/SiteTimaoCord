@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Card,
   CardContent,
@@ -46,7 +46,7 @@ import {
 } from "@/components/ui/select"
 
 // Mock data, in a real app this would come from a database
-const users = [
+const initialUsers = [
     { id: "user1", name: "Zico da Fiel", email: "zico.fiel@example.com", joinDate: "2025-01-15", totalBets: 58, totalWagered: 1250.75, balance: 5421.50, status: "Ativo", avatar: "https://placehold.co/40x40.png" },
     { id: "user2", name: "Craque Neto 10", email: "neto10@example.com", joinDate: "2025-02-20", totalBets: 112, totalWagered: 3450.00, balance: 12876.00, status: "Ativo", avatar: "https://placehold.co/40x40.png" },
     { id: "user3", name: "Vampeta Monstro", email: "vamp@example.com", joinDate: "2025-03-01", totalBets: 75, totalWagered: 2100.50, balance: 9876.50, status: "Suspenso", avatar: "https://placehold.co/40x40.png" },
@@ -55,11 +55,51 @@ const users = [
     { id: "user6", name: "Marcelinho Carioca", email: "pe.de.anjo@example.com", joinDate: "2025-06-18", totalBets: 32, totalWagered: 650.00, balance: 11050.25, status: "Ativo", avatar: "https://placehold.co/40x40.png" },
 ];
 
-type User = (typeof users)[0];
+type User = (typeof initialUsers)[0];
 
 
 export default function AdminUsersPage() {
+    const [users, setUsers] = useState<User[]>(initialUsers);
     const [selectedUser, setSelectedUser] = useState<User | null>(null);
+    const [editedUser, setEditedUser] = useState<User | null>(null);
+    const [isAddUserDialogOpen, setIsAddUserDialogOpen] = useState(false);
+    const [newUserName, setNewUserName] = useState("");
+    const [newUserEmail, setNewUserEmail] = useState("");
+
+    useEffect(() => {
+        if (selectedUser) {
+            setEditedUser({ ...selectedUser });
+        } else {
+            setEditedUser(null);
+        }
+    }, [selectedUser]);
+
+    const handleEditUser = () => {
+        if (!editedUser) return;
+        setUsers(users.map(u => u.id === editedUser.id ? editedUser : u));
+        setSelectedUser(null);
+    };
+
+    const handleAddUser = () => {
+        if (!newUserName || !newUserEmail) return;
+
+        const newUser: User = {
+            id: `user${users.length + 1}`,
+            name: newUserName,
+            email: newUserEmail,
+            joinDate: new Date().toISOString().split('T')[0],
+            totalBets: 0,
+            totalWagered: 0,
+            balance: 0,
+            status: "Ativo",
+            avatar: "https://placehold.co/40x40.png"
+        };
+
+        setUsers(prevUsers => [...prevUsers, newUser]);
+        setIsAddUserDialogOpen(false);
+        setNewUserName("");
+        setNewUserEmail("");
+    };
 
     return (
         <>
@@ -71,7 +111,7 @@ export default function AdminUsersPage() {
                             Gerencie os usuários da plataforma.
                         </CardDescription>
                     </div>
-                    <Button size="sm" className="gap-1">
+                    <Button size="sm" className="gap-1" onClick={() => setIsAddUserDialogOpen(true)}>
                         <PlusCircle className="h-4 w-4" />
                         Adicionar Usuário
                     </Button>
@@ -146,25 +186,39 @@ export default function AdminUsersPage() {
                             Altere as informações do usuário aqui. Clique em salvar para aplicar as mudanças.
                         </DialogDescription>
                     </DialogHeader>
-                    {selectedUser && (
+                    {editedUser && (
                         <div className="grid gap-4 py-4">
                             <div className="grid grid-cols-4 items-center gap-4">
                                 <Label htmlFor="name" className="text-right">
                                     Nome
                                 </Label>
-                                <Input id="name" defaultValue={selectedUser.name} className="col-span-3" />
+                                <Input 
+                                    id="name" 
+                                    value={editedUser.name} 
+                                    onChange={(e) => setEditedUser({...editedUser, name: e.target.value})}
+                                    className="col-span-3" 
+                                />
                             </div>
                             <div className="grid grid-cols-4 items-center gap-4">
                                 <Label htmlFor="email" className="text-right">
                                     Email
                                 </Label>
-                                <Input id="email" type="email" defaultValue={selectedUser.email} className="col-span-3" />
+                                <Input 
+                                    id="email" 
+                                    type="email" 
+                                    value={editedUser.email} 
+                                    onChange={(e) => setEditedUser({...editedUser, email: e.target.value})}
+                                    className="col-span-3" 
+                                />
                             </div>
                             <div className="grid grid-cols-4 items-center gap-4">
                                 <Label htmlFor="status" className="text-right">
                                     Status
                                 </Label>
-                                <Select defaultValue={selectedUser.status}>
+                                <Select 
+                                    value={editedUser.status}
+                                    onValueChange={(value) => setEditedUser({...editedUser, status: value as 'Ativo' | 'Suspenso'})}
+                                >
                                     <SelectTrigger className="col-span-3">
                                         <SelectValue placeholder="Selecione um status" />
                                     </SelectTrigger>
@@ -178,19 +232,48 @@ export default function AdminUsersPage() {
                                 <Label htmlFor="balance" className="text-right">
                                     Saldo
                                 </Label>
-                                <Input id="balance" defaultValue={`R$ ${selectedUser.balance.toFixed(2)}`} className="col-span-3" readOnly />
+                                <Input id="balance" value={`R$ ${editedUser.balance.toFixed(2)}`} className="col-span-3" readOnly />
                             </div>
                              <div className="grid grid-cols-4 items-center gap-4">
                                 <Label htmlFor="wagered" className="text-right">
                                     Total Apostado
                                 </Label>
-                                <Input id="wagered" defaultValue={`R$ ${selectedUser.totalWagered.toFixed(2)}`} className="col-span-3" readOnly />
+                                <Input id="wagered" value={`R$ ${editedUser.totalWagered.toFixed(2)}`} className="col-span-3" readOnly />
                             </div>
                         </div>
                     )}
                     <DialogFooter>
                         <Button type="button" variant="outline" onClick={() => setSelectedUser(null)}>Cancelar</Button>
-                        <Button type="submit" onClick={() => setSelectedUser(null)}>Salvar Alterações</Button>
+                        <Button type="submit" onClick={handleEditUser}>Salvar Alterações</Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            <Dialog open={isAddUserDialogOpen} onOpenChange={setIsAddUserDialogOpen}>
+                <DialogContent className="sm:max-w-[425px]">
+                    <DialogHeader>
+                        <DialogTitle>Adicionar Novo Usuário</DialogTitle>
+                        <DialogDescription>
+                            Preencha os dados do novo usuário. O saldo inicial será R$ 0,00.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="grid gap-4 py-4">
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor="new-name" className="text-right">
+                                Nome
+                            </Label>
+                            <Input id="new-name" value={newUserName} onChange={(e) => setNewUserName(e.target.value)} placeholder="Nome do usuário" className="col-span-3" />
+                        </div>
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor="new-email" className="text-right">
+                                Email
+                            </Label>
+                            <Input id="new-email" type="email" value={newUserEmail} onChange={(e) => setNewUserEmail(e.target.value)} placeholder="email@example.com" className="col-span-3" />
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button type="button" variant="outline" onClick={() => { setIsAddUserDialogOpen(false); setNewUserName(''); setNewUserEmail(''); }}>Cancelar</Button>
+                        <Button type="submit" onClick={handleAddUser}>Adicionar Usuário</Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
