@@ -31,3 +31,18 @@ export type Bet = {
   marketName: string;
   odd: Odd;
 };
+
+export type PlacedBet = {
+  id: string;
+  teamA: string;
+  teamB: string;
+  league: string;
+  marketName: string;
+  selection: string;
+  oddValue: string;
+  stake: number;
+  potentialWinnings: number;
+  status: 'Em Aberto' | 'Ganha' | 'Perdida';
+  matchTime: string;
+  finalResult?: string;
+};

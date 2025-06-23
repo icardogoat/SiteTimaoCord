@@ -49,7 +49,7 @@ export function Header() {
               </Link>
             </DropdownMenuItem>
             <DropdownMenuItem asChild>
-              <Link href="#">
+              <Link href="/my-bets">
                 <Ticket className="mr-2 h-4 w-4" />
                 <span>Minhas Apostas</span>
               </Link>
