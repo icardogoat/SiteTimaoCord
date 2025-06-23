@@ -2,29 +2,24 @@ import Image from 'next/image';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from './ui/badge';
-
-type Team = {
-  name: string;
-  logo: string;
-};
-
-type Match = {
-  teamA: Team;
-  teamB: Team;
-  time: string;
-  league: string;
-  odds: {
-    home: string;
-    draw: string;
-    away: string;
-  };
-};
+import type { Match, Market } from '@/types';
+import { MoreMarketsDialog } from './more-markets-dialog';
 
 interface MatchCardProps {
   match: Match;
 }
 
 export function MatchCard({ match }: MatchCardProps) {
+  const mainMarket = match.markets.find(m => m.name === 'Vencedor da Partida');
+
+  const getOddValue = (market: Market | undefined, label: string) => market?.odds.find(o => o.label === label)?.value || '-';
+
+  const odds = {
+    home: getOddValue(mainMarket, 'Casa'),
+    draw: getOddValue(mainMarket, 'Empate'),
+    away: getOddValue(mainMarket, 'Fora'),
+  };
+  
   return (
     <Card className="flex flex-col">
       <CardHeader className="flex-row items-center justify-between pb-2">
@@ -62,20 +57,22 @@ export function MatchCard({ match }: MatchCardProps) {
         <div className="grid grid-cols-3 gap-2">
           <Button variant="secondary" className="flex flex-col h-auto py-2">
             <span className="text-xs text-muted-foreground">1</span>
-            <span className="font-bold">{match.odds.home}</span>
+            <span className="font-bold">{odds.home}</span>
           </Button>
           <Button variant="secondary" className="flex flex-col h-auto py-2">
             <span className="text-xs text-muted-foreground">X</span>
-            <span className="font-bold">{match.odds.draw}</span>
+            <span className="font-bold">{odds.draw}</span>
           </Button>
           <Button variant="secondary" className="flex flex-col h-auto py-2">
             <span className="text-xs text-muted-foreground">2</span>
-            <span className="font-bold">{match.odds.away}</span>
+            <span className="font-bold">{odds.away}</span>
           </Button>
         </div>
-        <Button variant="ghost" size="sm">
-          Mais Mercados
-        </Button>
+        <MoreMarketsDialog match={match}>
+          <Button variant="ghost" size="sm">
+            Mais Mercados
+          </Button>
+        </MoreMarketsDialog>
       </CardFooter>
     </Card>
   );
