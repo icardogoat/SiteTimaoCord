@@ -1,17 +1,13 @@
 import { AppLayout } from "@/components/app-layout";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
 import type { Transaction } from "@/types";
-import { ArrowDownCircle, ArrowUpCircle } from "lucide-react";
 
 const transactions: Transaction[] = [
   { id: '1', type: 'Prêmio', description: 'Aposta ganha: Real Madrid vs Barcelona', amount: 85.00, date: '24/05/2025', status: 'Concluído' },
   { id: '2', type: 'Aposta', description: 'Aposta: Manchester City vs Liverpool', amount: -15.00, date: '25/05/2025', status: 'Concluído' },
   { id: '3', type: 'Aposta', description: 'Aposta: Flamengo vs Vasco', amount: -20.00, date: '23/05/2025', status: 'Concluído' },
-  { id: '4', type: 'Depósito', description: 'Depósito via Pix', amount: 100.00, date: '22/05/2025', status: 'Concluído' },
-  { id: '5', type: 'Saque', description: 'Saque para conta bancária', amount: -50.00, date: '20/05/2025', status: 'Pendente' },
   { id: '6', type: 'Aposta', description: 'Aposta: Corinthians vs Palmeiras', amount: -10.00, date: '21/05/2025', status: 'Concluído' },
 ];
 
@@ -51,16 +47,6 @@ export default function WalletPage() {
                             <CardContent>
                                 <p className="text-4xl font-bold">R$ {currentBalance.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
                             </CardContent>
-                            <CardFooter className="flex gap-2">
-                                <Button className="w-full">
-                                    <ArrowUpCircle className="mr-2 h-4 w-4" />
-                                    Depositar
-                                </Button>
-                                <Button variant="secondary" className="w-full">
-                                     <ArrowDownCircle className="mr-2 h-4 w-4" />
-                                    Sacar
-                                </Button>
-                            </CardFooter>
                         </Card>
                     </div>
 
@@ -68,7 +54,7 @@ export default function WalletPage() {
                          <Card>
                             <CardHeader>
                                 <CardTitle>Histórico de Transações</CardTitle>
-                                <CardDescription>Suas últimas movimentações financeiras.</CardDescription>
+                                <CardDescription>Seu histórico de ganhos e perdas.</CardDescription>
                             </CardHeader>
                             <CardContent>
                                 <Table>
