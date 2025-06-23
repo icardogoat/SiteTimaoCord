@@ -3,6 +3,7 @@
 import type { ReactNode } from 'react';
 import { createContext, useContext, useState, useCallback } from 'react';
 import type { Bet, Match, Market, Odd } from '@/types';
+import { useToast } from '@/hooks/use-toast';
 
 interface BetSlipContextType {
   bets: Bet[];
@@ -16,10 +17,20 @@ const BetSlipContext = createContext<BetSlipContextType | undefined>(undefined);
 
 export function BetSlipProvider({ children }: { children: ReactNode }) {
   const [bets, setBets] = useState<Bet[]>([]);
+  const { toast } = useToast();
 
   const toggleBet = useCallback((match: Match, market: Market, odd: Odd) => {
     const betId = `${match.id}-${market.name}-${odd.label}`;
     
+    if (bets.length > 0 && bets[0].matchId !== match.id) {
+      toast({
+        title: 'Aposta Múltipla Inválida',
+        description: 'Você só pode adicionar apostas da mesma partida no boletim.',
+        variant: 'destructive'
+      });
+      return;
+    }
+
     setBets(prevBets => {
       const existingBetIndex = prevBets.findIndex(b => b.id === betId);
       
@@ -44,7 +55,7 @@ export function BetSlipProvider({ children }: { children: ReactNode }) {
         return [...filteredBets, newBet];
       }
     });
-  }, []);
+  }, [bets, toast]);
 
   const removeBet = useCallback((betId: string) => {
     setBets(prevBets => prevBets.filter(b => b.id !== betId));
