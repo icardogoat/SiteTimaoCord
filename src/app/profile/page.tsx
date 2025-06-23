@@ -4,10 +4,31 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import type { UserRanking } from "@/types";
+import { Trophy } from "lucide-react";
+import Link from 'next/link';
+import { buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+
+// In a real app, this data would come from an API
+const rankings: UserRanking[] = [
+  { rank: 1, avatar: "https://placehold.co/40x40.png", name: "Zico da Fiel", winnings: 15230.50 },
+  { rank: 2, avatar: "https://placehold.co/40x40.png", name: "Craque Neto 10", winnings: 12876.00 },
+  { rank: 3, avatar: "https://placehold.co/40x40.png", name: "Marcelinho Carioca", winnings: 11050.25 },
+  { rank: 4, avatar: "https://placehold.co/40x40.png", name: "Vampeta Monstro", winnings: 9876.50 },
+  { rank: 5, avatar: "https://placehold.co/40x40.png", name: "Doutor Sócrates", winnings: 8543.00 },
+  { rank: 6, avatar: "https://placehold.co/40x40.png", name: "Ronaldo Fenômeno", winnings: 7321.75 },
+  { rank: 7, avatar: "https://placehold.co/40x40.png", name: "Cássio Gigante", winnings: 6987.20 },
+  { rank: 8, avatar: "https://placehold.co/40x40.png", name: "Rivelino Reizinho", winnings: 5432.10 },
+  { rank: 9, avatar: "https://placehold.co/40x40.png", name: "Biro-Biro Timao", winnings: 4999.99 },
+  { rank: 10, avatar: "https://placehold.co/40x40.png", name: "Paulinho Guerreiro", winnings: 4500.00 },
+];
 
 export default function ProfilePage() {
   const totalWinnings = 85.00;
   const totalLosses = 45.00;
+  const userName = "Biro-Biro Timao";
+  const userRankData = rankings.find(user => user.name === userName);
 
   return (
     <AppLayout>
@@ -31,12 +52,31 @@ export default function ProfilePage() {
                     </div>
                     <div className="space-y-2">
                         <Label htmlFor="name">Nome</Label>
-                        <Input id="name" defaultValue="Biro-Biro Timao" readOnly disabled />
+                        <Input id="name" defaultValue={userName} readOnly disabled />
                     </div>
                     <div className="space-y-2">
                         <Label htmlFor="email">Email</Label>
                         <Input id="email" type="email" defaultValue="biro-biro@timao.cord" readOnly disabled />
                     </div>
+                </CardContent>
+            </Card>
+
+            <Card>
+                <CardHeader>
+                    <CardTitle>Sua Posição no Ranking</CardTitle>
+                    <CardDescription>Sua colocação entre os maiores ganhadores.</CardDescription>
+                </CardHeader>
+                <CardContent className="flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                        <Trophy className="h-10 w-10 text-yellow-400" />
+                        <div>
+                            <p className="text-sm text-muted-foreground">Posição Atual</p>
+                            <p className="text-3xl font-bold">{userRankData ? `#${userRankData.rank}` : 'N/A'}</p>
+                        </div>
+                    </div>
+                    <Link href="/ranking" className={cn(buttonVariants({ variant: "outline" }))}>
+                        Ver Ranking Completo
+                    </Link>
                 </CardContent>
             </Card>
 
