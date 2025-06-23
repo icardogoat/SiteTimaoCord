@@ -1,3 +1,4 @@
+
 import Link from "next/link"
 import { ReactNode } from "react"
 import { Home, Users, Trophy, Ticket, PanelLeft } from "lucide-react"
@@ -34,13 +35,13 @@ export function AdminLayout({ children }: AdminLayoutProps) {
             <nav className="grid items-start px-2 text-sm font-medium lg:px-4">
               <Link
                 href="/admin/dashboard"
-                className="flex items-center gap-3 rounded-lg bg-muted px-3 py-2 text-primary transition-all hover:text-primary"
+                className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary"
               >
                 <Home className="h-4 w-4" />
                 Dashboard
               </Link>
               <Link
-                href="#"
+                href="/admin/bets"
                 className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary"
               >
                 <Ticket className="h-4 w-4" />
@@ -80,7 +81,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
                 <SheetContent side="left" className="flex flex-col">
                     <nav className="grid gap-2 text-lg font-medium">
                         <Link
-                            href="#"
+                            href="/admin/dashboard"
                             className="flex items-center gap-2 text-lg font-semibold mb-4"
                         >
                             <FielBetLogo className="h-6 w-6" />
@@ -88,13 +89,13 @@ export function AdminLayout({ children }: AdminLayoutProps) {
                         </Link>
                         <Link
                             href="/admin/dashboard"
-                            className="mx-[-0.65rem] flex items-center gap-4 rounded-xl bg-muted px-3 py-2 text-foreground hover:text-foreground"
+                            className="mx-[-0.65rem] flex items-center gap-4 rounded-xl px-3 py-2 text-muted-foreground hover:text-foreground"
                         >
                             <Home className="h-5 w-5" />
                             Dashboard
                         </Link>
                          <Link
-                            href="#"
+                            href="/admin/bets"
                             className="mx-[-0.65rem] flex items-center gap-4 rounded-xl px-3 py-2 text-muted-foreground hover:text-foreground"
                         >
                             <Ticket className="h-5 w-5" />
