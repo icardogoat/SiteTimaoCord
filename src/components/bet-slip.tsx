@@ -2,6 +2,7 @@
 
 import { useState, useMemo, useEffect } from 'react';
 import { useBetSlip } from '@/context/bet-slip-context';
+import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,6 +13,7 @@ import { Ticket } from 'lucide-react';
 
 export function BetSlip() {
   const { bets, clearBets } = useBetSlip();
+  const { toast } = useToast();
   const [stake, setStake] = useState('');
   const [isClient, setIsClient] = useState(false);
 
@@ -29,6 +31,16 @@ export function BetSlip() {
     if (isNaN(stakeValue) || stakeValue <= 0) return '0.00';
     return (stakeValue * totalOdds).toFixed(2);
   }, [stake, totalOdds]);
+
+  const handleBetSubmit = () => {
+    toast({
+      title: 'Aposta Realizada!',
+      description: 'Sua aposta foi registrada com sucesso. Boa sorte!',
+    });
+
+    clearBets();
+    setStake('');
+  };
 
   if (!isClient || bets.length === 0) {
     return null;
@@ -77,7 +89,11 @@ export function BetSlip() {
               <span>Ganhos Potenciais</span>
               <span>R$ {potentialWinnings}</span>
             </div>
-            <Button size="lg" disabled={!stake || parseFloat(stake) <= 0}>
+            <Button
+              size="lg"
+              disabled={!stake || parseFloat(stake) <= 0}
+              onClick={handleBetSubmit}
+            >
               Apostar
             </Button>
           </CardFooter>
