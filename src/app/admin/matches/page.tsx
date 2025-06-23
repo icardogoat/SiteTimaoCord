@@ -164,6 +164,7 @@ export default function AdminMatchesPage() {
                 <Table>
                     <TableHeader>
                         <TableRow>
+                            <TableHead className="w-[120px]">ID da Partida</TableHead>
                             <TableHead>Partida</TableHead>
                             <TableHead>Liga</TableHead>
                             <TableHead>Horário</TableHead>
@@ -176,6 +177,7 @@ export default function AdminMatchesPage() {
                     <TableBody>
                         {matches.map((match) => (
                             <TableRow key={match.id}>
+                                <TableCell className="font-mono text-xs">{match.id}</TableCell>
                                 <TableCell className="font-medium">{match.teamA} vs {match.teamB}</TableCell>
                                 <TableCell>{match.league}</TableCell>
                                 <TableCell>{new Date(match.time).toLocaleString('pt-BR')}</TableCell>
