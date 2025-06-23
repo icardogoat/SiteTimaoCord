@@ -34,7 +34,7 @@ export default function TimaocordHome() {
         </div>
       </main>
       <footer className="flex items-center justify-center p-6 text-sm text-muted-foreground">
-        <p>© 2024 Timaocord. Todos os direitos reservados.</p>
+        <p>© 2025 Timaocord. Todos os direitos reservados.</p>
       </footer>
     </div>
   );
