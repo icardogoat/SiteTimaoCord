@@ -13,7 +13,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { LogOut, User, Wallet, Ticket, Bell } from 'lucide-react';
+import { LogOut, User, Wallet, Ticket, Bell, Trophy } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
@@ -134,6 +134,12 @@ export function Header() {
               <Link href="/my-bets">
                 <Ticket className="mr-2 h-4 w-4" />
                 <span>Minhas Apostas</span>
+              </Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem asChild>
+              <Link href="/ranking">
+                <Trophy className="mr-2 h-4 w-4" />
+                <span>Ranking</span>
               </Link>
             </DropdownMenuItem>
             <DropdownMenuSeparator />

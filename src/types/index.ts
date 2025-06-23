@@ -54,3 +54,10 @@ export type Notification = {
     time: string;
     read: boolean;
 };
+
+export type UserRanking = {
+  rank: number;
+  avatar: string;
+  name: string;
+  winnings: number;
+};
