@@ -1,4 +1,6 @@
+'use client';
 
+import { useState } from "react";
 import {
   Card,
   CardContent,
@@ -35,9 +37,12 @@ import { Button } from "@/components/ui/button"
 import { MoreHorizontal, PlusCircle } from "lucide-react"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { ScrollArea } from "@/components/ui/scroll-area";
+
 
 // Mock data, in a real app this would come from a database
-const matches = [
+const matchesData = [
     { id: "match1", teamA: "Corinthians", teamB: "Palmeiras", league: "Brasileirão Série A", time: "2025-07-20T21:00:00", status: "Agendada" },
     { id: "match2", teamA: "Flamengo", teamB: "Vasco", league: "Campeonato Carioca", time: "2025-07-21T16:00:00", status: "Ao Vivo" },
     { id: "match3", teamA: "Real Madrid", teamB: "Barcelona", league: "La Liga", time: "2025-07-22T17:00:00", status: "Finalizada" },
@@ -45,7 +50,102 @@ const matches = [
     { id: "match5", teamA: "Bayern", teamB: "Dortmund", league: "Bundesliga", time: "2025-07-23T14:30:00", status: "Cancelada" },
 ];
 
+const marketsConfig = [
+    { name: "Vencedor da Partida", odds: ["Casa", "Empate", "Fora"] },
+    { name: "Vencedor do 2º Tempo", odds: ["Casa", "Empate", "Fora"] },
+    { name: "Gols Acima/Abaixo", odds: ["Acima 0.5", "Abaixo 0.5", "Acima 1.5", "Abaixo 1.5", "Acima 2.5", "Abaixo 2.5", "Acima 3.5", "Abaixo 3.5"] },
+    { name: "Gols Acima/Abaixo (1º Tempo)", odds: ["Acima 0.5", "Abaixo 0.5", "Acima 1.5", "Abaixo 1.5"] },
+    { name: "Gols Acima/Abaixo (2º Tempo)", odds: ["Acima 0.5", "Abaixo 0.5", "Acima 1.5", "Abaixo 1.5"] },
+    { name: "Dupla Chance HT/FT", odds: ["Casa/Empate", "Casa/Fora", "Empate/Casa", "Empate/Fora", "Fora/Casa", "Fora/Empate"] },
+    { name: "Ambos Marcam (BTTS)", odds: ["Sim", "Não"] },
+    { name: "Handicap de Resultado", odds: ["Casa -1", "Empate -1", "Fora +1", "Casa +1", "Fora -1"] },
+    { name: "Placar Exato", odds: ["1-0", "2-1", "0-0", "1-1", "0-1", "1-2"] },
+    { name: "Placar Exato (1º Tempo)", odds: ["1-0", "0-0", "0-1", "1-1"] },
+    { name: "Vencedor do 1º Tempo", odds: ["Casa", "Empate", "Fora"] },
+    { name: "Total de Gols da Casa", odds: ["Acima 0.5", "Abaixo 0.5", "Acima 1.5", "Abaixo 1.5"] },
+    { name: "Total de Gols do Visitante", odds: ["Acima 0.5", "Abaixo 0.5", "Acima 1.5", "Abaixo 1.5"] },
+    { name: "Dupla Chance (1º Tempo)", odds: ["Casa ou Empate", "Fora ou Empate", "Casa ou Fora"] },
+    { name: "Dupla Chance (2º Tempo)", odds: ["Casa ou Empate", "Fora ou Empate", "Casa ou Fora"] },
+    { name: "Ímpar/Par", odds: ["Ímpar", "Par"] },
+    { name: "Escanteios 1x2", odds: ["Casa", "Empate", "Fora"] },
+    { name: "Escanteios Acima/Abaixo", odds: ["Acima 8.5", "Abaixo 8.5", "Acima 10.5", "Abaixo 10.5"] },
+    { name: "Total de Gols da Casa (1º Tempo)", odds: ["Acima 0.5", "Abaixo 0.5"] },
+    { name: "Total de Gols do Visitante (1º Tempo)", odds: ["Acima 0.5", "Abaixo 0.5"] },
+    { name: "Aposta sem Empate (1º Tempo)", odds: ["Casa", "Fora"] },
+    { name: "Aposta sem Empate (2º Tempo)", odds: ["Casa", "Fora"] },
+    { name: "Escanteios da Casa Acima/Abaixo", odds: ["Acima 4.5", "Abaixo 4.5"] },
+    { name: "Escanteios do Visitante Acima/Abaixo", odds: ["Acima 3.5", "Abaixo 3.5"] },
+    { name: "Total de Escanteios (1º Tempo)", odds: ["Acima 4.5", "Abaixo 4.5"] },
+    { name: "Cartões Acima/Abaixo", odds: ["Acima 3.5", "Abaixo 3.5", "Acima 4.5", "Abaixo 4.5"] },
+];
+
+const initialMatchState = {
+    teamA: "",
+    teamB: "",
+    league: "",
+    time: "",
+    markets: {}
+};
+
 export default function AdminMatchesPage() {
+    const [matches, setMatches] = useState(matchesData);
+    const [isDialogOpen, setIsDialogOpen] = useState(false);
+    const [editingMatch, setEditingMatch] = useState<typeof matchesData[0] | null>(null);
+    const [matchData, setMatchData] = useState(initialMatchState);
+
+    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const { id, value } = e.target;
+        setMatchData(prev => ({ ...prev, [id]: value }));
+    };
+
+    const handleOddsChange = (marketName: string, oddLabel: string, value: string) => {
+        setMatchData(prev => ({
+            ...prev,
+            markets: {
+                ...prev.markets,
+                [marketName]: {
+                    ...(prev.markets as any)[marketName],
+                    [oddLabel]: value
+                }
+            }
+        }));
+    };
+
+    const openCreateDialog = () => {
+        setEditingMatch(null);
+        setMatchData(initialMatchState);
+        setIsDialogOpen(true);
+    };
+
+    const openEditDialog = (match: typeof matchesData[0]) => {
+        setEditingMatch(match);
+        setMatchData({
+            teamA: match.teamA,
+            teamB: match.teamB,
+            league: match.league,
+            time: match.time.substring(0, 16), // Format for datetime-local
+            markets: (match as any).markets || {} // Load existing odds if available
+        });
+        setIsDialogOpen(true);
+    };
+
+    const handleSave = () => {
+        if (editingMatch) {
+            console.log("Updating match", editingMatch.id, "with data:", matchData);
+            // Here you would update the match in your state/database
+        } else {
+            console.log("Creating new match with data:", matchData);
+            const newMatch = {
+                id: `match${matches.length + 1}`,
+                status: 'Agendada',
+                ...matchData,
+                time: new Date(matchData.time).toISOString()
+            };
+            setMatches(prev => [...prev, newMatch]);
+        }
+        setIsDialogOpen(false);
+    };
+
     return (
         <Card>
             <CardHeader className="flex flex-row items-center justify-between">
@@ -55,51 +155,10 @@ export default function AdminMatchesPage() {
                         Adicione, edite ou remova partidas da plataforma.
                     </CardDescription>
                 </div>
-                <Dialog>
-                    <DialogTrigger asChild>
-                        <Button size="sm" className="gap-1">
-                            <PlusCircle className="h-4 w-4" />
-                            Criar Partida
-                        </Button>
-                    </DialogTrigger>
-                    <DialogContent className="sm:max-w-[425px]">
-                        <DialogHeader>
-                            <DialogTitle>Criar Nova Partida</DialogTitle>
-                            <DialogDescription>
-                                Preencha os detalhes da nova partida.
-                            </DialogDescription>
-                        </DialogHeader>
-                        <div className="grid gap-4 py-4">
-                            <div className="grid grid-cols-4 items-center gap-4">
-                                <Label htmlFor="teamA" className="text-right">
-                                    Time A
-                                </Label>
-                                <Input id="teamA" defaultValue="Corinthians" className="col-span-3" />
-                            </div>
-                            <div className="grid grid-cols-4 items-center gap-4">
-                                <Label htmlFor="teamB" className="text-right">
-                                    Time B
-                                </Label>
-                                <Input id="teamB" defaultValue="São Paulo" className="col-span-3" />
-                            </div>
-                             <div className="grid grid-cols-4 items-center gap-4">
-                                <Label htmlFor="league" className="text-right">
-                                    Liga
-                                </Label>
-                                <Input id="league" defaultValue="Brasileirão Série A" className="col-span-3" />
-                            </div>
-                            <div className="grid grid-cols-4 items-center gap-4">
-                                <Label htmlFor="time" className="text-right">
-                                    Data/Hora
-                                </Label>
-                                <Input id="time" type="datetime-local" className="col-span-3" />
-                            </div>
-                        </div>
-                        <DialogFooter>
-                            <Button type="submit">Salvar Partida</Button>
-                        </DialogFooter>
-                    </DialogContent>
-                </Dialog>
+                 <Button size="sm" className="gap-1" onClick={openCreateDialog}>
+                    <PlusCircle className="h-4 w-4" />
+                    Criar Partida
+                </Button>
             </CardHeader>
             <CardContent>
                 <Table>
@@ -142,8 +201,7 @@ export default function AdminMatchesPage() {
                                         </DropdownMenuTrigger>
                                         <DropdownMenuContent align="end">
                                             <DropdownMenuLabel>Ações</DropdownMenuLabel>
-                                            <DropdownMenuItem>Editar</DropdownMenuItem>
-                                            <DropdownMenuItem>Adicionar Mercados</DropdownMenuItem>
+                                            <DropdownMenuItem onClick={() => openEditDialog(match)}>Editar</DropdownMenuItem>
                                             {match.status === "Agendada" && <DropdownMenuItem>Iniciar Partida</DropdownMenuItem>}
                                             {match.status === "Ao Vivo" && <DropdownMenuItem>Resolver Partida</DropdownMenuItem>}
                                             <DropdownMenuItem className="text-destructive">Cancelar Partida</DropdownMenuItem>
@@ -155,6 +213,67 @@ export default function AdminMatchesPage() {
                     </TableBody>
                 </Table>
             </CardContent>
+
+            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+                <DialogContent className="sm:max-w-4xl h-[90vh] flex flex-col">
+                    <DialogHeader>
+                        <DialogTitle>{editingMatch ? 'Editar Partida' : 'Criar Nova Partida'}</DialogTitle>
+                        <DialogDescription>
+                            {editingMatch 
+                                ? 'Altere os detalhes da partida e as odds dos mercados.' 
+                                : 'Preencha os detalhes da nova partida e as odds para os mercados.'}
+                        </DialogDescription>
+                    </DialogHeader>
+                    <ScrollArea className="flex-grow pr-6 -mr-6">
+                        <div className="grid gap-4 py-4">
+                            <div className="grid grid-cols-4 items-center gap-4">
+                                <Label htmlFor="teamA" className="text-right">Time A</Label>
+                                <Input id="teamA" value={matchData.teamA} onChange={handleInputChange} className="col-span-3" />
+                            </div>
+                            <div className="grid grid-cols-4 items-center gap-4">
+                                <Label htmlFor="teamB" className="text-right">Time B</Label>
+                                <Input id="teamB" value={matchData.teamB} onChange={handleInputChange} className="col-span-3" />
+                            </div>
+                            <div className="grid grid-cols-4 items-center gap-4">
+                                <Label htmlFor="league" className="text-right">Liga</Label>
+                                <Input id="league" value={matchData.league} onChange={handleInputChange} className="col-span-3" />
+                            </div>
+                            <div className="grid grid-cols-4 items-center gap-4">
+                                <Label htmlFor="time" className="text-right">Data/Hora</Label>
+                                <Input id="time" type="datetime-local" value={matchData.time} onChange={handleInputChange} className="col-span-3" />
+                            </div>
+                        </div>
+                        <Accordion type="multiple" className="w-full" defaultValue={marketsConfig.map(m => m.name)}>
+                            {marketsConfig.map((market) => (
+                                <AccordionItem value={market.name} key={market.name}>
+                                    <AccordionTrigger>{market.name}</AccordionTrigger>
+                                    <AccordionContent>
+                                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                                            {market.odds.map((oddLabel) => (
+                                                <div className="grid gap-2" key={oddLabel}>
+                                                    <Label htmlFor={`${market.name}-${oddLabel}`}>{oddLabel}</Label>
+                                                    <Input 
+                                                        id={`${market.name}-${oddLabel}`} 
+                                                        type="number" 
+                                                        step="0.01" 
+                                                        placeholder="1.00"
+                                                        value={(matchData.markets as any)[market.name]?.[oddLabel] || ''}
+                                                        onChange={(e) => handleOddsChange(market.name, oddLabel, e.target.value)}
+                                                    />
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </AccordionContent>
+                                </AccordionItem>
+                            ))}
+                        </Accordion>
+                    </ScrollArea>
+                    <DialogFooter>
+                         <Button variant="outline" onClick={() => setIsDialogOpen(false)}>Cancelar</Button>
+                        <Button type="submit" onClick={handleSave}>Salvar Partida</Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </Card>
     )
 }
