@@ -105,7 +105,7 @@ export default function AdminUsersPage() {
                                             </div>
                                         </div>
                                     </TableCell>
-                                    <TableCell>{new Date(user.joinDate).toLocaleDateString('pt-BR')}</TableCell>
+                                    <TableCell>{new Date(user.joinDate).toLocaleDateString('pt-BR', { timeZone: 'UTC' })}</TableCell>
                                     <TableCell className="text-center">
                                         <Badge variant={user.status === "Ativo" ? "outline" : "destructive"}>
                                             {user.status}
