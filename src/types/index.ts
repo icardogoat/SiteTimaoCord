@@ -61,3 +61,12 @@ export type UserRanking = {
   name: string;
   winnings: number;
 };
+
+export type Transaction = {
+  id: string;
+  type: 'Depósito' | 'Saque' | 'Aposta' | 'Prêmio';
+  description: string;
+  amount: number;
+  date: string;
+  status: 'Concluído' | 'Pendente' | 'Cancelado';
+};

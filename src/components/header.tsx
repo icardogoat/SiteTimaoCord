@@ -131,6 +131,12 @@ export function Header() {
               </Link>
             </DropdownMenuItem>
             <DropdownMenuItem asChild>
+              <Link href="/wallet">
+                <Wallet className="mr-2 h-4 w-4" />
+                <span>Carteira</span>
+              </Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem asChild>
               <Link href="/my-bets">
                 <Ticket className="mr-2 h-4 w-4" />
                 <span>Minhas Apostas</span>
