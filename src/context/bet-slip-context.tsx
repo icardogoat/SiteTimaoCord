@@ -22,40 +22,66 @@ export function BetSlipProvider({ children }: { children: ReactNode }) {
   const toggleBet = useCallback((match: Match, market: Market, odd: Odd) => {
     const betId = `${match.id}-${market.name}-${odd.label}`;
     
-    if (bets.length > 0 && bets[0].matchId !== match.id) {
-      toast({
-        title: 'Aposta Múltipla Inválida',
-        description: 'Você só pode adicionar apostas da mesma partida no boletim.',
-        variant: 'destructive'
-      });
-      return;
-    }
-
     setBets(prevBets => {
       const existingBetIndex = prevBets.findIndex(b => b.id === betId);
       
       if (existingBetIndex > -1) {
-        // Bet exists, so remove it
         return prevBets.filter(b => b.id !== betId);
-      } else {
-        // Bet does not exist, add it.
-        // First, remove any other bet from the same market for the same match.
-        const marketIdPrefix = `${match.id}-${market.name}-`;
-        const filteredBets = prevBets.filter(b => !b.id.startsWith(marketIdPrefix));
+      }
+      
+      const newBet: Bet = {
+        id: betId,
+        matchId: match.id,
+        matchTime: match.time,
+        teamA: match.teamA.name,
+        teamB: match.teamB.name,
+        marketName: market.name,
+        odd: odd,
+      };
+
+      if (prevBets.length === 0) {
+        return [newBet];
+      }
+
+      const isSlipInMultipleMode = prevBets.every(b => b.marketName === 'Vencedor da Partida');
+      
+      if (isSlipInMultipleMode) {
+        if (newBet.marketName === 'Vencedor da Partida') {
+          return [...prevBets, newBet];
+        }
         
-        const newBet: Bet = {
-          id: betId,
-          matchId: match.id,
-          matchTime: match.time,
-          teamA: match.teamA.name,
-          teamB: match.teamB.name,
-          marketName: market.name,
-          odd: odd,
-        };
-        return [...filteredBets, newBet];
+        const firstMatchId = prevBets[0].matchId;
+        const areAllBetsFromSameMatch = prevBets.every(b => b.matchId === firstMatchId);
+        
+        if (areAllBetsFromSameMatch && newBet.matchId === firstMatchId) {
+            const marketIdPrefix = `${match.id}-${market.name}-`;
+            const filteredBets = prevBets.filter(b => !b.id.startsWith(marketIdPrefix));
+            return [...filteredBets, newBet];
+        } else {
+          toast({
+            title: 'Aposta Múltipla Inválida',
+            description: 'Você só pode combinar "Vencedor da Partida" de jogos diferentes. Para outros mercados, todas as apostas devem ser do mesmo jogo.',
+            variant: 'destructive'
+          });
+          return prevBets;
+        }
+      } else {
+        const firstMatchId = prevBets[0].matchId;
+        if (newBet.matchId === firstMatchId) {
+            const marketIdPrefix = `${match.id}-${market.name}-`;
+            const filteredBets = prevBets.filter(b => !b.id.startsWith(marketIdPrefix));
+            return [...filteredBets, newBet];
+        } else {
+          toast({
+            title: 'Aposta Múltipla Inválida',
+            description: 'Você só pode adicionar apostas da mesma partida no boletim.',
+            variant: 'destructive'
+          });
+          return prevBets;
+        }
       }
     });
-  }, [bets, toast]);
+  }, [toast]);
 
   const removeBet = useCallback((betId: string) => {
     setBets(prevBets => prevBets.filter(b => b.id !== betId));
