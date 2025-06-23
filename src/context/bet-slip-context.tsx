@@ -21,67 +21,69 @@ export function BetSlipProvider({ children }: { children: ReactNode }) {
 
   const toggleBet = useCallback((match: Match, market: Market, odd: Odd) => {
     const betId = `${match.id}-${market.name}-${odd.label}`;
+    const existingBet = bets.find(b => b.id === betId);
+
+    if (existingBet) {
+      setBets(prevBets => prevBets.filter(b => b.id !== betId));
+      return;
+    }
+
+    const newBet: Bet = {
+      id: betId,
+      matchId: match.id,
+      matchTime: match.time,
+      teamA: match.teamA.name,
+      teamB: match.teamB.name,
+      marketName: market.name,
+      odd: odd,
+    };
+
+    if (bets.length === 0) {
+      setBets([newBet]);
+      return;
+    }
+
+    const isSlipInMultipleMode = bets.every(b => b.marketName === 'Vencedor da Partida');
     
-    setBets(prevBets => {
-      const existingBetIndex = prevBets.findIndex(b => b.id === betId);
-      
-      if (existingBetIndex > -1) {
-        return prevBets.filter(b => b.id !== betId);
+    if (isSlipInMultipleMode) {
+      if (newBet.marketName === 'Vencedor da Partida') {
+        setBets(prevBets => [...prevBets, newBet]);
+        return;
       }
       
-      const newBet: Bet = {
-        id: betId,
-        matchId: match.id,
-        matchTime: match.time,
-        teamA: match.teamA.name,
-        teamB: match.teamB.name,
-        marketName: market.name,
-        odd: odd,
-      };
-
-      if (prevBets.length === 0) {
-        return [newBet];
-      }
-
-      const isSlipInMultipleMode = prevBets.every(b => b.marketName === 'Vencedor da Partida');
+      const firstMatchId = bets[0].matchId;
+      const areAllBetsFromSameMatch = bets.every(b => b.matchId === firstMatchId);
       
-      if (isSlipInMultipleMode) {
-        if (newBet.marketName === 'Vencedor da Partida') {
-          return [...prevBets, newBet];
-        }
-        
-        const firstMatchId = prevBets[0].matchId;
-        const areAllBetsFromSameMatch = prevBets.every(b => b.matchId === firstMatchId);
-        
-        if (areAllBetsFromSameMatch && newBet.matchId === firstMatchId) {
+      if (areAllBetsFromSameMatch && newBet.matchId === firstMatchId) {
+          setBets(prevBets => {
             const marketIdPrefix = `${match.id}-${market.name}-`;
             const filteredBets = prevBets.filter(b => !b.id.startsWith(marketIdPrefix));
             return [...filteredBets, newBet];
-        } else {
-          toast({
-            title: 'Aposta Múltipla Inválida',
-            description: 'Você só pode combinar "Vencedor da Partida" de jogos diferentes. Para outros mercados, todas as apostas devem ser do mesmo jogo.',
-            variant: 'destructive'
           });
-          return prevBets;
-        }
       } else {
-        const firstMatchId = prevBets[0].matchId;
-        if (newBet.matchId === firstMatchId) {
+        toast({
+          title: 'Aposta Múltipla Inválida',
+          description: 'Você só pode combinar "Vencedor da Partida" de jogos diferentes. Para outros mercados, todas as apostas devem ser do mesmo jogo.',
+          variant: 'destructive'
+        });
+      }
+    } else {
+      const firstMatchId = bets[0].matchId;
+      if (newBet.matchId === firstMatchId) {
+          setBets(prevBets => {
             const marketIdPrefix = `${match.id}-${market.name}-`;
             const filteredBets = prevBets.filter(b => !b.id.startsWith(marketIdPrefix));
             return [...filteredBets, newBet];
-        } else {
-          toast({
-            title: 'Aposta Múltipla Inválida',
-            description: 'Você só pode adicionar apostas da mesma partida no boletim.',
-            variant: 'destructive'
           });
-          return prevBets;
-        }
+      } else {
+        toast({
+          title: 'Aposta Múltipla Inválida',
+          description: 'Você só pode adicionar apostas da mesma partida no boletim.',
+          variant: 'destructive'
+        });
       }
-    });
-  }, [toast]);
+    }
+  }, [bets, toast]);
 
   const removeBet = useCallback((betId: string) => {
     setBets(prevBets => prevBets.filter(b => b.id !== betId));
