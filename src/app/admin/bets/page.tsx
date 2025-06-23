@@ -66,6 +66,7 @@ export default function AdminBetsPage() {
         <Table>
             <TableHeader>
                 <TableRow>
+                    <TableHead className="w-[100px]">ID da Aposta</TableHead>
                     <TableHead>Usuário</TableHead>
                     <TableHead>Partida</TableHead>
                     <TableHead>Seleção</TableHead>
@@ -80,6 +81,7 @@ export default function AdminBetsPage() {
             <TableBody>
                 {bets.map((bet) => (
                     <TableRow key={bet.id}>
+                        <TableCell className="font-mono text-xs">{bet.id}</TableCell>
                         <TableCell>
                             <div className="font-medium">{bet.user.name}</div>
                             <div className="text-sm text-muted-foreground">{bet.user.email}</div>
@@ -195,6 +197,10 @@ export default function AdminBetsPage() {
                 </DialogHeader>
                 {selectedBet && (
                     <div className="grid gap-4 py-4 text-sm">
+                        <div className="flex items-start justify-between">
+                            <Label className="font-semibold">ID da Aposta</Label>
+                            <p className="font-mono text-xs">{selectedBet.id}</p>
+                        </div>
                         <div className="flex items-start justify-between">
                             <Label className="font-semibold">Usuário</Label>
                             <div className="text-right">
