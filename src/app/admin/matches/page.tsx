@@ -43,11 +43,11 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 
 // Mock data, in a real app this would come from a database
 const matchesData = [
-    { id: "match1", teamA: "Corinthians", teamB: "Palmeiras", league: "Brasileirão Série A", time: "2025-07-20T21:00:00", status: "Agendada" },
-    { id: "match2", teamA: "Flamengo", teamB: "Vasco", league: "Campeonato Carioca", time: "2025-07-21T16:00:00", status: "Ao Vivo" },
-    { id: "match3", teamA: "Real Madrid", teamB: "Barcelona", league: "La Liga", time: "2025-07-22T17:00:00", status: "Finalizada" },
-    { id: "match4", teamA: "Man. City", teamB: "Liverpool", league: "Premier League", time: "2025-07-23T12:30:00", status: "Agendada" },
-    { id: "match5", teamA: "Bayern", teamB: "Dortmund", league: "Bundesliga", time: "2025-07-23T14:30:00", status: "Cancelada" },
+    { id: 1, teamA: "Corinthians", teamB: "Palmeiras", league: "Brasileirão Série A", time: "2025-07-20T21:00:00", status: "Agendada" },
+    { id: 2, teamA: "Flamengo", teamB: "Vasco", league: "Campeonato Carioca", time: "2025-07-21T16:00:00", status: "Ao Vivo" },
+    { id: 3, teamA: "Real Madrid", teamB: "Barcelona", league: "La Liga", time: "2025-07-22T17:00:00", status: "Finalizada" },
+    { id: 4, teamA: "Man. City", teamB: "Liverpool", league: "Premier League", time: "2025-07-23T12:30:00", status: "Agendada" },
+    { id: 5, teamA: "Bayern", teamB: "Dortmund", league: "Bundesliga", time: "2025-07-23T14:30:00", status: "Cancelada" },
 ];
 
 const marketsConfig = [
@@ -87,10 +87,12 @@ const initialMatchState = {
     markets: {}
 };
 
+type Match = typeof matchesData[0];
+
 export default function AdminMatchesPage() {
     const [matches, setMatches] = useState(matchesData);
     const [isDialogOpen, setIsDialogOpen] = useState(false);
-    const [editingMatch, setEditingMatch] = useState<typeof matchesData[0] | null>(null);
+    const [editingMatch, setEditingMatch] = useState<Match | null>(null);
     const [matchData, setMatchData] = useState(initialMatchState);
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -117,7 +119,7 @@ export default function AdminMatchesPage() {
         setIsDialogOpen(true);
     };
 
-    const openEditDialog = (match: typeof matchesData[0]) => {
+    const openEditDialog = (match: Match) => {
         setEditingMatch(match);
         setMatchData({
             teamA: match.teamA,
@@ -131,12 +133,15 @@ export default function AdminMatchesPage() {
 
     const handleSave = () => {
         if (editingMatch) {
-            console.log("Updating match", editingMatch.id, "with data:", matchData);
-            // Here you would update the match in your state/database
+            setMatches(prev => prev.map(match =>
+                match.id === editingMatch.id
+                    ? { ...editingMatch, ...matchData, time: new Date(matchData.time).toISOString() }
+                    : match
+            ));
         } else {
-            console.log("Creating new match with data:", matchData);
-            const newMatch = {
-                id: `match${matches.length + 1}`,
+            const newId = matches.length > 0 ? Math.max(...matches.map(m => m.id)) + 1 : 1;
+            const newMatch: Match = {
+                id: newId,
                 status: 'Agendada',
                 ...matchData,
                 time: new Date(matchData.time).toISOString()
@@ -180,7 +185,7 @@ export default function AdminMatchesPage() {
                                 <TableCell className="font-mono text-xs">{match.id}</TableCell>
                                 <TableCell className="font-medium">{match.teamA} vs {match.teamB}</TableCell>
                                 <TableCell>{match.league}</TableCell>
-                                <TableCell>{new Date(match.time).toLocaleString('pt-BR')}</TableCell>
+                                <TableCell>{new Date(match.time).toLocaleString('pt-BR', {timeZone: 'UTC'})}</TableCell>
                                 <TableCell className="text-center">
                                     <Badge variant={
                                         match.status === "Ao Vivo" ? "destructive" :
