@@ -11,7 +11,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { BetSlipItem } from './bet-slip-item';
 import { Ticket } from 'lucide-react';
 import { useSidebar } from '@/components/ui/sidebar';
-import { Sheet, SheetContent, SheetTrigger } from './ui/sheet';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from './ui/sheet';
 import { Badge } from './ui/badge';
 
 export function BetSlip() {
@@ -61,19 +61,8 @@ export function BetSlip() {
     return null;
   }
 
-  const BetSlipContents = (
+  const BetSlipBody = (
       <>
-        <CardHeader className="flex-row items-center justify-between p-4">
-          <div className="flex items-center gap-2">
-            <Ticket className="size-5" />
-            <CardTitle className="text-lg">Boletim de Apostas</CardTitle>
-          </div>
-          {bets.length > 0 && (
-            <Button variant="ghost" size="sm" onClick={handleClearBets} className="text-xs">
-              Limpar
-            </Button>
-          )}
-        </CardHeader>
         <ScrollArea className="flex-grow">
           <CardContent className="p-4 pt-0">
             <div className="space-y-3">
@@ -131,7 +120,18 @@ export function BetSlip() {
             </SheetTrigger>
             <SheetContent side="bottom" className="h-auto max-h-[90vh] flex flex-col p-0 rounded-t-lg">
                 <div className="flex flex-col h-full">
-                    {BetSlipContents}
+                    <SheetHeader className="flex-row items-center justify-between p-4 border-b">
+                         <div className="flex items-center gap-2">
+                            <Ticket className="size-5" />
+                            <SheetTitle className="text-lg">Boletim de Apostas</SheetTitle>
+                        </div>
+                        {bets.length > 0 && (
+                            <Button variant="ghost" size="sm" onClick={handleClearBets} className="text-xs">
+                            Limpar
+                            </Button>
+                        )}
+                    </SheetHeader>
+                    {BetSlipBody}
                 </div>
             </SheetContent>
         </Sheet>
@@ -141,7 +141,18 @@ export function BetSlip() {
   return (
     <div className="fixed bottom-0 right-0 z-20 w-full max-w-sm p-4 hidden md:block">
       <Card className="flex flex-col max-h-[calc(100vh-2rem)]">
-        {BetSlipContents}
+        <CardHeader className="flex-row items-center justify-between p-4">
+          <div className="flex items-center gap-2">
+            <Ticket className="size-5" />
+            <CardTitle className="text-lg">Boletim de Apostas</CardTitle>
+          </div>
+          {bets.length > 0 && (
+            <Button variant="ghost" size="sm" onClick={handleClearBets} className="text-xs">
+              Limpar
+            </Button>
+          )}
+        </CardHeader>
+        {BetSlipBody}
       </Card>
     </div>
   );
