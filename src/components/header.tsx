@@ -105,7 +105,7 @@ export function Header() {
                 <>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem asChild>
-                        <Link href="#" className="flex items-center justify-center p-2 text-sm font-medium text-primary">
+                        <Link href="/notifications" className="flex items-center justify-center p-2 text-sm font-medium text-primary">
                             Ver todas as notificações
                         </Link>
                     </DropdownMenuItem>
