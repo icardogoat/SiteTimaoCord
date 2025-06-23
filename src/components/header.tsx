@@ -13,7 +13,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { LogOut, User } from 'lucide-react';
+import { LogOut, User, Wallet } from 'lucide-react';
 
 export function Header() {
   const { isMobile } = useSidebar();
@@ -27,8 +27,11 @@ export function Header() {
           <h1 className="text-lg font-semibold font-headline text-primary">FielBet</h1>
         </div>
       </div>
-      <div className="flex items-center gap-3">
-        <span className="text-sm font-medium hidden sm:inline">Bem-vindo, Fiel!</span>
+      <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2 rounded-md border bg-card px-3 py-1.5 text-sm">
+          <Wallet className="size-4 text-muted-foreground" />
+          <span className="font-semibold text-foreground">R$ 1.234,56</span>
+        </div>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Avatar className="h-9 w-9 cursor-pointer">
