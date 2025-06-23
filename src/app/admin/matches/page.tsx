@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from "react";
@@ -31,7 +32,6 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { MoreHorizontal, PlusCircle } from "lucide-react"
@@ -231,32 +231,31 @@ export default function AdminMatchesPage() {
                                 : 'Preencha os detalhes da nova partida e as odds para os mercados.'}
                         </DialogDescription>
                     </DialogHeader>
-                    <ScrollArea className="flex-grow">
-                        <div className="pr-4">
-                            <div className="grid gap-4 py-4">
-                                <div className="grid grid-cols-4 items-center gap-4">
-                                    <Label htmlFor="teamA" className="text-right">Time A</Label>
-                                    <Input id="teamA" value={matchData.teamA} onChange={handleInputChange} className="col-span-3" />
-                                </div>
-                                <div className="grid grid-cols-4 items-center gap-4">
-                                    <Label htmlFor="teamB" className="text-right">Time B</Label>
-                                    <Input id="teamB" value={matchData.teamB} onChange={handleInputChange} className="col-span-3" />
-                                </div>
-                                <div className="grid grid-cols-4 items-center gap-4">
-                                    <Label htmlFor="league" className="text-right">Liga</Label>
-                                    <Input id="league" value={matchData.league} onChange={handleInputChange} className="col-span-3" />
-                                </div>
-                                <div className="grid grid-cols-4 items-center gap-4">
-                                    <Label htmlFor="time" className="text-right">Data/Hora</Label>
-                                    <Input id="time" type="datetime-local" value={matchData.time} onChange={handleInputChange} className="col-span-3" />
-                                </div>
+                    <ScrollArea className="flex-grow -mx-6 px-6">
+                         <div className="space-y-4 py-4">
+                            <div className="grid grid-cols-4 items-center gap-4">
+                                <Label htmlFor="teamA" className="text-right">Time A</Label>
+                                <Input id="teamA" value={matchData.teamA} onChange={handleInputChange} className="col-span-3" />
                             </div>
+                            <div className="grid grid-cols-4 items-center gap-4">
+                                <Label htmlFor="teamB" className="text-right">Time B</Label>
+                                <Input id="teamB" value={matchData.teamB} onChange={handleInputChange} className="col-span-3" />
+                            </div>
+                            <div className="grid grid-cols-4 items-center gap-4">
+                                <Label htmlFor="league" className="text-right">Liga</Label>
+                                <Input id="league" value={matchData.league} onChange={handleInputChange} className="col-span-3" />
+                            </div>
+                            <div className="grid grid-cols-4 items-center gap-4">
+                                <Label htmlFor="time" className="text-right">Data/Hora</Label>
+                                <Input id="time" type="datetime-local" value={matchData.time} onChange={handleInputChange} className="col-span-3" />
+                            </div>
+                        
                             <Accordion type="multiple" className="w-full" defaultValue={marketsConfig.map(m => m.name)}>
                                 {marketsConfig.map((market) => (
                                     <AccordionItem value={market.name} key={market.name}>
                                         <AccordionTrigger className="text-base hover:no-underline">{market.name}</AccordionTrigger>
                                         <AccordionContent>
-                                            <div className="p-4 bg-muted/50 rounded-md">
+                                            <div className="p-4 bg-muted/40 rounded-md border">
                                                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                                                     {market.odds.map((oddLabel) => (
                                                         <div className="grid gap-1.5" key={oddLabel}>
@@ -280,7 +279,7 @@ export default function AdminMatchesPage() {
                             </Accordion>
                         </div>
                     </ScrollArea>
-                    <DialogFooter>
+                    <DialogFooter className="border-t pt-4">
                          <Button variant="outline" onClick={() => setIsDialogOpen(false)}>Cancelar</Button>
                         <Button type="submit" onClick={handleSave}>Salvar Partida</Button>
                     </DialogFooter>
