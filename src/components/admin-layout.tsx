@@ -1,7 +1,7 @@
 
 import Link from "next/link"
 import { ReactNode } from "react"
-import { Home, Users, Trophy, Ticket, PanelLeft } from "lucide-react"
+import { Home, Users, Trophy, Ticket, Menu } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -74,7 +74,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
                     size="icon"
                     className="shrink-0 md:hidden"
                     >
-                    <PanelLeft className="h-5 w-5" />
+                    <Menu className="h-5 w-5" />
                     <span className="sr-only">Toggle navigation menu</span>
                     </Button>
                 </SheetTrigger>

@@ -151,10 +151,10 @@ export default function AdminUsersPage() {
                             <TableRow>
                                 <TableHead className="text-center">Rank</TableHead>
                                 <TableHead>Usuário</TableHead>
-                                <TableHead>Data de Cadastro</TableHead>
+                                <TableHead className="hidden md:table-cell">Data de Cadastro</TableHead>
                                 <TableHead className="text-center">Status</TableHead>
                                 <TableHead className="text-right">Saldo</TableHead>
-                                <TableHead className="text-right">Total Apostado</TableHead>
+                                <TableHead className="hidden text-right lg:table-cell">Total Apostado</TableHead>
                                 <TableHead>
                                     <span className="sr-only">Ações</span>
                                 </TableHead>
@@ -177,14 +177,14 @@ export default function AdminUsersPage() {
                                             </div>
                                         </div>
                                     </TableCell>
-                                    <TableCell>{new Date(user.joinDate).toLocaleDateString('pt-BR', { timeZone: 'UTC' })}</TableCell>
+                                    <TableCell className="hidden md:table-cell">{new Date(user.joinDate).toLocaleDateString('pt-BR', { timeZone: 'UTC' })}</TableCell>
                                     <TableCell className="text-center">
                                         <Badge variant={user.status === "Ativo" ? "outline" : "destructive"}>
                                             {user.status}
                                         </Badge>
                                     </TableCell>
                                     <TableCell className="text-right font-medium">R$ {user.balance.toFixed(2)}</TableCell>
-                                    <TableCell className="text-right">R$ {user.totalWagered.toFixed(2)}</TableCell>
+                                    <TableCell className="hidden text-right lg:table-cell">R$ {user.totalWagered.toFixed(2)}</TableCell>
                                     <TableCell>
                                         <DropdownMenu>
                                             <DropdownMenuTrigger asChild>

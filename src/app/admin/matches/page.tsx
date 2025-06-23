@@ -171,8 +171,8 @@ export default function AdminMatchesPage() {
                         <TableRow>
                             <TableHead className="w-[120px]">ID da Partida</TableHead>
                             <TableHead>Partida</TableHead>
-                            <TableHead>Liga</TableHead>
-                            <TableHead>Horário</TableHead>
+                            <TableHead className="hidden md:table-cell">Liga</TableHead>
+                            <TableHead className="hidden lg:table-cell">Horário</TableHead>
                             <TableHead className="text-center">Status</TableHead>
                             <TableHead>
                                 <span className="sr-only">Ações</span>
@@ -184,8 +184,8 @@ export default function AdminMatchesPage() {
                             <TableRow key={match.id}>
                                 <TableCell className="font-mono text-xs">{match.id}</TableCell>
                                 <TableCell className="font-medium">{match.teamA} vs {match.teamB}</TableCell>
-                                <TableCell>{match.league}</TableCell>
-                                <TableCell>{new Date(match.time).toLocaleString('pt-BR', {timeZone: 'UTC'})}</TableCell>
+                                <TableCell className="hidden md:table-cell">{match.league}</TableCell>
+                                <TableCell className="hidden lg:table-cell">{new Date(match.time).toLocaleString('pt-BR', {timeZone: 'UTC'})}</TableCell>
                                 <TableCell className="text-center">
                                     <Badge variant={
                                         match.status === "Ao Vivo" ? "destructive" :
@@ -233,21 +233,21 @@ export default function AdminMatchesPage() {
                     </DialogHeader>
                     <ScrollArea className="flex-grow -mx-6 px-6">
                          <div className="space-y-4 py-4">
-                            <div className="grid grid-cols-4 items-center gap-4">
-                                <Label htmlFor="teamA" className="text-right">Time A</Label>
-                                <Input id="teamA" value={matchData.teamA} onChange={handleInputChange} className="col-span-3" />
+                            <div className="grid gap-4 sm:grid-cols-4 sm:items-center">
+                                <Label htmlFor="teamA" className="sm:text-right">Time A</Label>
+                                <Input id="teamA" value={matchData.teamA} onChange={handleInputChange} className="sm:col-span-3" />
                             </div>
-                            <div className="grid grid-cols-4 items-center gap-4">
-                                <Label htmlFor="teamB" className="text-right">Time B</Label>
-                                <Input id="teamB" value={matchData.teamB} onChange={handleInputChange} className="col-span-3" />
+                            <div className="grid gap-4 sm:grid-cols-4 sm:items-center">
+                                <Label htmlFor="teamB" className="sm:text-right">Time B</Label>
+                                <Input id="teamB" value={matchData.teamB} onChange={handleInputChange} className="sm:col-span-3" />
                             </div>
-                            <div className="grid grid-cols-4 items-center gap-4">
-                                <Label htmlFor="league" className="text-right">Liga</Label>
-                                <Input id="league" value={matchData.league} onChange={handleInputChange} className="col-span-3" />
+                            <div className="grid gap-4 sm:grid-cols-4 sm:items-center">
+                                <Label htmlFor="league" className="sm:text-right">Liga</Label>
+                                <Input id="league" value={matchData.league} onChange={handleInputChange} className="sm:col-span-3" />
                             </div>
-                            <div className="grid grid-cols-4 items-center gap-4">
-                                <Label htmlFor="time" className="text-right">Data/Hora</Label>
-                                <Input id="time" type="datetime-local" value={matchData.time} onChange={handleInputChange} className="col-span-3" />
+                             <div className="grid gap-4 sm:grid-cols-4 sm:items-center">
+                                <Label htmlFor="time" className="sm:text-right">Data/Hora</Label>
+                                <Input id="time" type="datetime-local" value={matchData.time} onChange={handleInputChange} className="sm:col-span-3" />
                             </div>
                         
                             <Accordion type="multiple" className="w-full" defaultValue={marketsConfig.map(m => m.name)}>

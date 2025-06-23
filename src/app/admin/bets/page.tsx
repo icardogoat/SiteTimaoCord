@@ -68,11 +68,11 @@ export default function AdminBetsPage() {
                 <TableRow>
                     <TableHead className="w-[100px]">ID da Aposta</TableHead>
                     <TableHead>Usuário</TableHead>
-                    <TableHead>Partida</TableHead>
+                    <TableHead className="hidden md:table-cell">Partida</TableHead>
                     <TableHead>Seleção</TableHead>
                     <TableHead className="text-right">Valor</TableHead>
-                    <TableHead className="text-center">Status</TableHead>
-                    <TableHead className="text-right">Ganhos Potenciais</TableHead>
+                    <TableHead className="hidden text-center sm:table-cell">Status</TableHead>
+                    <TableHead className="hidden text-right md:table-cell">Ganhos Potenciais</TableHead>
                     <TableHead>
                         <span className="sr-only">Ações</span>
                     </TableHead>
@@ -84,22 +84,22 @@ export default function AdminBetsPage() {
                         <TableCell className="font-mono text-xs">{bet.id}</TableCell>
                         <TableCell>
                             <div className="font-medium">{bet.user.name}</div>
-                            <div className="text-sm text-muted-foreground">{bet.user.email}</div>
+                            <div className="hidden text-sm text-muted-foreground sm:block">{bet.user.email}</div>
                         </TableCell>
-                        <TableCell>{bet.match}</TableCell>
+                        <TableCell className="hidden md:table-cell">{bet.match}</TableCell>
                         <TableCell>
                             <div>{bet.selection}</div>
                             {bet.market && <div className="text-xs text-muted-foreground">{bet.market}</div>}
                         </TableCell>
                         <TableCell className="text-right">R$ {bet.stake.toFixed(2)}</TableCell>
-                        <TableCell className="text-center">
+                        <TableCell className="hidden text-center sm:table-cell">
                             <Badge variant={
                                 bet.status === "Ganha" ? "outline" : bet.status === "Perdida" ? "destructive" : "secondary"
                             }>
                                 {bet.status}
                             </Badge>
                         </TableCell>
-                        <TableCell className="text-right">R$ {bet.potentialWinnings.toFixed(2)}</TableCell>
+                        <TableCell className="hidden text-right md:table-cell">R$ {bet.potentialWinnings.toFixed(2)}</TableCell>
                         <TableCell>
                              <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
