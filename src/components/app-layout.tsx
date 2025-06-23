@@ -5,14 +5,14 @@ import Link from 'next/link';
 import {
   SidebarProvider,
   Sidebar,
-  SidebarInset,
   SidebarHeader,
-  SidebarTrigger,
   SidebarContent,
   SidebarGroup,
   SidebarGroupLabel,
   SidebarGroupContent,
   SidebarMenu,
+  SidebarTrigger,
+  SidebarInset,
 } from '@/components/ui/sidebar';
 import { FielBetLogo } from '@/components/icons';
 import { Header } from '@/components/header';
@@ -26,8 +26,8 @@ interface AppLayoutProps {
 
 export function AppLayout({ children }: AppLayoutProps) {
     return (
-        <BetSlipProvider>
-            <SidebarProvider>
+        <SidebarProvider>
+            <BetSlipProvider>
                 <Sidebar>
                     <SidebarHeader>
                         <div className="flex items-center gap-2">
@@ -55,7 +55,7 @@ export function AppLayout({ children }: AppLayoutProps) {
                     {children}
                     <BetSlip />
                 </SidebarInset>
-            </SidebarProvider>
-        </BetSlipProvider>
+            </BetSlipProvider>
+        </SidebarProvider>
     )
 }
