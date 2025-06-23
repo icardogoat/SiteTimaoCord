@@ -7,6 +7,7 @@ import { Badge } from './ui/badge';
 import type { Match, Odd } from '@/types';
 import { MoreMarketsDialog } from './more-markets-dialog';
 import { useBetSlip } from '@/context/bet-slip-context';
+import { cn } from '@/lib/utils';
 
 interface MatchCardProps {
   match: Match;
@@ -15,6 +16,7 @@ interface MatchCardProps {
 export function MatchCard({ match }: MatchCardProps) {
   const mainMarket = match.markets.find(m => m.name === 'Vencedor da Partida');
   const { toggleBet, isBetSelected } = useBetSlip();
+  const isCorinthiansMatch = match.teamA.name === 'Corinthians' || match.teamB.name === 'Corinthians';
 
   const getOddByLabel = (label: string): Odd | undefined => mainMarket?.odds.find(o => o.label === label);
 
@@ -28,7 +30,7 @@ export function MatchCard({ match }: MatchCardProps) {
   };
 
   return (
-    <Card className="flex flex-col">
+    <Card className={cn("flex flex-col", isCorinthiansMatch && "border-primary/50 shadow-lg shadow-primary/10")}>
       <CardHeader className="flex-row items-center justify-between pb-2">
         <CardTitle className="text-sm font-medium text-muted-foreground">{match.league}</CardTitle>
         <Badge variant="outline">{match.time}</Badge>
