@@ -1,13 +1,16 @@
 import {
+  Activity,
+  CreditCard,
   DollarSign,
   Users,
-  CreditCard,
-  Activity,
 } from "lucide-react"
 
 import {
-  Badge
-} from "@/components/ui/badge"
+  Avatar,
+  AvatarFallback,
+  AvatarImage,
+} from "@/components/ui/avatar"
+import { Badge } from "@/components/ui/badge"
 import {
   Card,
   CardContent,
@@ -193,6 +196,91 @@ export default function Dashboard() {
                 </TableRow>
               </TableBody>
             </Table>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle>Top Apostadores</CardTitle>
+            <CardDescription>
+              Usuários com maior volume de apostas no mês.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="grid gap-8">
+            <div className="flex items-center gap-4">
+              <Avatar className="hidden h-9 w-9 sm:flex">
+                <AvatarImage src="https://placehold.co/40x40.png" alt="Avatar" data-ai-hint="user avatar" />
+                <AvatarFallback>CG</AvatarFallback>
+              </Avatar>
+              <div className="grid gap-1">
+                <p className="text-sm font-medium leading-none">
+                  Cássio Gigante
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  cassio12@example.com
+                </p>
+              </div>
+              <div className="ml-auto font-medium">R$ 5.500,20</div>
+            </div>
+            <div className="flex items-center gap-4">
+              <Avatar className="hidden h-9 w-9 sm:flex">
+                <AvatarImage src="https://placehold.co/40x40.png" alt="Avatar" data-ai-hint="user avatar" />
+                <AvatarFallback>CN</AvatarFallback>
+              </Avatar>
+              <div className="grid gap-1">
+                <p className="text-sm font-medium leading-none">
+                  Craque Neto 10
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  neto10@example.com
+                </p>
+              </div>
+              <div className="ml-auto font-medium">R$ 3.450,00</div>
+            </div>
+            <div className="flex items-center gap-4">
+              <Avatar className="hidden h-9 w-9 sm:flex">
+                <AvatarImage src="https://placehold.co/40x40.png" alt="Avatar" data-ai-hint="user avatar" />
+                <AvatarFallback>VM</AvatarFallback>
+              </Avatar>
+              <div className="grid gap-1">
+                <p className="text-sm font-medium leading-none">
+                  Vampeta Monstro
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  vamp@example.com
+                </p>
+              </div>
+              <div className="ml-auto font-medium">R$ 2.100,50</div>
+            </div>
+            <div className="flex items-center gap-4">
+              <Avatar className="hidden h-9 w-9 sm:flex">
+                <AvatarImage src="https://placehold.co/40x40.png" alt="Avatar" data-ai-hint="user avatar" />
+                <AvatarFallback>ZF</AvatarFallback>
+              </Avatar>
+              <div className="grid gap-1">
+                <p className="text-sm font-medium leading-none">
+                  Zico da Fiel
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  zico.fiel@example.com
+                </p>
+              </div>
+              <div className="ml-auto font-medium">R$ 1.250,75</div>
+            </div>
+            <div className="flex items-center gap-4">
+              <Avatar className="hidden h-9 w-9 sm:flex">
+                <AvatarImage src="https://placehold.co/40x40.png" alt="Avatar" data-ai-hint="user avatar" />
+                <AvatarFallback>R9</AvatarFallback>
+              </Avatar>
+              <div className="grid gap-1">
+                <p className="text-sm font-medium leading-none">
+                  Ronaldo Fenômeno
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  r9@example.com
+                </p>
+              </div>
+              <div className="ml-auto font-medium">R$ 890,00</div>
+            </div>
           </CardContent>
         </Card>
       </div>
