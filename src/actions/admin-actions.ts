@@ -23,6 +23,7 @@ type MatchAdminView = {
     league: string;
     time: string;
     status: string;
+    isProcessed: boolean;
 };
 
 type UserAdminView = {
@@ -79,10 +80,10 @@ export async function getAdminMatches(): Promise<MatchAdminView[]> {
     try {
         const client = await clientPromise;
         const db = client.db('timaocord');
-        const matchesCollection = db.collection<MatchFromDb>('matches');
+        const matchesCollection = db.collection<MatchFromDb & { isProcessed?: boolean }>('matches');
         
         // Find all matches and sort by timestamp descending
-        const matchesFromDb = await matchesCollection.find({}).sort({ 'timestamp': -1 }).toArray();
+        const matchesFromDb = await matchesCollection.find({}).sort({ 'timestamp': -1 }).limit(100).toArray();
 
         const matches = matchesFromDb.map(match => {
             // Add a check for incomplete data to prevent crashes
@@ -91,18 +92,23 @@ export async function getAdminMatches(): Promise<MatchAdminView[]> {
             }
             
             let statusLabel: string;
-            switch(match.status) {
-                case 'FT':
-                case 'AET':
-                case 'PEN':
-                    statusLabel = 'Finalizada';
-                    break;
-                case 'NS':
-                    statusLabel = 'Agendada';
-                    break;
-                default:
-                    statusLabel = 'Ao Vivo';
+             if (match.isProcessed) {
+                statusLabel = 'Processado';
+            } else {
+                switch(match.status) {
+                    case 'FT':
+                    case 'AET':
+                    case 'PEN':
+                        statusLabel = 'Finalizada';
+                        break;
+                    case 'NS':
+                        statusLabel = 'Agendada';
+                        break;
+                    default:
+                        statusLabel = 'Ao Vivo';
+                }
             }
+
 
             return {
                 id: match._id.toString(),
@@ -112,6 +118,7 @@ export async function getAdminMatches(): Promise<MatchAdminView[]> {
                 league: match.league,
                 time: new Date(match.timestamp * 1000).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' }),
                 status: statusLabel,
+                isProcessed: match.isProcessed ?? false,
             };
         });
         
@@ -394,13 +401,11 @@ export async function resolveMatch(fixtureId: number): Promise<{ success: boolea
             const betsCollection = db.collection<WithId<PlacedBet>>('bets');
             const walletsCollection = db.collection('wallets');
 
-            // This update needs to be adjusted for the new schema
             await matchesCollection.updateOne(
                 { '_id': fixtureId },
                 { $set: { 
-                    isFinished: true, 
+                    isProcessed: true, 
                     goals: fixtureData.fixture.goals, 
-                    // statistics: finalStats, // The new schema does not have a 'statistics' field
                     status: fixtureData.fixture.status.short
                 } },
                 { session: mongoSession }
@@ -490,11 +495,9 @@ export async function processAllFinishedMatches(): Promise<{ success: boolean; m
     const db = client.db('timaocord');
     const matchesCollection = db.collection('matches');
 
-    // This query needs to be adjusted for the new schema
     const finishedMatchesToProcess = await matchesCollection.find({
         'status': 'FT',
-        'isFinished': { $ne: true } // isFinished is a boolean, so this might not work as intended if the field is absent.
-                                    // A better approach might be to add an 'isProcessed' flag.
+        'isProcessed': { $ne: true }
     }).toArray();
 
     if (finishedMatchesToProcess.length === 0) {
@@ -508,7 +511,7 @@ export async function processAllFinishedMatches(): Promise<{ success: boolean; m
     let failureCount = 0;
 
     for (const match of finishedMatchesToProcess) {
-        const fixtureId = match._id; // Use _id from the new schema
+        const fixtureId = match._id; 
         console.log(`Processing match ${fixtureId}...`);
         try {
             const result = await resolveMatch(fixtureId);

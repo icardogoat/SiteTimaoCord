@@ -25,8 +25,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Button } from "@/components/ui/button"
-import { MoreHorizontal, Loader2 } from "lucide-react"
-import { resolveMatch } from "@/actions/admin-actions";
+import { MoreHorizontal, Loader2, RefreshCw } from "lucide-react"
+import { processAllFinishedMatches, resolveMatch } from "@/actions/admin-actions";
 import { useToast } from "@/hooks/use-toast";
 
 type MatchAdminView = {
@@ -37,6 +37,7 @@ type MatchAdminView = {
     league: string;
     time: string;
     status: string;
+    isProcessed: boolean;
 };
 
 interface AdminMatchesClientProps {
@@ -47,6 +48,7 @@ interface AdminMatchesClientProps {
 export function AdminMatchesClient({ initialMatches }: AdminMatchesClientProps) {
     const [matches, setMatches] = useState(initialMatches);
     const [isResolving, setIsResolving] = useState<number | null>(null);
+    const [isProcessingAll, setIsProcessingAll] = useState(false);
     const { toast } = useToast();
 
     const handleResolve = async (fixtureId: number) => {
@@ -57,9 +59,8 @@ export function AdminMatchesClient({ initialMatches }: AdminMatchesClientProps) 
                 title: "Sucesso!",
                 description: result.message,
             });
-            // Update match status locally for immediate feedback
             setMatches(prev => prev.map(m => 
-                m.fixtureId === fixtureId ? { ...m, status: 'Finalizada' } : m
+                m.fixtureId === fixtureId ? { ...m, status: 'Processado', isProcessed: true } : m
             ));
         } else {
             toast({
@@ -71,13 +72,44 @@ export function AdminMatchesClient({ initialMatches }: AdminMatchesClientProps) 
         setIsResolving(null);
     };
 
+    const handleProcessAll = async () => {
+        setIsProcessingAll(true);
+        toast({
+            title: "Iniciando Processamento",
+            description: "Buscando e processando todas as partidas finalizadas...",
+        });
+        const result = await processAllFinishedMatches();
+        if (result.success) {
+             toast({
+                title: "Processamento Concluído",
+                description: result.message,
+            });
+            // Refetch matches to update the view
+            const updatedMatches = await fetch('/api/admin/matches').then(res => res.json());
+            setMatches(updatedMatches);
+        } else {
+             toast({
+                title: "Erro no Processamento",
+                description: result.message,
+                variant: "destructive",
+            });
+        }
+        setIsProcessingAll(false);
+    }
+
     return (
         <Card>
-            <CardHeader>
-                <CardTitle>Gerenciar Partidas</CardTitle>
-                <CardDescription>
-                    Resolva as partidas finalizadas para pagar as apostas.
-                </CardDescription>
+            <CardHeader className="flex flex-row items-center justify-between">
+                <div>
+                    <CardTitle>Gerenciar Partidas</CardTitle>
+                    <CardDescription>
+                        Resolva as partidas finalizadas para pagar as apostas.
+                    </CardDescription>
+                </div>
+                 <Button onClick={handleProcessAll} disabled={isProcessingAll}>
+                    {isProcessingAll ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
+                    Processar Finalizadas
+                </Button>
             </CardHeader>
             <CardContent>
                 <Table>
@@ -101,10 +133,11 @@ export function AdminMatchesClient({ initialMatches }: AdminMatchesClientProps) 
                                 <TableCell className="text-center">
                                     <Badge variant={
                                         match.status === "Ao Vivo" ? "destructive" :
-                                        match.status === "Finalizada" ? "outline" :
+                                        match.status === "Processado" ? "default" :
                                         "secondary"
                                     } className={
-                                        match.status === "Ao Vivo" ? "bg-red-500/80" : ""
+                                        match.status === "Ao Vivo" ? "bg-red-500/80" :
+                                        match.status === "Processado" ? "bg-green-500/80" : ""
                                     }>
                                         {match.status}
                                     </Badge>
@@ -125,7 +158,7 @@ export function AdminMatchesClient({ initialMatches }: AdminMatchesClientProps) 
                                             <DropdownMenuLabel>Ações</DropdownMenuLabel>
                                             <DropdownMenuItem 
                                                 onClick={() => handleResolve(match.fixtureId)}
-                                                disabled={match.status !== 'Ao Vivo' && match.status !== 'Agendada' }
+                                                disabled={match.status === 'Processado' || match.status === 'Agendada' || match.status === 'Ao Vivo'}
                                             >
                                                 Resolver Partida
                                             </DropdownMenuItem>
@@ -139,4 +172,12 @@ export function AdminMatchesClient({ initialMatches }: AdminMatchesClientProps) 
             </CardContent>
         </Card>
     )
+}
+
+// Simple API route to refetch matches on the server
+export async function GET() {
+    const matches = await getAdminMatches();
+    return new Response(JSON.stringify(matches), {
+        headers: { 'Content-Type': 'application/json' },
+    });
 }
