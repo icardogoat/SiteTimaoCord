@@ -1,3 +1,4 @@
+
 export type Team = {
   name: string;
   logo: string;
@@ -70,9 +71,16 @@ export type UserRanking = {
 
 export type Transaction = {
   id: string;
-  type: 'Depósito' | 'Saque' | 'Aposta' | 'Prêmio';
+  type: 'Depósito' | 'Saque' | 'Aposta' | 'Prêmio' | 'Bônus';
   description: string;
   amount: number;
   date: string;
   status: 'Concluído' | 'Pendente' | 'Cancelado';
+};
+
+export type Wallet = {
+    id: string;
+    userId: string;
+    balance: number;
+    transactions: Transaction[];
 };

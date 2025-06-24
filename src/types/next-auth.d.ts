@@ -1,3 +1,4 @@
+
 import 'next-auth';
 import type { DefaultSession, DefaultUser } from 'next-auth';
 
@@ -9,6 +10,7 @@ declare module 'next-auth' {
     user: {
       id: string;
       discordId: string;
+      balance: number;
     } & DefaultSession['user'];
   }
 

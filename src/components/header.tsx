@@ -1,3 +1,4 @@
+
 "use client";
 
 import * as React from 'react';
@@ -50,6 +51,7 @@ export function Header() {
   const user = session?.user;
   const userName = user?.name ?? 'Usuário';
   const userImage = user?.image;
+  const userBalance = user?.balance ?? 0;
   const userFallback = userName
     .split(' ')
     .map((word) => word[0])
@@ -69,7 +71,7 @@ export function Header() {
       <div className="flex items-center gap-4">
         <div className="flex items-center gap-2 rounded-md border bg-card px-3 py-1.5 text-sm">
           <Wallet className="size-4 text-muted-foreground" />
-          <span className="font-semibold text-foreground">R$ 1.234,56</span>
+          <span className="font-semibold text-foreground">R$ {userBalance.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
         </div>
 
         <DropdownMenu>

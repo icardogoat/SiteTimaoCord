@@ -4,6 +4,7 @@ import type { AuthOptions } from 'next-auth';
 import DiscordProvider from 'next-auth/providers/discord';
 import { MongoDBAdapter } from "@next-auth/mongodb-adapter";
 import clientPromise from "@/lib/mongodb";
+import type { Transaction } from '@/types';
 
 export const authOptions: AuthOptions = {
   adapter: MongoDBAdapter(clientPromise, { databaseName: "timaocord" }),
@@ -17,18 +18,16 @@ export const authOptions: AuthOptions = {
           const format = profile.avatar.startsWith("a_") ? "gif" : "png"
           image_url = `https://cdn.discordapp.com/avatars/${profile.id}/${profile.avatar}.${format}`
         } else {
-          // For users without a custom avatar, Discord generates a default one based on their user ID.
-          // https://discord.com/developers/docs/reference#image-formatting
-          const defaultAvatarNumber = (BigInt(profile.id) >> 22n) % 6n;
+          const defaultAvatarNumber = parseInt(profile.discriminator) % 5;
           image_url = `https://cdn.discordapp.com/embed/avatars/${defaultAvatarNumber}.png`
         }
 
         return {
-          id: profile.id, // This is used by the adapter to link accounts
+          id: profile.id,
           name: profile.username,
           email: profile.email,
           image: image_url,
-          discordId: profile.id, // This is my custom field
+          discordId: profile.id,
         }
       },
     }),
@@ -38,6 +37,34 @@ export const authOptions: AuthOptions = {
   },
   secret: process.env.NEXTAUTH_SECRET,
   callbacks: {
+    async signIn({ user, isNewUser }) {
+      if (isNewUser) {
+        try {
+          const client = await clientPromise;
+          const db = client.db("timaocord");
+          const walletsCollection = db.collection("wallets");
+
+          const initialTransaction: Transaction = {
+            id: new Date().getTime().toString(),
+            type: 'Bônus',
+            description: 'Bônus de boas-vindas!',
+            amount: 1000,
+            date: new Date().toISOString(),
+            status: 'Concluído'
+          };
+          
+          await walletsCollection.insertOne({
+            userId: user.id,
+            balance: 1000,
+            transactions: [initialTransaction]
+          });
+        } catch (error) {
+          console.error("Failed to create wallet for new user:", error);
+          return false;
+        }
+      }
+      return true;
+    },
     async jwt({ token, user }) {
       if (user) {
         token.discordId = user.discordId;
@@ -48,6 +75,16 @@ export const authOptions: AuthOptions = {
       if (session.user) {
         session.user.id = token.sub!;
         session.user.discordId = token.discordId as string;
+        
+        try {
+          const client = await clientPromise;
+          const db = client.db("timaocord");
+          const wallet = await db.collection("wallets").findOne({ userId: token.sub! });
+          session.user.balance = wallet ? wallet.balance : 0;
+        } catch (error) {
+            console.error("Failed to fetch user balance for session:", error);
+            session.user.balance = 0;
+        }
       }
       return session;
     },
