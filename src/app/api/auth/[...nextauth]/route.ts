@@ -1,3 +1,4 @@
+
 import NextAuth from 'next-auth';
 import type { AuthOptions } from 'next-auth';
 import DiscordProvider from 'next-auth/providers/discord';
@@ -11,13 +12,15 @@ export const authOptions: AuthOptions = {
       clientId: process.env.DISCORD_CLIENT_ID!,
       clientSecret: process.env.DISCORD_CLIENT_SECRET!,
       profile(profile) {
-        let image_url = profile.image_url;
-        if (profile.avatar === null) {
-          const defaultAvatarNumber = parseInt(profile.discriminator) % 5
-          image_url = `https://cdn.discordapp.com/embed/avatars/${defaultAvatarNumber}.png`
-        } else {
+        let image_url: string;
+        if (profile.avatar) {
           const format = profile.avatar.startsWith("a_") ? "gif" : "png"
           image_url = `https://cdn.discordapp.com/avatars/${profile.id}/${profile.avatar}.${format}`
+        } else {
+          // For users without a custom avatar, Discord generates a default one based on their user ID.
+          // https://discord.com/developers/docs/reference#image-formatting
+          const defaultAvatarNumber = (BigInt(profile.id) >> 22n) % 6n;
+          image_url = `https://cdn.discordapp.com/embed/avatars/${defaultAvatarNumber}.png`
         }
 
         return {
