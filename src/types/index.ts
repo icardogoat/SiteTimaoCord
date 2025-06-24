@@ -1,4 +1,6 @@
 
+import type { ObjectId } from "mongodb";
+
 export type Team = {
   name: string;
   logo: string;
@@ -29,30 +31,40 @@ export type Match = {
   isFinished: boolean;
 };
 
-export type Bet = {
+// This is the bet selection that goes into the bet slip
+export type BetInSlip = {
   id: string; // A unique identifier for the bet, e.g., `${match.id}-${market.name}-${odd.label}`
   matchId: number;
   matchTime: string;
   teamA: string;
   teamB: string;
+  league: string;
   marketName: string;
   odd: Odd;
 };
 
+// This is the structure of a bet placed and saved in the DB
 export type PlacedBet = {
-  id: string;
-  teamA: string;
-  teamB: string;
-  league: string;
-  marketName: string;
-  selection: string;
-  oddValue: string;
+  _id: string | ObjectId; // string on client, ObjectId on server
+  userId: string;
+  bets: { // The individual selections in the bet slip
+    matchId: number;
+    matchTime: string;
+    teamA: string;
+    teamB: string;
+    league: string;
+    marketName: string;
+    selection: string;
+    oddValue: string;
+  }[];
   stake: number;
   potentialWinnings: number;
-  status: 'Em Aberto' | 'Ganha' | 'Perdida';
-  matchTime: string;
-  finalResult?: string;
+  totalOdds: number;
+  status: 'Em Aberto' | 'Ganha' | 'Perdida' | 'Cancelada';
+  createdAt: Date | string;
+  settledAt?: Date | string;
 };
+
 
 export type Notification = {
     id: string;

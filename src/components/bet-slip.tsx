@@ -13,6 +13,8 @@ import { Ticket } from 'lucide-react';
 import { useSidebar } from '@/components/ui/sidebar';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from './ui/sheet';
 import { Badge } from './ui/badge';
+import { placeBet } from '@/actions/bet-actions';
+import { useSession } from 'next-auth/react';
 
 export function BetSlip() {
   const { bets, clearBets } = useBetSlip();
@@ -20,7 +22,9 @@ export function BetSlip() {
   const [stake, setStake] = useState('');
   const [isClient, setIsClient] = useState(false);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const { isMobile } = useSidebar();
+  const { data: session, update: updateSession } = useSession();
 
   useEffect(() => {
     setIsClient(true);
@@ -37,21 +41,45 @@ export function BetSlip() {
     return (stakeValue * totalOdds).toFixed(2);
   }, [stake, totalOdds]);
 
-  const handleBetSubmit = () => {
-    toast({
-      title: 'Aposta Realizada!',
-      description: 'Sua aposta foi registrada com sucesso. Boa sorte!',
-    });
+  const handleBetSubmit = async () => {
+    const stakeValue = parseFloat(stake);
+    if (!stake || stakeValue <= 0) {
+      toast({ title: 'Valor inválido', description: 'Por favor, insira um valor para apostar.', variant: 'destructive' });
+      return;
+    }
+    if (session?.user?.balance && session.user.balance < stakeValue) {
+        toast({ title: 'Saldo Insuficiente', description: 'Você não tem saldo suficiente para esta aposta.', variant: 'destructive' });
+        return;
+    }
 
-    clearBets();
-    setStake('');
-    if (isMobile) {
-      setIsSheetOpen(false);
+    setIsSubmitting(true);
+    const result = await placeBet(bets, stakeValue);
+    setIsSubmitting(false);
+
+    if (result.success) {
+      toast({
+        title: 'Aposta Realizada!',
+        description: 'Sua aposta foi registrada com sucesso. Boa sorte!',
+      });
+      // Update session balance
+      await updateSession();
+      clearBets();
+      setStake('');
+      if (isMobile) {
+        setIsSheetOpen(false);
+      }
+    } else {
+        toast({
+            title: 'Erro ao Apostar',
+            description: result.message,
+            variant: 'destructive',
+        });
     }
   };
 
   const handleClearBets = () => {
     clearBets();
+    setStake('');
     if (isMobile) {
       setIsSheetOpen(false);
     }
@@ -60,6 +88,8 @@ export function BetSlip() {
   if (!isClient || bets.length === 0) {
     return null;
   }
+  
+  const stakeValue = parseFloat(stake) || 0;
 
   const BetSlipBody = (
       <>
@@ -75,7 +105,7 @@ export function BetSlip() {
         {bets.length > 0 && (
           <CardFooter className="flex-col items-stretch gap-4 border-t p-4">
             <div className="flex justify-between items-center text-sm font-medium">
-              <span>Total Odds</span>
+              <span>Cotação Total</span>
               <span>{totalOdds.toFixed(2)}</span>
             </div>
             <div className="space-y-2">
@@ -86,6 +116,7 @@ export function BetSlip() {
                 placeholder="0.00"
                 value={stake}
                 onChange={(e) => setStake(e.target.value)}
+                disabled={isSubmitting}
               />
             </div>
             <div className="flex justify-between items-center text-sm font-medium">
@@ -94,10 +125,10 @@ export function BetSlip() {
             </div>
             <Button
               size="lg"
-              disabled={!stake || parseFloat(stake) <= 0}
+              disabled={!stake || stakeValue <= 0 || isSubmitting}
               onClick={handleBetSubmit}
             >
-              Apostar R$ {parseFloat(stake).toFixed(2) || '0.00'}
+              {isSubmitting ? 'Processando...' : `Apostar R$ ${stakeValue > 0 ? stakeValue.toFixed(2) : '0.00'}`}
             </Button>
           </CardFooter>
         )}

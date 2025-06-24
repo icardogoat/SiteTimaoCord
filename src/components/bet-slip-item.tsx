@@ -2,11 +2,11 @@
 
 import { Button } from '@/components/ui/button';
 import { X } from 'lucide-react';
-import type { Bet } from '@/types';
+import type { BetInSlip } from '@/types';
 import { useBetSlip } from '@/context/bet-slip-context';
 
 interface BetSlipItemProps {
-  bet: Bet;
+  bet: BetInSlip;
 }
 
 export function BetSlipItem({ bet }: BetSlipItemProps) {

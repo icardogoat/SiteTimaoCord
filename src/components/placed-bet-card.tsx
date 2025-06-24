@@ -13,6 +13,7 @@ export function PlacedBetCard({ bet }: PlacedBetCardProps) {
         'Ganha': 'default',
         'Perdida': 'destructive',
         'Em Aberto': 'secondary',
+        'Cancelada': 'secondary'
     } as const;
 
     const getStatusClass = (status: PlacedBet['status']) => {
@@ -26,13 +27,20 @@ export function PlacedBetCard({ bet }: PlacedBetCardProps) {
         }
     };
 
+    const isSingleBet = bet.bets.length === 1;
+    const single = isSingleBet ? bet.bets[0] : null;
+
     return (
         <Card className="flex flex-col">
             <CardHeader>
                 <div className="flex justify-between items-start">
                     <div>
-                        <CardTitle className="text-base">{bet.teamA} vs {bet.teamB}</CardTitle>
-                        <CardDescription>{bet.league} - {bet.matchTime}</CardDescription>
+                        <CardTitle className="text-base">
+                            {isSingleBet ? `${single!.teamA} vs ${single!.teamB}` : `Aposta Múltipla (${bet.bets.length} seleções)`}
+                        </CardTitle>
+                        <CardDescription>
+                            {isSingleBet ? `${single!.league} - ${single!.matchTime}` : `Realizada em: ${new Date(bet.createdAt).toLocaleString('pt-BR')}`}
+                        </CardDescription>
                     </div>
                     <Badge variant={statusVariant[bet.status]} className={cn(bet.status !== 'Perdida' && getStatusClass(bet.status))}>
                         {bet.status}
@@ -40,14 +48,18 @@ export function PlacedBetCard({ bet }: PlacedBetCardProps) {
                 </div>
             </CardHeader>
             <CardContent className="space-y-4 flex-grow">
-                <div>
-                    <p className="text-sm font-medium text-muted-foreground">{bet.marketName}</p>
-                    <p className="text-base font-bold text-foreground">{bet.selection}</p>
-                </div>
-                {bet.finalResult && (
+                {isSingleBet ? (
                      <div>
-                        <p className="text-sm font-medium text-muted-foreground">Resultado Final</p>
-                        <p className="text-base font-bold text-foreground">{bet.finalResult}</p>
+                        <p className="text-sm font-medium text-muted-foreground">{single!.marketName}</p>
+                        <p className="text-base font-bold text-foreground">{single!.selection}</p>
+                    </div>
+                ) : (
+                    <div className="space-y-2 text-sm">
+                        {bet.bets.map((selection, index) => (
+                            <div key={index} className="text-muted-foreground">
+                                <span className="font-semibold text-foreground">{selection.selection}</span> em {selection.teamA} vs {selection.teamB}
+                            </div>
+                        ))}
                     </div>
                 )}
             </CardContent>
@@ -55,14 +67,14 @@ export function PlacedBetCard({ bet }: PlacedBetCardProps) {
             <CardFooter className="grid grid-cols-3 gap-2 pt-4 text-center text-sm">
                  <div>
                     <p className="text-xs text-muted-foreground">Cotação</p>
-                    <p className="font-bold text-foreground">{bet.oddValue}</p>
+                    <p className="font-bold text-foreground">{bet.totalOdds.toFixed(2)}</p>
                 </div>
                 <div>
                     <p className="text-xs text-muted-foreground">Aposta</p>
                     <p className="font-bold text-foreground">R$ {bet.stake.toFixed(2)}</p>
                 </div>
                 <div>
-                    <p className="text-xs text-muted-foreground">Retorno</p>
+                    <p className="text-xs text-muted-foreground">Retorno Pot.</p>
                     <p className={cn("font-bold", {
                         'text-green-400': bet.status === 'Ganha',
                         'text-red-400': bet.status === 'Perdida',

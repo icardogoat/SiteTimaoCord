@@ -2,66 +2,49 @@ import { AppLayout } from "@/components/app-layout";
 import { PlacedBetCard } from "@/components/placed-bet-card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { PlacedBet } from "@/types";
+import { getServerSession } from 'next-auth/next';
+import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import clientPromise from '@/lib/mongodb';
+import { redirect } from 'next/navigation';
+import type { WithId } from "mongodb";
 
-const placedBets: PlacedBet[] = [
-    {
-        id: '1',
-        teamA: 'Corinthians',
-        teamB: 'Palmeiras',
-        league: 'Brasileirão Série A',
-        marketName: 'Vencedor da Partida',
-        selection: 'Casa',
-        oddValue: '2.50',
-        stake: 10.00,
-        potentialWinnings: 25.00,
-        status: 'Em Aberto',
-        matchTime: 'Hoje, 21:00',
-    },
-    {
-        id: '2',
-        teamA: 'Flamengo',
-        teamB: 'Vasco da Gama',
-        league: 'Campeonato Carioca',
-        marketName: 'Ambos Marcam (BTTS)',
-        selection: 'Sim',
-        oddValue: '1.85',
-        stake: 20.00,
-        potentialWinnings: 37.00,
-        status: 'Em Aberto',
-        matchTime: 'Amanhã, 16:00',
-    },
-    {
-        id: '3',
-        teamA: 'Real Madrid',
-        teamB: 'Barcelona',
-        league: 'La Liga',
-        marketName: 'Gols Acima/Abaixo',
-        selection: 'Acima 2.5',
-        oddValue: '1.70',
-        stake: 50.00,
-        potentialWinnings: 85.00,
-        status: 'Ganha',
-        matchTime: '24/05, 17:00',
-        finalResult: '3-1',
-    },
-    {
-        id: '4',
-        teamA: 'Manchester City',
-        teamB: 'Liverpool',
-        league: 'Premier League',
-        marketName: 'Vencedor da Partida',
-        selection: 'Fora',
-        oddValue: '3.80',
-        stake: 15.00,
-        potentialWinnings: 57.00,
-        status: 'Perdida',
-        matchTime: '25/05, 12:30',
-        finalResult: '2-1',
-    },
-];
+async function getMyBets(userId: string): Promise<PlacedBet[]> {
+  if (!userId) {
+    return [];
+  }
+  try {
+    const client = await clientPromise;
+    const db = client.db('timaocord');
+    const betsCollection = db.collection<WithId<PlacedBet>>('bets');
+
+    const userBets = await betsCollection
+      .find({ userId: userId })
+      .sort({ createdAt: -1 })
+      .toArray();
+
+    // Map _id to id and convert to JSON-serializable format
+    return userBets.map(bet => ({
+        ...bet,
+        _id: bet._id.toString(),
+        createdAt: bet.createdAt.toISOString(),
+        settledAt: bet.settledAt ? bet.settledAt.toISOString() : undefined,
+    })) as PlacedBet[];
+
+  } catch (error) {
+    console.error('Failed to fetch user bets:', error);
+    return [];
+  }
+}
 
 
-export default function MyBetsPage() {
+export default async function MyBetsPage() {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.discordId) {
+        redirect('/');
+    }
+
+    const placedBets = await getMyBets(session.user.discordId);
+
     const openBets = placedBets.filter(bet => bet.status === 'Em Aberto');
     const settledBets = placedBets.filter(bet => bet.status !== 'Em Aberto');
 
@@ -81,7 +64,7 @@ export default function MyBetsPage() {
                     <TabsContent value="open">
                         <div className="grid gap-4 mt-4 md:grid-cols-2 lg:grid-cols-3">
                             {openBets.length > 0 ? (
-                                openBets.map(bet => <PlacedBetCard key={bet.id} bet={bet} />)
+                                openBets.map(bet => <PlacedBetCard key={bet._id} bet={bet} />)
                             ) : (
                                 <p className="text-muted-foreground col-span-full">Você não tem apostas em aberto.</p>
                             )}
@@ -90,7 +73,7 @@ export default function MyBetsPage() {
                     <TabsContent value="settled">
                         <div className="grid gap-4 mt-4 md:grid-cols-2 lg:grid-cols-3">
                             {settledBets.length > 0 ? (
-                                settledBets.map(bet => <PlacedBetCard key={bet.id} bet={bet} />)
+                                settledBets.map(bet => <PlacedBetCard key={bet._id} bet={bet} />)
                             ) : (
                                 <p className="text-muted-foreground col-span-full">Você não tem apostas resolvidas.</p>
                             )}

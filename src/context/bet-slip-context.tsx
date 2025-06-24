@@ -2,11 +2,11 @@
 
 import type { ReactNode } from 'react';
 import { createContext, useContext, useState, useCallback } from 'react';
-import type { Bet, Match, Market, Odd } from '@/types';
+import type { BetInSlip, Match, Market, Odd } from '@/types';
 import { useToast } from '@/hooks/use-toast';
 
 interface BetSlipContextType {
-  bets: Bet[];
+  bets: BetInSlip[];
   toggleBet: (match: Match, market: Market, odd: Odd) => void;
   removeBet: (betId: string) => void;
   clearBets: () => void;
@@ -16,73 +16,45 @@ interface BetSlipContextType {
 const BetSlipContext = createContext<BetSlipContextType | undefined>(undefined);
 
 export function BetSlipProvider({ children }: { children: ReactNode }) {
-  const [bets, setBets] = useState<Bet[]>([]);
+  const [bets, setBets] = useState<BetInSlip[]>([]);
   const { toast } = useToast();
 
   const toggleBet = useCallback((match: Match, market: Market, odd: Odd) => {
     const betId = `${match.id}-${market.name}-${odd.label}`;
-    const existingBet = bets.find(b => b.id === betId);
+    const existingBetIndex = bets.findIndex(b => b.id === betId);
 
-    if (existingBet) {
-      setBets(prevBets => prevBets.filter(b => b.id !== betId));
+    // If the exact same bet selection exists, remove it
+    if (existingBetIndex > -1) {
+      setBets(prevBets => prevBets.filter((_, index) => index !== existingBetIndex));
       return;
     }
 
-    const newBet: Bet = {
+    const newBet: BetInSlip = {
       id: betId,
       matchId: match.id,
       matchTime: match.time,
       teamA: match.teamA.name,
       teamB: match.teamB.name,
+      league: match.league,
       marketName: market.name,
       odd: odd,
     };
-
-    if (bets.length === 0) {
-      setBets([newBet]);
+    
+    // If a different bet for the same market in the same match exists, replace it
+    // e.g., user clicks "Home" then clicks "Away" for the same match
+    const sameMarketIndex = bets.findIndex(b => b.matchId === newBet.matchId && b.marketName === newBet.marketName);
+    if (sameMarketIndex > -1) {
+      setBets(prevBets => {
+        const updatedBets = [...prevBets];
+        updatedBets[sameMarketIndex] = newBet;
+        return updatedBets;
+      });
       return;
     }
 
-    const isSlipInMultipleMode = bets.every(b => b.marketName === 'Vencedor da Partida');
-    
-    if (isSlipInMultipleMode) {
-      if (newBet.marketName === 'Vencedor da Partida') {
-        setBets(prevBets => [...prevBets, newBet]);
-        return;
-      }
-      
-      const firstMatchId = bets[0].matchId;
-      const areAllBetsFromSameMatch = bets.every(b => b.matchId === firstMatchId);
-      
-      if (areAllBetsFromSameMatch && newBet.matchId === firstMatchId) {
-          setBets(prevBets => {
-            const marketIdPrefix = `${match.id}-${market.name}-`;
-            const filteredBets = prevBets.filter(b => !b.id.startsWith(marketIdPrefix));
-            return [...filteredBets, newBet];
-          });
-      } else {
-        toast({
-          title: 'Aposta Múltipla Inválida',
-          description: 'Você só pode combinar "Vencedor da Partida" de jogos diferentes. Para outros mercados, todas as apostas devem ser do mesmo jogo.',
-          variant: 'destructive'
-        });
-      }
-    } else {
-      const firstMatchId = bets[0].matchId;
-      if (newBet.matchId === firstMatchId) {
-          setBets(prevBets => {
-            const marketIdPrefix = `${match.id}-${market.name}-`;
-            const filteredBets = prevBets.filter(b => !b.id.startsWith(marketIdPrefix));
-            return [...filteredBets, newBet];
-          });
-      } else {
-        toast({
-          title: 'Aposta Múltipla Inválida',
-          description: 'Você só pode adicionar apostas da mesma partida no boletim.',
-          variant: 'destructive'
-        });
-      }
-    }
+    // Add the new bet to the slip
+    setBets(prevBets => [...prevBets, newBet]);
+
   }, [bets, toast]);
 
   const removeBet = useCallback((betId: string) => {
