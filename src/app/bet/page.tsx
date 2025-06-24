@@ -2,7 +2,7 @@
 import { BetPageClient } from '@/components/bet-page-client';
 import clientPromise from '@/lib/mongodb';
 import type { Match } from '@/types';
-import { format, isToday, isTomorrow } from 'date-fns';
+import { format, isToday, isTomorrow, startOfToday, endOfToday } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
 type DbMatch = {
@@ -26,14 +26,15 @@ async function getMatches(): Promise<Match[]> {
     const db = client.db("timaocord");
     const matchesCollection = db.collection<DbMatch>("matches");
 
-    const now = new Date();
-    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const todayTimestamp = Math.floor(startOfToday.getTime() / 1000);
+    const start = startOfToday();
+    const end = endOfToday();
+
+    const startTimestamp = Math.floor(start.getTime() / 1000);
+    const endTimestamp = Math.floor(end.getTime() / 1000);
 
     const dbMatches = await matchesCollection
       .find({
-        isFinished: false,
-        timestamp: { $gte: todayTimestamp },
+        timestamp: { $gte: startTimestamp, $lte: endTimestamp },
       })
       .sort({ timestamp: 1 })
       .toArray();
