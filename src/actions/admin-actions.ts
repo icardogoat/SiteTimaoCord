@@ -379,7 +379,12 @@ export async function resolveMatch(fixtureId: number): Promise<{ success: boolea
 
             await matchesCollection.updateOne(
                 { 'fixture.id': fixtureId },
-                { $set: { isFinished: true, goals: fixtureData.fixture.goals, statistics: finalStats } },
+                { $set: { 
+                    isFinished: true, 
+                    goals: fixtureData.fixture.goals, 
+                    statistics: finalStats,
+                    'fixture.status': fixtureData.fixture.status
+                } },
                 { session: mongoSession }
             );
 
@@ -458,4 +463,56 @@ export async function resolveMatch(fixtureId: number): Promise<{ success: boolea
         console.error("Error resolving match:", error);
         return { success: false, message: 'Ocorreu um erro inesperado ao processar a resolução.' };
     }
+}
+
+// Function to be called by a cron job to process all finished matches
+export async function processAllFinishedMatches(): Promise<{ success: boolean; message: string; details: string[] }> {
+    console.log('Starting to process finished matches...');
+    const client = await clientPromise;
+    const db = client.db('timaocord');
+    const matchesCollection = db.collection('matches');
+
+    const finishedMatchesToProcess = await matchesCollection.find({
+        'fixture.status.short': 'FT',
+        'isFinished': { $ne: true }
+    }).toArray();
+
+    if (finishedMatchesToProcess.length === 0) {
+        console.log('No new finished matches to process.');
+        return { success: true, message: 'No new finished matches to process.', details: [] };
+    }
+
+    console.log(`Found ${finishedMatchesToProcess.length} matches to process.`);
+    const results: string[] = [];
+    let successCount = 0;
+    let failureCount = 0;
+
+    for (const match of finishedMatchesToProcess) {
+        const fixtureId = match.fixture.id;
+        console.log(`Processing match ${fixtureId}...`);
+        try {
+            const result = await resolveMatch(fixtureId);
+            if (result.success) {
+                successCount++;
+                results.push(`Successfully resolved match ${fixtureId}: ${result.message}`);
+            } else {
+                failureCount++;
+                results.push(`Failed to resolve match ${fixtureId}: ${result.message}`);
+            }
+        } catch (error) {
+            failureCount++;
+            const errorMessage = (error instanceof Error) ? error.message : String(error);
+            results.push(`Error processing match ${fixtureId}: ${errorMessage}`);
+            console.error(`Error processing match ${fixtureId}:`, error);
+        }
+    }
+
+    const summaryMessage = `Processed ${finishedMatchesToProcess.length} matches. Success: ${successCount}, Failure: ${failureCount}.`;
+    console.log(summaryMessage);
+    
+    return {
+        success: failureCount === 0,
+        message: summaryMessage,
+        details: results
+    };
 }
