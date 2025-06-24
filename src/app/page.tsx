@@ -1,11 +1,18 @@
 import Link from 'next/link';
-import { Button, buttonVariants } from '@/components/ui/button';
+import { Button } from '@/components/ui/button';
 import { FielBetLogo, DiscordLogo } from '@/components/icons';
-import { ArrowRight } from 'lucide-react';
-import { cn } from '@/lib/utils';
 import { LoginButton } from '@/components/login-button';
+import { getServerSession } from 'next-auth/next';
+import { authOptions } from './api/auth/[...nextauth]/route';
+import { redirect } from 'next/navigation';
 
-export default function TimaocordHome() {
+export default async function TimaocordHome() {
+  const session = await getServerSession(authOptions);
+
+  if (session) {
+    redirect('/bet');
+  }
+
   return (
     <div className="flex flex-col min-h-screen bg-background text-foreground">
       <header className="px-4 lg:px-6 h-16 flex items-center">
