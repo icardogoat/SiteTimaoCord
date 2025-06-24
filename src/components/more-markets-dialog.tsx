@@ -18,6 +18,7 @@ import { Button } from '@/components/ui/button';
 import type { Match } from '@/types';
 import { ScrollArea } from './ui/scroll-area';
 import { useBetSlip } from '@/context/bet-slip-context';
+import { cn } from '@/lib/utils';
 
 interface MoreMarketsDialogProps {
   match: Match;
@@ -44,7 +45,7 @@ export function MoreMarketsDialog({ match, children }: MoreMarketsDialogProps) {
               <AccordionItem value={market.name} key={market.name}>
                 <AccordionTrigger>{market.name}</AccordionTrigger>
                 <AccordionContent>
-                  <div className="grid grid-cols-2 gap-2 md:grid-cols-3">
+                  <div className={cn("grid gap-2", market.odds.length === 3 ? "grid-cols-3" : "grid-cols-2")}>
                     {market.odds.map((odd) => (
                       <Button
                         variant={isBetSelected(`${match.id}-${market.name}-${odd.label}`) ? 'default' : 'secondary'}
