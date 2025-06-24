@@ -52,8 +52,16 @@ async function getMatches(): Promise<Match[]> {
       .find({
         timestamp: { $gte: startTimestamp, $lte: endTimestamp },
       })
-      .sort({ timestamp: 1 })
       .toArray();
+
+    // Sort to show upcoming matches first, then finished matches.
+    // Within each group, sort by time.
+    dbMatches.sort((a, b) => {
+        if (a.isFinished !== b.isFinished) {
+            return a.isFinished ? 1 : -1; // false (not finished) comes first
+        }
+        return a.timestamp - b.timestamp; // Then sort by time
+    });
     
     // Get date parts for today and tomorrow in Brasília time for comparison.
     const todayDatePart = nowInBrasilia.toLocaleDateString('pt-BR', { timeZone, day: '2-digit', month: '2-digit', year: 'numeric' });
