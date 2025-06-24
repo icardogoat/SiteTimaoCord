@@ -3,6 +3,7 @@
 
 import { BetPageClient } from '@/components/bet-page-client';
 import clientPromise from '@/lib/mongodb';
+import { translateMarketData } from '@/lib/translations';
 import type { Match } from '@/types';
 
 type DbMatch = {
@@ -91,6 +92,8 @@ async function getMatches(): Promise<Match[]> {
         timeString = `${date.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', timeZone })}, ${matchTimePart}`;
       }
       
+      const translatedMarkets = dbMatch.markets.map(translateMarketData);
+
       return {
         id: dbMatch._id,
         teamA: {
@@ -103,10 +106,7 @@ async function getMatches(): Promise<Match[]> {
         },
         time: timeString,
         league: dbMatch.league,
-        markets: dbMatch.markets.map((market) => ({
-          name: market.name,
-          odds: market.odds,
-        })),
+        markets: translatedMarkets,
         status: dbMatch.status,
         goals: dbMatch.goals,
         isFinished: dbMatch.isFinished,
