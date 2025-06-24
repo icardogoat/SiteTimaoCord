@@ -13,6 +13,18 @@ export const authOptions: AuthOptions = {
       clientId: process.env.DISCORD_CLIENT_ID!,
       clientSecret: process.env.DISCORD_CLIENT_SECRET!,
       profile(profile) {
+        if (!profile.discriminator || profile.discriminator === "0") {
+            const defaultAvatarNumber = Math.floor(Math.random() * 6);
+            const image_url = `https://cdn.discordapp.com/embed/avatars/${defaultAvatarNumber}.png`;
+            return {
+                id: profile.id,
+                name: profile.global_name || profile.username,
+                email: profile.email,
+                image: profile.avatar ? `https://cdn.discordapp.com/avatars/${profile.id}/${profile.avatar}.png` : image_url,
+                discordId: profile.id,
+            };
+        }
+        
         let image_url: string;
         if (profile.avatar) {
           const format = profile.avatar.startsWith("a_") ? "gif" : "png"
@@ -37,13 +49,15 @@ export const authOptions: AuthOptions = {
   },
   secret: process.env.NEXTAUTH_SECRET,
   callbacks: {
-    async signIn({ user, isNewUser }) {
-      if (isNewUser) {
-        try {
-          const client = await clientPromise;
-          const db = client.db("timaocord");
-          const walletsCollection = db.collection("wallets");
+    async signIn({ user }) {
+      try {
+        const client = await clientPromise;
+        const db = client.db("timaocord");
+        const walletsCollection = db.collection("wallets");
 
+        const existingWallet = await walletsCollection.findOne({ userId: user.id });
+
+        if (!existingWallet) {
           const initialTransaction: Transaction = {
             id: new Date().getTime().toString(),
             type: 'Bônus',
@@ -58,10 +72,10 @@ export const authOptions: AuthOptions = {
             balance: 1000,
             transactions: [initialTransaction]
           });
-        } catch (error) {
-          console.error("Failed to create wallet for new user:", error);
-          return false;
         }
+      } catch (error) {
+        console.error("Failed to create or check wallet for user:", error);
+        return false;
       }
       return true;
     },
