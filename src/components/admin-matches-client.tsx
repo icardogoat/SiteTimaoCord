@@ -60,7 +60,7 @@ export function AdminMatchesClient({ initialMatches }: AdminMatchesClientProps) 
                 description: result.message,
             });
             setMatches(prev => prev.map(m => 
-                m.fixtureId === fixtureId ? { ...m, status: 'Processado', isProcessed: true } : m
+                m.fixtureId === fixtureId ? { ...m, status: 'Pago', isProcessed: true } : m
             ));
         } else {
             toast({
@@ -129,11 +129,11 @@ export function AdminMatchesClient({ initialMatches }: AdminMatchesClientProps) 
                                 <TableCell className="text-center">
                                     <Badge variant={
                                         match.status === "Ao Vivo" ? "destructive" :
-                                        match.status === "Processado" ? "default" :
+                                        match.status === "Pago" ? "default" :
                                         "secondary"
                                     } className={
                                         match.status === "Ao Vivo" ? "bg-red-500/80" :
-                                        match.status === "Processado" ? "bg-green-500/80" : ""
+                                        match.status === "Pago" ? "bg-green-500/80" : ""
                                     }>
                                         {match.status}
                                     </Badge>
@@ -154,7 +154,7 @@ export function AdminMatchesClient({ initialMatches }: AdminMatchesClientProps) 
                                             <DropdownMenuLabel>Ações</DropdownMenuLabel>
                                             <DropdownMenuItem 
                                                 onClick={() => handleResolve(match.fixtureId)}
-                                                disabled={match.status === 'Processado' || match.status === 'Agendada' || match.status === 'Ao Vivo'}
+                                                disabled={match.status === 'Pago' || match.status === 'Agendada' || match.status === 'Ao Vivo'}
                                             >
                                                 Resolver Partida
                                             </DropdownMenuItem>

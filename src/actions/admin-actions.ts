@@ -90,7 +90,7 @@ export async function getAdminMatches(): Promise<MatchAdminView[]> {
             
             let statusLabel: string;
              if (match.isProcessed) {
-                statusLabel = 'Processado';
+                statusLabel = 'Pago';
             } else {
                 switch(match.status) {
                     case 'FT':
