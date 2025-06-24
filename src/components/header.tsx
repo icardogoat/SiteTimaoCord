@@ -14,7 +14,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { LogOut, User, Wallet, Ticket, Bell, Trophy } from 'lucide-react';
+import { LogOut, User, Wallet, Ticket, Bell, Trophy, LayoutGrid } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useSession, signOut } from 'next-auth/react';
@@ -162,6 +162,14 @@ export function Header() {
                 <span>Ranking</span>
               </Link>
             </DropdownMenuItem>
+            {user?.admin && (
+                <DropdownMenuItem asChild>
+                    <Link href="/admin">
+                        <LayoutGrid className="mr-2 h-4 w-4" />
+                        <span>Admin</span>
+                    </Link>
+                </DropdownMenuItem>
+            )}
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={() => signOut({ callbackUrl: '/' })}>
                 <LogOut className="mr-2 h-4 w-4" />
