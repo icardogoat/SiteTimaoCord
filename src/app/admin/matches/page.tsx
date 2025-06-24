@@ -53,7 +53,6 @@ const matchesData = [
 const marketsConfig = [
     { name: "Vencedor da Partida", odds: ["Casa", "Empate", "Fora"] },
     { name: "Aposta sem Empate", odds: ["Casa", "Fora"] },
-    { name: "Vencedor do 2º Tempo", odds: ["Casa", "Empate", "Fora"] },
     { name: "Gols Acima/Abaixo", odds: ["Acima 0.5", "Abaixo 0.5", "Acima 1.5", "Abaixo 1.5", "Acima 2.5", "Abaixo 2.5", "Acima 3.5", "Abaixo 3.5"] },
     { name: "Ambos Marcam", odds: ["Sim", "Não"] },
     { name: "Placar Exato", odds: ["1-0", "2-1", "0-0", "1-1", "0-1", "1-2"] },

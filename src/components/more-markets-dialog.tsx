@@ -1,3 +1,4 @@
+
 'use client';
 
 import {
@@ -28,7 +29,6 @@ interface MoreMarketsDialogProps {
 const allowedMarkets = [
   'Vencedor da Partida',
   'Aposta sem Empate',
-  'Vencedor do 2º Tempo',
   'Gols Acima/Abaixo',
   'Ambos Marcam',
   'Placar Exato',
