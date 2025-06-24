@@ -10,13 +10,20 @@ import {
   SidebarMenuSubItem,
   SidebarMenuSubButton,
 } from '@/components/ui/sidebar';
-import { Globe, Home, Trophy } from 'lucide-react';
+import { Globe, Home, Trophy, Star } from 'lucide-react';
 
 const championships = {
-  brasil: [
-    'Série A', 'Brasileirão Série A',
-    'Série B', 'Brasileirão Série B',
+  destaques: [
+    'Brasileirão Série A',
+    'Série A',
     'Copa do Brasil',
+    'CONMEBOL Libertadores',
+    'CONMEBOL Sul-Americana',
+    'Mundial de Clubes da FIFA',
+    'FIFA Club World Cup',
+  ],
+  brasil: [
+    'Série B', 'Brasileirão Série B',
     'Copa do Nordeste',
     'Copa SP de Futebol Júnior',
     'Campeonato Pernambucano',
@@ -25,8 +32,6 @@ const championships = {
     'Campeonato Paulista',
   ],
   americas: [
-    'CONMEBOL Libertadores',
-    'CONMEBOL Sul-Americana',
     'Copa América',
     'CONMEBOL Recopa',
     'CONCACAF Champions Cup',
@@ -63,8 +68,6 @@ const championships = {
   mundo: [
     'Copa do Mundo',
     'Copa do Mundo Feminina',
-    'Mundial de Clubes da FIFA',
-    'FIFA Club World Cup',
   ],
 };
 
@@ -78,6 +81,7 @@ export function ChampionshipSidebarMenu({ availableLeagues }: ChampionshipSideba
   const selectedLeague = searchParams.get('league');
 
   const championshipGroups = [
+    { name: 'Destaques', list: championships.destaques, icon: Star },
     { name: 'Brasil', list: championships.brasil, icon: Trophy },
     { name: 'Américas', list: championships.americas, icon: Globe },
     { name: 'Europa', list: championships.europa, icon: Globe },
