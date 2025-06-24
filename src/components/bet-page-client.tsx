@@ -1,8 +1,10 @@
+
 'use client';
 
 import type { Match } from '@/types';
 import { MatchCard } from '@/components/match-card';
 import { AppLayout } from '@/components/app-layout';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
 interface BetPageClientProps {
     matches: Match[];
@@ -25,7 +27,21 @@ export function BetPageClient({ matches }: BetPageClientProps) {
                 </div>
                 
                 {matches.length === 0 ? (
-                    <p className="text-muted-foreground text-center mt-8">Nenhuma partida encontrada no momento.</p>
+                    <div className="flex items-center justify-center pt-16">
+                        <Card className="w-full max-w-lg text-center">
+                            <CardHeader>
+                                <CardTitle>Nenhuma partida disponível no momento.</CardTitle>
+                            </CardHeader>
+                             <CardContent>
+                                <p className="text-muted-foreground">
+                                    Os jogos do dia estão sendo carregados. Por favor, tente novamente em alguns instantes.
+                                </p>
+                                <p className="mt-4 text-sm text-muted-foreground">
+                                    Se você é um administrador, pode carregar os jogos manualmente na página de Configurações.
+                                </p>
+                            </CardContent>
+                        </Card>
+                    </div>
                 ) : (
                     <div className="space-y-12">
                          {corinthiansMatches.length > 0 && (
