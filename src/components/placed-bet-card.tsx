@@ -1,14 +1,21 @@
+'use client';
+
+import { useState } from "react";
 import type { PlacedBet } from "@/types";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { Separator } from "./ui/separator";
+import { Button } from "./ui/button";
+import { ChevronDown, ChevronUp } from "lucide-react";
 
 interface PlacedBetCardProps {
     bet: PlacedBet;
 }
 
 export function PlacedBetCard({ bet }: PlacedBetCardProps) {
+    const [isExpanded, setIsExpanded] = useState(false);
+
     const statusVariant = {
         'Ganha': 'default',
         'Perdida': 'destructive',
@@ -29,6 +36,9 @@ export function PlacedBetCard({ bet }: PlacedBetCardProps) {
 
     const isSingleBet = bet.bets.length === 1;
     const single = isSingleBet ? bet.bets[0] : null;
+
+    const selectionsToShow = isExpanded ? bet.bets : bet.bets.slice(0, 2);
+    const hasMoreSelections = bet.bets.length > 2;
 
     return (
         <Card className="flex flex-col">
@@ -55,11 +65,17 @@ export function PlacedBetCard({ bet }: PlacedBetCardProps) {
                     </div>
                 ) : (
                     <div className="space-y-2 text-sm">
-                        {bet.bets.map((selection, index) => (
+                        {selectionsToShow.map((selection, index) => (
                             <div key={index} className="text-muted-foreground">
                                 <span className="font-semibold text-foreground">{selection.selection}</span> em {selection.teamA} vs {selection.teamB}
                             </div>
                         ))}
+                        {hasMoreSelections && (
+                             <Button variant="link" className="p-0 h-auto text-xs" onClick={() => setIsExpanded(!isExpanded)}>
+                                {isExpanded ? 'Ver menos' : `Ver mais ${bet.bets.length - 2} seleções`}
+                                {isExpanded ? <ChevronUp className="ml-1 h-3 w-3" /> : <ChevronDown className="ml-1 h-3 w-3" />}
+                            </Button>
+                        )}
                     </div>
                 )}
             </CardContent>
