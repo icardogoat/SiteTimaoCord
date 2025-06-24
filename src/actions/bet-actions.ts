@@ -31,7 +31,7 @@ export async function placeBet(betsInSlip: BetInSlip[], stake: number): Promise<
   const mongoSession = client.startSession();
 
   try {
-    const result = await mongoSession.withTransaction(async () => {
+    const transactionResult = await mongoSession.withTransaction(async () => {
       const walletsCollection = db.collection('wallets');
       const betsCollection = db.collection('bets');
 
@@ -90,12 +90,19 @@ export async function placeBet(betsInSlip: BetInSlip[], stake: number): Promise<
       return { success: true, message: 'Aposta realizada com sucesso!', newBalance };
     });
 
-    if (result.success) {
+    if (transactionResult.success) {
         revalidatePath('/my-bets');
         revalidatePath('/wallet');
+        
+        // Construct a new, guaranteed-plain object to return to the client.
+        return {
+            success: transactionResult.success,
+            message: transactionResult.message,
+            newBalance: transactionResult.newBalance,
+        };
     }
 
-    return result;
+    return { success: false, message: "A transação falhou por um motivo desconhecido." };
 
   } catch (error: any) {
     return { success: false, message: error.message || 'Ocorreu um erro ao processar sua aposta.' };
