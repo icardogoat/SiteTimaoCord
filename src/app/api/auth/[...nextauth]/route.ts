@@ -6,7 +6,7 @@ import { MongoDBAdapter } from "@next-auth/mongodb-adapter";
 import clientPromise from "@/lib/mongodb";
 
 export const authOptions: AuthOptions = {
-  adapter: MongoDBAdapter(clientPromise),
+  adapter: MongoDBAdapter(clientPromise, { databaseName: "timaocord" }),
   providers: [
     DiscordProvider({
       clientId: process.env.DISCORD_CLIENT_ID!,
