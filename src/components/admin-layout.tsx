@@ -2,16 +2,15 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { ReactNode } from "react"
+import { type ReactNode } from "react"
 import { Home, Users, Trophy, Ticket, Menu } from "lucide-react"
+import { useSession, signOut } from "next-auth/react"
 
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
@@ -33,6 +32,18 @@ const navLinks = [
 
 export function AdminLayout({ children }: AdminLayoutProps) {
   const pathname = usePathname();
+  const { data: session } = useSession();
+
+  const user = session?.user;
+  const userName = user?.name ?? 'Admin';
+  const userImage = user?.image ?? 'https://placehold.co/40x40.png';
+  const userFallback =
+    userName
+      .split(' ')
+      .map((n) => n[0])
+      .join('')
+      .substring(0, 2)
+      .toUpperCase() || 'AD';
 
   return (
     <div className="grid min-h-screen w-full md:grid-cols-[220px_1fr] lg:grid-cols-[280px_1fr]">
@@ -109,16 +120,14 @@ export function AdminLayout({ children }: AdminLayoutProps) {
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
                 <Avatar className="h-9 w-9 cursor-pointer">
-                    <AvatarImage src="https://placehold.co/40x40.png" alt="Admin Avatar" data-ai-hint="user avatar" />
-                    <AvatarFallback>AD</AvatarFallback>
+                    <AvatarImage src={userImage} alt="Admin Avatar" data-ai-hint="user avatar" />
+                    <AvatarFallback>{userFallback}</AvatarFallback>
                 </Avatar>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuLabel>Admin</DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem asChild><Link href="/">Voltar ao App</Link></DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem>Sair</DropdownMenuItem>
+              <DropdownMenuItem asChild><Link href="/admin/dashboard">Admin</Link></DropdownMenuItem>
+              <DropdownMenuItem asChild><Link href="/bet">Voltar ao App</Link></DropdownMenuItem>
+              <DropdownMenuItem onClick={() => signOut({ callbackUrl: '/' })}>Sair</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </header>
