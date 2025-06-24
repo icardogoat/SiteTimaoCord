@@ -22,12 +22,18 @@ async function getMyBets(userId: string): Promise<PlacedBet[]> {
       .sort({ createdAt: -1 })
       .toArray();
 
-    // Map _id to id and convert to JSON-serializable format
+    // Map DB objects to plain, serializable objects for client components.
+    // This prevents errors when passing props from Server to Client Components.
     return userBets.map(bet => ({
-        ...bet,
         _id: bet._id.toString(),
-        createdAt: bet.createdAt.toISOString(),
-        settledAt: bet.settledAt ? bet.settledAt.toISOString() : undefined,
+        userId: bet.userId,
+        bets: bet.bets,
+        stake: bet.stake,
+        potentialWinnings: bet.potentialWinnings,
+        totalOdds: bet.totalOdds,
+        status: bet.status,
+        createdAt: (bet.createdAt as Date).toISOString(),
+        settledAt: bet.settledAt ? (bet.settledAt as Date).toISOString() : undefined,
     })) as PlacedBet[];
 
   } catch (error) {
@@ -64,7 +70,7 @@ export default async function MyBetsPage() {
                     <TabsContent value="open">
                         <div className="grid gap-4 mt-4 md:grid-cols-2 lg:grid-cols-3">
                             {openBets.length > 0 ? (
-                                openBets.map(bet => <PlacedBetCard key={bet._id} bet={bet} />)
+                                openBets.map(bet => <PlacedBetCard key={bet._id as string} bet={bet} />)
                             ) : (
                                 <p className="text-muted-foreground col-span-full">Você não tem apostas em aberto.</p>
                             )}
@@ -73,7 +79,7 @@ export default async function MyBetsPage() {
                     <TabsContent value="settled">
                         <div className="grid gap-4 mt-4 md:grid-cols-2 lg:grid-cols-3">
                             {settledBets.length > 0 ? (
-                                settledBets.map(bet => <PlacedBetCard key={bet._id} bet={bet} />)
+                                settledBets.map(bet => <PlacedBetCard key={bet._id as string} bet={bet} />)
                             ) : (
                                 <p className="text-muted-foreground col-span-full">Você não tem apostas resolvidas.</p>
                             )}
