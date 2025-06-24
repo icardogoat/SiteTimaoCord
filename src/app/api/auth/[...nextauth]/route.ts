@@ -30,12 +30,21 @@ export const authOptions: AuthOptions = {
       },
     }),
   ],
+  session: {
+    strategy: "jwt",
+  },
   secret: process.env.NEXTAUTH_SECRET,
   callbacks: {
-    async session({ session, user }) {
+    async jwt({ token, user }) {
+      if (user) {
+        token.discordId = user.discordId;
+      }
+      return token;
+    },
+    async session({ session, token }) {
       if (session.user) {
-        session.user.id = user.id;
-        session.user.discordId = user.discordId; // Thanks to type augmentation
+        session.user.id = token.sub!;
+        session.user.discordId = token.discordId as string;
       }
       return session;
     },
