@@ -133,7 +133,8 @@ export function AdminMatchesClient({ initialMatches }: AdminMatchesClientProps) 
                                         "secondary"
                                     } className={
                                         match.status === "Ao Vivo" ? "bg-red-500/80 text-white" :
-                                        match.status === "Pago" ? "bg-green-600/90 text-white" : ""
+                                        match.status === "Pago" ? "bg-green-600/90 text-white" :
+                                        match.status === "Pendente Pagamento" ? "bg-yellow-500/80 text-white" : ""
                                     }>
                                         {match.status}
                                     </Badge>
@@ -154,7 +155,7 @@ export function AdminMatchesClient({ initialMatches }: AdminMatchesClientProps) 
                                             <DropdownMenuLabel>Ações</DropdownMenuLabel>
                                             <DropdownMenuItem 
                                                 onClick={() => handleResolve(match.fixtureId)}
-                                                disabled={match.status === 'Pago' || match.status === 'Agendada' || match.status === 'Ao Vivo'}
+                                                disabled={match.status !== 'Pendente Pagamento'}
                                             >
                                                 Resolver Partida
                                             </DropdownMenuItem>
