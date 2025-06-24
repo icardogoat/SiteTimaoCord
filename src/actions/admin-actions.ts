@@ -5,7 +5,7 @@ import type { PlacedBet, Transaction } from '@/types';
 import { ObjectId, WithId } from 'mongodb';
 import { revalidatePath } from 'next/cache';
 
-// This type now matches the schema provided by the user for the 'matches' collection.
+// Base type for a match in the DB (for admin list view)
 type MatchFromDb = {
   _id: number;
   homeTeam: string;
@@ -13,6 +13,26 @@ type MatchFromDb = {
   league: string;
   timestamp: number;
   status: string;
+  isProcessed?: boolean;
+};
+
+// Types for data structure inside a full match document from DB
+// Assumed to be saved by an external script, mirroring API structure
+interface TeamDataInDB {
+    home: { id: number; name: string; winner: boolean | null };
+    away: { id: number; name: string; winner: boolean | null };
+}
+
+interface StatsInDB {
+    team: { id: number; };
+    statistics: { type: string; value: number | string | null; }[];
+}
+
+// Type for the full match document in MongoDB
+type FullMatchInDb = MatchFromDb & {
+    goals: { home: number | null; away: number | null; };
+    teams: TeamDataInDB;
+    statistics: StatsInDB[];
 };
 
 type MatchAdminView = {
@@ -51,36 +71,12 @@ type BetAdminView = {
 };
 
 
-interface ApiFixture {
-    id: number;
-    status: { short: string; };
-    goals: { home: number | null; away: number | null; };
-}
-
-interface ApiTeamData {
-    home: { id: number; name: string; winner: boolean | null };
-    away: { id: number; name: string; winner: boolean | null };
-}
-
-interface ApiStats {
-    team: { id: number; };
-    statistics: { type: string; value: number | string | null; }[];
-}
-
-interface FootballApiResponse {
-    response: {
-        fixture: ApiFixture;
-        teams: ApiTeamData;
-        statistics?: ApiStats[];
-    }[];
-}
-
 // Fetch matches for admin page
 export async function getAdminMatches(): Promise<MatchAdminView[]> {
     try {
         const client = await clientPromise;
         const db = client.db('timaocord');
-        const matchesCollection = db.collection<MatchFromDb & { isProcessed?: boolean }>('matches');
+        const matchesCollection = db.collection<MatchFromDb>('matches');
         
         // Find all matches and sort by timestamp descending
         const matchesFromDb = await matchesCollection.find({}).sort({ 'timestamp': -1 }).limit(100).toArray();
@@ -238,7 +234,7 @@ export async function getAdminUsers(): Promise<UserAdminView[]> {
 }
 
 // Function to evaluate one selection
-function evaluateSelection(selection: PlacedBet['bets'][0], goals: { home: number, away: number }, stats: ApiStats[], teams: ApiTeamData): 'Ganha' | 'Perdida' | 'Anulada' {
+function evaluateSelection(selection: PlacedBet['bets'][0], goals: { home: number, away: number }, stats: StatsInDB[], teams: TeamDataInDB): 'Ganha' | 'Perdida' | 'Anulada' {
     const { home, away } = goals;
     const totalGoals = home + away;
     
@@ -348,66 +344,46 @@ function evaluateSelection(selection: PlacedBet['bets'][0], goals: { home: numbe
 
 // Main action to resolve a match and settle bets
 export async function resolveMatch(fixtureId: number): Promise<{ success: boolean; message: string }> {
-    const apiKey = process.env.FOOTBALL_API_KEY_1;
-    if (!apiKey) {
-        return { success: false, message: 'Chave da API de Futebol não configurada.' };
-    }
-
-    const url = `https://api-football-v1.p.rapidapi.com/v3/fixtures?id=${fixtureId}`;
-    const statsUrl = `https://api-football-v1.p.rapidapi.com/v3/fixtures/statistics?fixture=${fixtureId}`;
-    const options = {
-        method: 'GET',
-        headers: { 'x-rapidapi-key': apiKey, 'x-rapidapi-host': 'api-football-v1.p.rapidapi.com' }
-    };
+    const client = await clientPromise;
+    const db = client.db('timaocord');
+    const matchesCollection = db.collection<FullMatchInDb>('matches');
 
     try {
-        const [fixtureResponse, statsResponse] = await Promise.all([
-            fetch(url, options),
-            fetch(statsUrl, options),
-        ]);
+        const matchData = await matchesCollection.findOne({ _id: fixtureId });
 
-        if (!fixtureResponse.ok || !statsResponse.ok) {
-            console.error('API Error:', await fixtureResponse.text(), await statsResponse.text());
-            return { success: false, message: 'Falha ao buscar dados da partida na API.' };
+        if (!matchData) {
+            return { success: false, message: `Partida ${fixtureId} não encontrada no banco de dados.` };
         }
 
-        const fixtureJson: FootballApiResponse = await fixtureResponse.json();
-        const statsJson = await statsResponse.json();
-
-        if (!fixtureJson.response || fixtureJson.response.length === 0) {
-            return { success: false, message: 'Partida não encontrada na API.' };
+        if (matchData.isProcessed) {
+            return { success: true, message: `Partida ${fixtureId} já foi processada anteriormente.` };
         }
 
-        const fixtureData = fixtureJson.response[0];
-        const finalStats = statsJson.response;
-
-        if (fixtureData.fixture.status.short !== 'FT') {
-            return { success: false, message: 'A partida ainda não foi finalizada.' };
+        if (matchData.status !== 'FT') {
+            return { success: false, message: `A partida ${fixtureId} ainda não foi finalizada (Status: ${matchData.status}).` };
         }
-        
-        const goals = fixtureData.fixture.goals;
+
+        const { goals, statistics: finalStats, teams } = matchData;
+
         if (goals.home === null || goals.away === null) {
-            return { success: false, message: 'Dados de gols ausentes na resposta da API.' };
+            return { success: false, message: 'Dados de gols ausentes no documento da partida.' };
         }
 
-        const client = await clientPromise;
-        const db = client.db('timaocord');
-        const mongoSession = client.startSession();
+        if (!finalStats || !teams) {
+            return { success: false, message: 'Dados de estatísticas ou de times estão ausentes no documento da partida.' };
+        }
 
+        const mongoSession = client.startSession();
         let settledCount = 0;
 
         await mongoSession.withTransaction(async () => {
-            const matchesCollection = db.collection('matches');
             const betsCollection = db.collection<WithId<PlacedBet>>('bets');
             const walletsCollection = db.collection('wallets');
 
+            // Mark as processed inside the transaction
             await matchesCollection.updateOne(
                 { '_id': fixtureId },
-                { $set: { 
-                    isProcessed: true, 
-                    goals: fixtureData.fixture.goals, 
-                    status: fixtureData.fixture.status.short
-                } },
+                { $set: { isProcessed: true } },
                 { session: mongoSession }
             );
 
@@ -419,7 +395,7 @@ export async function resolveMatch(fixtureId: number): Promise<{ success: boolea
             for (const bet of openBets) {
                 const updatedSelections = bet.bets.map(selection => {
                     if (selection.matchId === fixtureId) {
-                        return { ...selection, status: evaluateSelection(selection, goals, finalStats, fixtureData.teams) };
+                        return { ...selection, status: evaluateSelection(selection, goals, finalStats, teams) };
                     }
                     return selection;
                 });
@@ -483,7 +459,7 @@ export async function resolveMatch(fixtureId: number): Promise<{ success: boolea
         return { success: true, message: `Partida ${fixtureId} resolvida. ${settledCount} apostas foram finalizadas.` };
 
     } catch (error) {
-        console.error("Error resolving match:", error);
+        console.error(`Error resolving match ${fixtureId}:`, error);
         return { success: false, message: 'Ocorreu um erro inesperado ao processar a resolução.' };
     }
 }
