@@ -11,6 +11,7 @@ declare module 'next-auth' {
       id: string;
       discordId: string;
       balance: number;
+      admin: boolean;
     } & DefaultSession['user'];
   }
 
@@ -20,5 +21,6 @@ declare module 'next-auth' {
    */
   interface User extends DefaultUser {
     discordId: string;
+    admin: boolean;
   }
 }

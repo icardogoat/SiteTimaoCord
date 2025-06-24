@@ -22,6 +22,7 @@ export const authOptions: AuthOptions = {
                 email: profile.email,
                 image: profile.avatar ? `https://cdn.discordapp.com/avatars/${profile.id}/${profile.avatar}.png` : image_url,
                 discordId: profile.id,
+                admin: false,
             };
         }
         
@@ -40,6 +41,7 @@ export const authOptions: AuthOptions = {
           email: profile.email,
           image: image_url,
           discordId: profile.id,
+          admin: false,
         }
       },
     }),
@@ -82,6 +84,7 @@ export const authOptions: AuthOptions = {
     async jwt({ token, user }) {
       if (user) {
         token.discordId = user.discordId;
+        token.admin = user.admin ?? false;
       }
       return token;
     },
@@ -89,6 +92,7 @@ export const authOptions: AuthOptions = {
       if (session.user) {
         session.user.id = token.sub!;
         session.user.discordId = token.discordId as string;
+        session.user.admin = token.admin as boolean;
         
         try {
           const client = await clientPromise;
