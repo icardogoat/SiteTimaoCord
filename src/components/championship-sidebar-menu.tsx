@@ -45,7 +45,6 @@ const championships = {
     'Serie A',
     'Primeira Liga',
     'Eredivisie',
-    'Liga Pro',
     'UEFA Conference League',
     'Supercopa da UEFA',
   ],
@@ -87,11 +86,25 @@ export function ChampionshipSidebarMenu({ availableLeagues }: ChampionshipSideba
     { name: 'Oceania', list: championships.oceania, icon: Globe },
     { name: 'Mundo', list: championships.mundo, icon: Globe },
   ];
+  
+  const allCategorizedLeagues = new Set(championshipGroups.flatMap(g => g.list));
 
   const filteredChampionshipGroups = championshipGroups.map(group => ({
       ...group,
       list: group.list.filter(league => availableLeagues.includes(league))
   })).filter(group => group.list.length > 0);
+  
+  const uncategorizedLeagues = availableLeagues
+    .filter(league => !allCategorizedLeagues.has(league))
+    .sort();
+
+  if (uncategorizedLeagues.length > 0) {
+    filteredChampionshipGroups.push({
+      name: 'Outros',
+      list: uncategorizedLeagues,
+      icon: Globe
+    });
+  }
 
   const [openMenus, setOpenMenus] = useState<string[]>(filteredChampionshipGroups.map(g => g.name));
 
