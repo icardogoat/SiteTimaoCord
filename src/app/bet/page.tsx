@@ -8,7 +8,9 @@ import { ptBR } from 'date-fns/locale';
 type DbMatch = {
   _id: number;
   homeTeam: string;
+  homeLogo: string;
   awayTeam: string;
+  awayLogo: string;
   league: string;
   timestamp: number;
   isFinished: boolean;
@@ -52,11 +54,11 @@ async function getMatches(): Promise<Match[]> {
         id: dbMatch._id,
         teamA: {
           name: dbMatch.homeTeam,
-          logo: 'https://placehold.co/40x40.png',
+          logo: dbMatch.homeLogo || 'https://placehold.co/40x40.png',
         },
         teamB: {
           name: dbMatch.awayTeam,
-          logo: 'https://placehold.co/40x40.png',
+          logo: dbMatch.awayLogo || 'https://placehold.co/40x40.png',
         },
         time: timeString,
         league: dbMatch.league,
