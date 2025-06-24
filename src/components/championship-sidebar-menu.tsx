@@ -1,6 +1,8 @@
 'use client';
 
 import { useState } from 'react';
+import { useSearchParams } from 'next/navigation';
+import Link from 'next/link';
 import {
   SidebarMenuItem,
   SidebarMenuButton,
@@ -8,7 +10,7 @@ import {
   SidebarMenuSubItem,
   SidebarMenuSubButton,
 } from '@/components/ui/sidebar';
-import { Trophy } from 'lucide-react';
+import { Home, Trophy } from 'lucide-react';
 
 const championships = {
   brasil: [
@@ -31,15 +33,25 @@ const championships = {
   ],
 };
 
-const championshipGroups = [
-  { name: 'Brasil', list: championships.brasil },
-  { name: 'Américas', list: championships.americas },
-  { name: 'Europa', list: championships.europa },
-  { name: 'Mundo', list: championships.mundo },
-];
+interface ChampionshipSidebarMenuProps {
+  availableLeagues: string[];
+}
 
-export function ChampionshipSidebarMenu() {
-  const [openMenus, setOpenMenus] = useState<string[]>(championshipGroups.map(g => g.name));
+export function ChampionshipSidebarMenu({ availableLeagues }: ChampionshipSidebarMenuProps) {
+  const searchParams = useSearchParams();
+  const selectedLeague = searchParams.get('league');
+
+  const filteredChampionshipGroups = [
+    { name: 'Brasil', list: championships.brasil },
+    { name: 'Américas', list: championships.americas },
+    { name: 'Europa', list: championships.europa },
+    { name: 'Mundo', list: championships.mundo },
+  ].map(group => ({
+      ...group,
+      list: group.list.filter(league => availableLeagues.includes(league))
+  })).filter(group => group.list.length > 0);
+
+  const [openMenus, setOpenMenus] = useState<string[]>(filteredChampionshipGroups.map(g => g.name));
 
   const toggleMenu = (name: string) => {
     setOpenMenus((prev) =>
@@ -51,7 +63,15 @@ export function ChampionshipSidebarMenu() {
 
   return (
     <>
-      {championshipGroups.map((group) => (
+      <SidebarMenuItem>
+        <SidebarMenuButton asChild isActive={!selectedLeague}>
+            <Link href="/bet">
+                <Home />
+                <span>Todas as Partidas</span>
+            </Link>
+        </SidebarMenuButton>
+      </SidebarMenuItem>
+      {filteredChampionshipGroups.map((group) => (
         <SidebarMenuItem key={group.name}>
           <SidebarMenuButton
             onClick={() => toggleMenu(group.name)}
@@ -64,7 +84,10 @@ export function ChampionshipSidebarMenu() {
             <SidebarMenuSub>
               {group.list.map((league) => (
                 <SidebarMenuSubItem key={league}>
-                  <SidebarMenuSubButton href="#">
+                  <SidebarMenuSubButton
+                    href={`/bet?league=${encodeURIComponent(league)}`}
+                    isActive={selectedLeague === league}
+                  >
                     <span>{league}</span>
                   </SidebarMenuSubButton>
                 </SidebarMenuSubItem>

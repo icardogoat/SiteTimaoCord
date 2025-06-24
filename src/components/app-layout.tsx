@@ -22,9 +22,10 @@ import { BetSlip } from '@/components/bet-slip';
 
 interface AppLayoutProps {
     children: ReactNode;
+    availableLeagues?: string[];
 }
 
-export function AppLayout({ children }: AppLayoutProps) {
+export function AppLayout({ children, availableLeagues }: AppLayoutProps) {
     return (
         <SidebarProvider>
             <BetSlipProvider>
@@ -40,14 +41,16 @@ export function AppLayout({ children }: AppLayoutProps) {
                         </div>
                     </SidebarHeader>
                     <SidebarContent>
-                        <SidebarGroup>
-                            <SidebarGroupLabel>Campeonatos</SidebarGroupLabel>
-                            <SidebarGroupContent>
-                            <SidebarMenu>
-                                <ChampionshipSidebarMenu />
-                            </SidebarMenu>
-                            </SidebarGroupContent>
-                        </SidebarGroup>
+                        {availableLeagues && (
+                            <SidebarGroup>
+                                <SidebarGroupLabel>Campeonatos</SidebarGroupLabel>
+                                <SidebarGroupContent>
+                                <SidebarMenu>
+                                    <ChampionshipSidebarMenu availableLeagues={availableLeagues} />
+                                </SidebarMenu>
+                                </SidebarGroupContent>
+                            </SidebarGroup>
+                        )}
                     </SidebarContent>
                 </Sidebar>
                 <SidebarInset>

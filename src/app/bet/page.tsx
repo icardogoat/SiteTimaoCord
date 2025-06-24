@@ -1,4 +1,3 @@
-
 'use server';
 
 import { BetPageClient } from '@/components/bet-page-client';
@@ -26,7 +25,7 @@ type DbMatch = {
   };
 };
 
-async function getMatches(): Promise<Match[]> {
+async function getMatches(): Promise<{ matches: Match[]; availableLeagues: string[] }> {
   try {
     const client = await clientPromise;
     const db = client.db("timaocord");
@@ -54,6 +53,9 @@ async function getMatches(): Promise<Match[]> {
         timestamp: { $gte: startTimestamp, $lte: endTimestamp },
       })
       .toArray();
+
+    // Get unique leagues from today's matches
+    const availableLeagues = [...new Set(dbMatches.map(m => m.league))];
 
     // Sort to show upcoming matches first, then finished matches.
     // Within each group, sort by time.
@@ -113,14 +115,14 @@ async function getMatches(): Promise<Match[]> {
       };
     });
 
-    return matches;
+    return { matches, availableLeagues };
   } catch (error) {
     console.error('Failed to fetch matches from MongoDB:', error);
-    return [];
+    return { matches: [], availableLeagues: [] };
   }
 }
 
 export default async function BetPage() {
-  const matches = await getMatches();
-  return <BetPageClient matches={matches} />;
+  const { matches, availableLeagues } = await getMatches();
+  return <BetPageClient matches={matches} availableLeagues={availableLeagues} />;
 }
