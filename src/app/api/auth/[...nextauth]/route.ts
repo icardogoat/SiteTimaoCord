@@ -82,10 +82,26 @@ export const authOptions: AuthOptions = {
       return true;
     },
     async jwt({ token, user }) {
+      // On sign-in, `user` object is present and we can seed the token.
       if (user) {
         token.discordId = user.discordId;
         token.admin = user.admin ?? false;
       }
+      
+      // To keep the admin status updated after manual DB changes,
+      // we re-fetch the user from the database when the JWT is processed.
+      try {
+        const client = await clientPromise;
+        const db = client.db("timaocord");
+        // The `users` collection is managed by the MongoDB adapter
+        const dbUser = await db.collection("users").findOne({ discordId: token.discordId as string });
+        if (dbUser) {
+          token.admin = dbUser.admin ?? false;
+        }
+      } catch (error) {
+        console.error("Failed to refresh user admin status in JWT:", error);
+      }
+
       return token;
     },
     async session({ session, token }) {
