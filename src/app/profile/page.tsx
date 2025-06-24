@@ -9,6 +9,8 @@ import { Trophy } from "lucide-react";
 import Link from 'next/link';
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { getServerSession } from "next-auth/next";
+import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 
 // In a real app, this data would come from an API
 const rankings: UserRanking[] = [
@@ -24,10 +26,23 @@ const rankings: UserRanking[] = [
   { rank: 10, avatar: "https://placehold.co/40x40.png", name: "Paulinho Guerreiro", winnings: 4500.00 },
 ];
 
-export default function ProfilePage() {
+export default async function ProfilePage() {
+  const session = await getServerSession(authOptions);
+
   const totalWinnings = 85.00;
   const totalLosses = 45.00;
-  const userName = "Biro-Biro Timao";
+  
+  const user = session?.user;
+  const userName = user?.name ?? "Usuário";
+  const userEmail = user?.email ?? "email@example.com";
+  const userImage = user?.image;
+  const userFallback = userName
+    .split(' ')
+    .map((word) => word[0])
+    .join('')
+    .substring(0, 2)
+    .toUpperCase();
+
   const userRankData = rankings.find(user => user.name === userName);
 
   return (
@@ -46,8 +61,8 @@ export default function ProfilePage() {
                 <CardContent className="space-y-6">
                     <div className="flex items-center gap-4">
                         <Avatar className="h-20 w-20">
-                            <AvatarImage src="https://placehold.co/80x80.png" alt="User Avatar" data-ai-hint="user avatar" />
-                            <AvatarFallback>BT</AvatarFallback>
+                            <AvatarImage src={userImage ?? undefined} alt="User Avatar" />
+                            <AvatarFallback>{userFallback}</AvatarFallback>
                         </Avatar>
                     </div>
                     <div className="space-y-2">
@@ -56,7 +71,7 @@ export default function ProfilePage() {
                     </div>
                     <div className="space-y-2">
                         <Label htmlFor="email">Email</Label>
-                        <Input id="email" type="email" defaultValue="biro-biro@timao.cord" readOnly disabled />
+                        <Input id="email" type="email" defaultValue={userEmail} readOnly disabled />
                     </div>
                 </CardContent>
             </Card>

@@ -16,6 +16,7 @@ import {
 import { LogOut, User, Wallet, Ticket, Bell, Trophy } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { useSession, signOut } from 'next-auth/react';
 
 const notifications = [
     {
@@ -42,8 +43,19 @@ const notifications = [
 ];
 
 export function Header() {
+  const { data: session } = useSession();
   const { isMobile } = useSidebar();
   const unreadCount = notifications.filter(n => !n.read).length;
+
+  const user = session?.user;
+  const userName = user?.name ?? 'Usuário';
+  const userImage = user?.image;
+  const userFallback = userName
+    .split(' ')
+    .map((word) => word[0])
+    .join('')
+    .substring(0, 2)
+    .toUpperCase();
 
   return (
     <header className="sticky top-0 z-10 flex h-16 items-center justify-between border-b bg-background/80 px-4 backdrop-blur-sm sm:px-6 lg:px-8">
@@ -117,12 +129,12 @@ export function Header() {
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Avatar className="h-9 w-9 cursor-pointer">
-              <AvatarImage src="https://placehold.co/40x40.png" alt="User Avatar" data-ai-hint="user avatar" />
-              <AvatarFallback>BT</AvatarFallback>
+              <AvatarImage src={userImage ?? undefined} alt={userName} />
+              <AvatarFallback>{userFallback}</AvatarFallback>
             </Avatar>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-56">
-            <DropdownMenuLabel>Minha Conta</DropdownMenuLabel>
+            <DropdownMenuLabel>{userName}</DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuItem asChild>
               <Link href="/profile">
@@ -149,11 +161,9 @@ export function Header() {
               </Link>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem asChild>
-              <Link href="/">
+            <DropdownMenuItem onClick={() => signOut({ callbackUrl: '/' })}>
                 <LogOut className="mr-2 h-4 w-4" />
                 <span>Deslogar</span>
-              </Link>
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
