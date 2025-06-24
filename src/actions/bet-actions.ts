@@ -30,15 +30,16 @@ export async function placeBet(betsInSlip: BetInSlip[], stake: number): Promise<
   const db = client.db('timaocord');
   const mongoSession = client.startSession();
 
+  let finalResult: PlaceBetResult | undefined;
+
   try {
-    const transactionResult = await mongoSession.withTransaction(async () => {
+    await mongoSession.withTransaction(async () => {
       const walletsCollection = db.collection('wallets');
       const betsCollection = db.collection('bets');
 
       const userWallet = await walletsCollection.findOne({ userId }, { session: mongoSession });
 
       if (!userWallet || userWallet.balance < stake) {
-        // Abort transaction by throwing an error
         throw new Error('Saldo insuficiente.');
       }
       
@@ -87,21 +88,22 @@ export async function placeBet(betsInSlip: BetInSlip[], stake: number): Promise<
         { session: mongoSession }
       );
       
-      return { success: true, message: 'Aposta realizada com sucesso!', newBalance };
+      // Set result on successful transaction
+      finalResult = { success: true, message: 'Aposta realizada com sucesso!', newBalance };
     });
 
-    if (transactionResult.success) {
+    if (finalResult?.success) {
         revalidatePath('/my-bets');
         revalidatePath('/wallet');
         
-        // Construct a new, guaranteed-plain object to return to the client.
         return {
-            success: transactionResult.success,
-            message: transactionResult.message,
-            newBalance: transactionResult.newBalance,
+            success: finalResult.success,
+            message: finalResult.message,
+            newBalance: finalResult.newBalance,
         };
     }
 
+    // If finalResult is not set, it means transaction failed without throwing an expected error.
     return { success: false, message: "A transação falhou por um motivo desconhecido." };
 
   } catch (error: any) {
