@@ -25,9 +25,29 @@ interface MoreMarketsDialogProps {
   children: React.ReactNode;
 }
 
+const allowedMarkets = [
+  'Vencedor da Partida',
+  'Aposta sem Empate',
+  'Vencedor do 2º Tempo',
+  'Gols Acima/Abaixo',
+  'Ambos Marcam',
+  'Placar Exato',
+  'Dupla Chance',
+  'Total de Gols da Casa',
+  'Total de Gols do Visitante',
+  'Escanteios 1x2',
+  'Escanteios Acima/Abaixo',
+  'Escanteios da Casa Acima/Abaixo',
+  'Escanteios do Visitante Acima/Abaixo',
+  'Cartões Acima/Abaixo'
+];
+
+
 export function MoreMarketsDialog({ match, children }: MoreMarketsDialogProps) {
   const { toggleBet, isBetSelected } = useBetSlip();
-  const defaultValues = match.markets.map(m => m.name);
+  
+  const filteredMarkets = match.markets.filter(market => allowedMarkets.includes(market.name));
+  const defaultValues = filteredMarkets.map(m => m.name);
 
   return (
     <Dialog>
@@ -41,7 +61,7 @@ export function MoreMarketsDialog({ match, children }: MoreMarketsDialogProps) {
         </DialogHeader>
         <ScrollArea className="flex-grow pr-6 -mr-6">
           <Accordion type="multiple" defaultValue={defaultValues} className="w-full">
-            {match.markets.map((market) => (
+            {filteredMarkets.map((market) => (
               <AccordionItem value={market.name} key={market.name}>
                 <AccordionTrigger>{market.name}</AccordionTrigger>
                 <AccordionContent>
