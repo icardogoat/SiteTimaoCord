@@ -5,21 +5,14 @@ import type { PlacedBet, Transaction } from '@/types';
 import { ObjectId, WithId } from 'mongodb';
 import { revalidatePath } from 'next/cache';
 
+// This type now matches the schema provided by the user for the 'matches' collection.
 type MatchFromDb = {
-  fixture: {
-    id: number;
-    status: {
-      short: string;
-    };
-    date: string;
-  };
-  league: {
-    name: string;
-  };
-  teams: {
-    home: { name: string };
-    away: { name: string };
-  };
+  _id: number;
+  homeTeam: string;
+  awayTeam: string;
+  league: string;
+  timestamp: number;
+  status: string;
 };
 
 type MatchAdminView = {
@@ -88,18 +81,42 @@ export async function getAdminMatches(): Promise<MatchAdminView[]> {
         const db = client.db('timaocord');
         const matchesCollection = db.collection<MatchFromDb>('matches');
         
-        const matchesFromDb = await matchesCollection.find({}).sort({ 'fixture.date': 1 }).toArray();
+        // Find all matches and sort by timestamp descending
+        const matchesFromDb = await matchesCollection.find({}).sort({ 'timestamp': -1 }).toArray();
 
-        return matchesFromDb.map(match => ({
-            id: match.fixture.id.toString(),
-            fixtureId: match.fixture.id,
-            teamA: match.teams.home.name,
-            teamB: match.teams.away.name,
-            league: match.league.name,
-            time: new Date(match.fixture.date).toLocaleString('pt-BR', { timeZone: 'UTC' }),
-            status: match.fixture.status.short === 'FT' ? 'Finalizada' :
-                    match.fixture.status.short === 'NS' ? 'Agendada' : 'Ao Vivo'
-        }));
+        const matches = matchesFromDb.map(match => {
+            // Add a check for incomplete data to prevent crashes
+            if (!match?._id || !match?.homeTeam || !match?.awayTeam) {
+                return null;
+            }
+            
+            let statusLabel: string;
+            switch(match.status) {
+                case 'FT':
+                case 'AET':
+                case 'PEN':
+                    statusLabel = 'Finalizada';
+                    break;
+                case 'NS':
+                    statusLabel = 'Agendada';
+                    break;
+                default:
+                    statusLabel = 'Ao Vivo';
+            }
+
+            return {
+                id: match._id.toString(),
+                fixtureId: match._id,
+                teamA: match.homeTeam,
+                teamB: match.awayTeam,
+                league: match.league,
+                time: new Date(match.timestamp * 1000).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' }),
+                status: statusLabel,
+            };
+        });
+        
+        // Filter out any null values from malformed data
+        return matches.filter((match): match is MatchAdminView => match !== null);
 
     } catch (error) {
         console.error("Error fetching admin matches:", error);
@@ -377,13 +394,14 @@ export async function resolveMatch(fixtureId: number): Promise<{ success: boolea
             const betsCollection = db.collection<WithId<PlacedBet>>('bets');
             const walletsCollection = db.collection('wallets');
 
+            // This update needs to be adjusted for the new schema
             await matchesCollection.updateOne(
-                { 'fixture.id': fixtureId },
+                { '_id': fixtureId },
                 { $set: { 
                     isFinished: true, 
                     goals: fixtureData.fixture.goals, 
-                    statistics: finalStats,
-                    'fixture.status': fixtureData.fixture.status
+                    // statistics: finalStats, // The new schema does not have a 'statistics' field
+                    status: fixtureData.fixture.status.short
                 } },
                 { session: mongoSession }
             );
@@ -472,9 +490,11 @@ export async function processAllFinishedMatches(): Promise<{ success: boolean; m
     const db = client.db('timaocord');
     const matchesCollection = db.collection('matches');
 
+    // This query needs to be adjusted for the new schema
     const finishedMatchesToProcess = await matchesCollection.find({
-        'fixture.status.short': 'FT',
-        'isFinished': { $ne: true }
+        'status': 'FT',
+        'isFinished': { $ne: true } // isFinished is a boolean, so this might not work as intended if the field is absent.
+                                    // A better approach might be to add an 'isProcessed' flag.
     }).toArray();
 
     if (finishedMatchesToProcess.length === 0) {
@@ -488,7 +508,7 @@ export async function processAllFinishedMatches(): Promise<{ success: boolean; m
     let failureCount = 0;
 
     for (const match of finishedMatchesToProcess) {
-        const fixtureId = match.fixture.id;
+        const fixtureId = match._id; // Use _id from the new schema
         console.log(`Processing match ${fixtureId}...`);
         try {
             const result = await resolveMatch(fixtureId);
