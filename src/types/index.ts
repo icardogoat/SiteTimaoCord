@@ -56,6 +56,7 @@ export type PlacedBet = {
     marketName: string;
     selection: string;
     oddValue: string;
+    status?: 'Em Aberto' | 'Ganha' | 'Perdida' | 'Anulada';
   }[];
   stake: number;
   potentialWinnings: number;
