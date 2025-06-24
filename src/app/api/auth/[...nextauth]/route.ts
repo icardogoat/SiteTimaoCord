@@ -10,6 +10,24 @@ export const authOptions: AuthOptions = {
     DiscordProvider({
       clientId: process.env.DISCORD_CLIENT_ID!,
       clientSecret: process.env.DISCORD_CLIENT_SECRET!,
+      profile(profile) {
+        let image_url = profile.image_url;
+        if (profile.avatar === null) {
+          const defaultAvatarNumber = parseInt(profile.discriminator) % 5
+          image_url = `https://cdn.discordapp.com/embed/avatars/${defaultAvatarNumber}.png`
+        } else {
+          const format = profile.avatar.startsWith("a_") ? "gif" : "png"
+          image_url = `https://cdn.discordapp.com/avatars/${profile.id}/${profile.avatar}.${format}`
+        }
+
+        return {
+          id: profile.id, // This is used by the adapter to link accounts
+          name: profile.username,
+          email: profile.email,
+          image: image_url,
+          discordId: profile.id, // This is my custom field
+        }
+      },
     }),
   ],
   secret: process.env.NEXTAUTH_SECRET,
@@ -20,6 +38,7 @@ export const authOptions: AuthOptions = {
     async session({ session, user }) {
       if (session.user) {
         session.user.id = user.id;
+        session.user.discordId = user.discordId; // Thanks to type augmentation
       }
       return session;
     },

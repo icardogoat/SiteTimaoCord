@@ -1,5 +1,5 @@
 import 'next-auth';
-import type { DefaultSession } from 'next-auth';
+import type { DefaultSession, DefaultUser } from 'next-auth';
 
 declare module 'next-auth' {
   /**
@@ -8,6 +8,15 @@ declare module 'next-auth' {
   interface Session {
     user: {
       id: string;
+      discordId: string;
     } & DefaultSession['user'];
+  }
+
+  /**
+   * The shape of the user object returned in the OAuth providers' `profile` callback,
+   * or the database user object.
+   */
+  interface User extends DefaultUser {
+    discordId: string;
   }
 }
