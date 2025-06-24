@@ -59,9 +59,9 @@ export function AdminMatchesClient({ initialMatches }: AdminMatchesClientProps) 
                 title: "Sucesso!",
                 description: result.message,
             });
-            setMatches(prev => prev.map(m => 
-                m.fixtureId === fixtureId ? { ...m, status: 'Pago', isProcessed: true } : m
-            ));
+            // Refetch data to ensure UI is in sync with the database
+            const updatedMatches = await getAdminMatches();
+            setMatches(updatedMatches);
         } else {
             toast({
                 title: "Erro ao Resolver",
@@ -132,8 +132,8 @@ export function AdminMatchesClient({ initialMatches }: AdminMatchesClientProps) 
                                         match.status === "Pago" ? "default" :
                                         "secondary"
                                     } className={
-                                        match.status === "Ao Vivo" ? "bg-red-500/80" :
-                                        match.status === "Pago" ? "bg-green-500/80" : ""
+                                        match.status === "Ao Vivo" ? "bg-red-500/80 text-white" :
+                                        match.status === "Pago" ? "bg-green-600/90 text-white" : ""
                                     }>
                                         {match.status}
                                     </Badge>
