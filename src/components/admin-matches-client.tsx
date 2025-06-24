@@ -26,7 +26,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Button } from "@/components/ui/button"
 import { MoreHorizontal, Loader2, RefreshCw } from "lucide-react"
-import { processAllFinishedMatches, resolveMatch } from "@/actions/admin-actions";
+import { getAdminMatches, processAllFinishedMatches, resolveMatch } from "@/actions/admin-actions";
 import { useToast } from "@/hooks/use-toast";
 
 type MatchAdminView = {
@@ -79,21 +79,17 @@ export function AdminMatchesClient({ initialMatches }: AdminMatchesClientProps) 
             description: "Buscando e processando todas as partidas finalizadas...",
         });
         const result = await processAllFinishedMatches();
-        if (result.success) {
-             toast({
-                title: "Processamento Concluído",
-                description: result.message,
-            });
-            // Refetch matches to update the view
-            const updatedMatches = await fetch('/api/admin/matches').then(res => res.json());
-            setMatches(updatedMatches);
-        } else {
-             toast({
-                title: "Erro no Processamento",
-                description: result.message,
-                variant: "destructive",
-            });
-        }
+        
+        toast({
+            title: "Processamento Concluído",
+            description: result.message,
+            variant: result.success ? "default" : "destructive",
+        });
+
+        // Refetch data to update the UI
+        const updatedMatches = await getAdminMatches();
+        setMatches(updatedMatches);
+        
         setIsProcessingAll(false);
     }
 
@@ -172,12 +168,4 @@ export function AdminMatchesClient({ initialMatches }: AdminMatchesClientProps) 
             </CardContent>
         </Card>
     )
-}
-
-// Simple API route to refetch matches on the server
-export async function GET() {
-    const matches = await getAdminMatches();
-    return new Response(JSON.stringify(matches), {
-        headers: { 'Content-Type': 'application/json' },
-    });
 }
