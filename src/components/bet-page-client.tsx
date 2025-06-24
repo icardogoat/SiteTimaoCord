@@ -4,7 +4,7 @@
 import type { Match } from '@/types';
 import { MatchCard } from '@/components/match-card';
 import { AppLayout } from '@/components/app-layout';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardHeader, CardTitle } from '@/components/ui/card';
 
 interface BetPageClientProps {
     matches: Match[];
@@ -32,14 +32,6 @@ export function BetPageClient({ matches }: BetPageClientProps) {
                             <CardHeader>
                                 <CardTitle>Nenhuma partida disponível no momento.</CardTitle>
                             </CardHeader>
-                             <CardContent>
-                                <p className="text-muted-foreground">
-                                    Os jogos do dia estão sendo carregados. Por favor, tente novamente em alguns instantes.
-                                </p>
-                                <p className="mt-4 text-sm text-muted-foreground">
-                                    Se você é um administrador, pode carregar os jogos manualmente na página de Configurações.
-                                </p>
-                            </CardContent>
                         </Card>
                     </div>
                 ) : (
