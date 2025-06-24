@@ -53,7 +53,7 @@ interface AdminUsersClientProps {
 }
 
 
-export function AdminUsersClient({ initialUsers }: AdminUsersClientProps) {
+export default function AdminUsersClient({ initialUsers }: AdminUsersClientProps) {
     const [users] = useState<User[]>(initialUsers);
     const [searchTerm, setSearchTerm] = useState("");
     const [selectedUser, setSelectedUser] = useState<User | null>(null);
