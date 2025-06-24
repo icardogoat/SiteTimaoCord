@@ -93,7 +93,7 @@ export const authOptions: AuthOptions = {
         try {
           const client = await clientPromise;
           const db = client.db("timaocord");
-          const wallet = await db.collection("wallets").findOne({ userId: token.sub! });
+          const wallet = await db.collection("wallets").findOne({ userId: token.discordId as string });
           session.user.balance = wallet ? wallet.balance : 0;
         } catch (error) {
             console.error("Failed to fetch user balance for session:", error);

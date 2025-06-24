@@ -38,7 +38,7 @@ export default async function WalletPage() {
     try {
         const client = await clientPromise;
         const db = client.db("timaocord");
-        const walletData = await db.collection("wallets").findOne({ userId: session.user.id });
+        const walletData = await db.collection("wallets").findOne({ userId: session.user.discordId });
 
         if (walletData) {
             currentBalance = walletData.balance;
