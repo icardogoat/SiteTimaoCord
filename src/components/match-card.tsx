@@ -32,13 +32,14 @@ export function MatchCard({ match }: MatchCardProps) {
   };
   
   const showScore = match.status !== 'NS' && match.goals.home !== null && match.goals.away !== null;
+  const isLive = !match.isFinished && match.status !== 'NS';
 
   return (
     <Card className={cn("flex flex-col", isCorinthiansMatch && "border-primary/50 shadow-lg shadow-primary/10")}>
       <CardHeader className="flex-row items-center justify-between pb-2">
         <CardTitle className="text-sm font-medium text-muted-foreground">{match.league}</CardTitle>
-        <Badge variant={match.status === 'NS' ? 'outline' : 'destructive'}>
-          {match.status !== 'NS' ? 'Ao Vivo' : match.time}
+        <Badge variant={isLive ? 'destructive' : 'outline'}>
+          {match.isFinished ? 'Finalizado' : isLive ? 'Ao Vivo' : match.time}
         </Badge>
       </CardHeader>
       <CardContent className="flex-grow pt-4">

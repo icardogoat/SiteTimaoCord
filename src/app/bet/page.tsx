@@ -74,6 +74,7 @@ async function getMatches(): Promise<Match[]> {
         })),
         status: dbMatch.status,
         goals: dbMatch.goals,
+        isFinished: dbMatch.isFinished,
       };
     });
 

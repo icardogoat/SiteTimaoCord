@@ -25,6 +25,7 @@ export type Match = {
     home: number | null;
     away: number | null;
   };
+  isFinished: boolean;
 };
 
 export type Bet = {
