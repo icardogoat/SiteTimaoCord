@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import {
   Card,
   CardContent,
@@ -16,7 +16,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { Badge } from "@/components/ui/badge"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -30,8 +29,6 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
@@ -56,15 +53,15 @@ interface AdminUsersClientProps {
 }
 
 
-export default function AdminUsersClient({ initialUsers }: AdminUsersClientProps) {
-    const [users, setUsers] = useState<User[]>(initialUsers);
+export function AdminUsersClient({ initialUsers }: AdminUsersClientProps) {
+    const [users] = useState<User[]>(initialUsers);
     const [searchTerm, setSearchTerm] = useState("");
     const [selectedUser, setSelectedUser] = useState<User | null>(null);
 
     const filteredUsers = users.filter((user) =>
         user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        user.discordId.toString().includes(searchTerm)
+        user.discordId.includes(searchTerm)
     );
 
     return (
@@ -174,13 +171,10 @@ export default function AdminUsersClient({ initialUsers }: AdminUsersClientProps
                             </div>
                              <div className="grid grid-cols-4 items-center gap-4">
                                 <Label className="text-right">Total de Apostas</Label>
-                                <Input value={selectedUser.totalBets} className="col-span-3" readOnly />
+                                <Input value={selectedUser.totalBets.toString()} className="col-span-3" readOnly />
                             </div>
                         </div>
                     )}
-                    <DialogFooter>
-                        <Button type="button" variant="outline" onClick={() => setSelectedUser(null)}>Fechar</Button>
-                    </DialogFooter>
                 </DialogContent>
             </Dialog>
         </>
