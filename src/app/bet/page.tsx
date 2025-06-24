@@ -1,9 +1,9 @@
 
+'use server';
+
 import { BetPageClient } from '@/components/bet-page-client';
 import clientPromise from '@/lib/mongodb';
 import type { Match } from '@/types';
-import { format, isToday, isTomorrow, startOfToday, endOfToday } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
 
 type DbMatch = {
   _id: number;
@@ -31,9 +31,20 @@ async function getMatches(): Promise<Match[]> {
     const db = client.db("timaocord");
     const matchesCollection = db.collection<DbMatch>("matches");
 
-    const start = startOfToday();
-    const end = endOfToday();
+    const timeZone = 'America/Sao_Paulo';
 
+    // Get the current date in Brasília time zone to correctly define "today".
+    const nowInBrasilia = new Date(new Date().toLocaleString('en-US', { timeZone }));
+    
+    // Get the start of today in Brasília time.
+    const start = new Date(nowInBrasilia);
+    start.setHours(0, 0, 0, 0);
+
+    // Get the end of today in Brasília time.
+    const end = new Date(nowInBrasilia);
+    end.setHours(23, 59, 59, 999);
+
+    // .getTime() is always UTC-based, so this gives us the correct timestamp range for the query.
     const startTimestamp = Math.floor(start.getTime() / 1000);
     const endTimestamp = Math.floor(end.getTime() / 1000);
 
@@ -43,19 +54,35 @@ async function getMatches(): Promise<Match[]> {
       })
       .sort({ timestamp: 1 })
       .toArray();
+    
+    // Get date parts for today and tomorrow in Brasília time for comparison.
+    const todayDatePart = nowInBrasilia.toLocaleDateString('pt-BR', { timeZone, day: '2-digit', month: '2-digit', year: 'numeric' });
+
+    const tomorrowInBrasilia = new Date(nowInBrasilia);
+    tomorrowInBrasilia.setDate(nowInBrasilia.getDate() + 1);
+    const tomorrowDatePart = tomorrowInBrasilia.toLocaleDateString('pt-BR', { timeZone, day: '2-digit', month: '2-digit', year: 'numeric' });
 
     const matches: Match[] = dbMatches.map((dbMatch) => {
       const date = new Date(dbMatch.timestamp * 1000);
       let timeString: string;
+      
+      const matchTimePart = date.toLocaleTimeString('pt-BR', {
+          hour: '2-digit',
+          minute: '2-digit',
+          timeZone,
+      });
 
-      if (isToday(date)) {
-        timeString = `Hoje, ${format(date, 'HH:mm')}`;
-      } else if (isTomorrow(date)) {
-        timeString = `Amanhã, ${format(date, 'HH:mm')}`;
+      const matchDatePart = date.toLocaleDateString('pt-BR', { timeZone, day: '2-digit', month: '2-digit', year: 'numeric' });
+
+      if (matchDatePart === todayDatePart) {
+        timeString = `Hoje, ${matchTimePart}`;
+      } else if (matchDatePart === tomorrowDatePart) {
+        timeString = `Amanhã, ${matchTimePart}`;
       } else {
-        timeString = format(date, 'dd/MM, HH:mm', { locale: ptBR });
+        // Fallback for other dates, correctly formatted for Brasília timezone.
+        timeString = `${date.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', timeZone })}, ${matchTimePart}`;
       }
-
+      
       return {
         id: dbMatch._id,
         teamA: {
