@@ -20,6 +20,11 @@ export type Match = {
   time: string;
   league: string;
   markets: Market[];
+  status: string;
+  goals: {
+    home: number | null;
+    away: number | null;
+  };
 };
 
 export type Bet = {

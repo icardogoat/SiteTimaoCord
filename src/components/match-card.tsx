@@ -14,30 +14,36 @@ interface MatchCardProps {
 }
 
 export function MatchCard({ match }: MatchCardProps) {
-  const mainMarket = match.markets.find(m => m.name === 'Vencedor da Partida');
+  const mainMarket = match.markets.find(m => m.name === 'Vencedor da Partida' || m.name === 'Match Winner');
   const { toggleBet, isBetSelected } = useBetSlip();
   const isCorinthiansMatch = match.teamA.name === 'Corinthians' || match.teamB.name === 'Corinthians';
 
-  const getOddByLabel = (label: string): Odd | undefined => mainMarket?.odds.find(o => o.label === label);
+  const getOddByLabel = (label: string, alternativeLabel: string): Odd | undefined => {
+    return mainMarket?.odds.find(o => o.label === label || o.label === alternativeLabel);
+  }
 
-  const homeOdd = getOddByLabel('Casa');
-  const drawOdd = getOddByLabel('Empate');
-  const awayOdd = getOddByLabel('Fora');
+  const homeOdd = getOddByLabel('Casa', 'Home');
+  const drawOdd = getOddByLabel('Empate', 'Draw');
+  const awayOdd = getOddByLabel('Fora', 'Away');
 
   const handleBetClick = (odd: Odd | undefined) => {
     if (!mainMarket || !odd) return;
     toggleBet(match, mainMarket, odd);
   };
+  
+  const showScore = match.status !== 'NS' && match.goals.home !== null && match.goals.away !== null;
 
   return (
     <Card className={cn("flex flex-col", isCorinthiansMatch && "border-primary/50 shadow-lg shadow-primary/10")}>
       <CardHeader className="flex-row items-center justify-between pb-2">
         <CardTitle className="text-sm font-medium text-muted-foreground">{match.league}</CardTitle>
-        <Badge variant="outline">{match.time}</Badge>
+        <Badge variant={match.status === 'NS' ? 'outline' : 'destructive'}>
+          {match.status !== 'NS' ? 'Ao Vivo' : match.time}
+        </Badge>
       </CardHeader>
       <CardContent className="flex-grow pt-4">
         <div className="flex items-center justify-around text-center">
-          <div className="flex flex-col items-center gap-2">
+          <div className="flex flex-col items-center gap-2 w-1/3">
             <Image
               src={match.teamA.logo}
               alt={`${match.teamA.name} logo`}
@@ -46,10 +52,20 @@ export function MatchCard({ match }: MatchCardProps) {
               className="rounded-full"
               data-ai-hint="team logo"
             />
-            <span className="font-semibold">{match.teamA.name}</span>
+            <span className="font-semibold truncate w-full">{match.teamA.name}</span>
           </div>
-          <span className="text-2xl font-bold text-muted-foreground">vs</span>
-          <div className="flex flex-col items-center gap-2">
+
+          {showScore ? (
+            <div className="text-2xl font-bold text-foreground">
+              <span>{match.goals.home}</span>
+              <span className="mx-2">-</span>
+              <span>{match.goals.away}</span>
+            </div>
+          ) : (
+            <span className="text-2xl font-bold text-muted-foreground">vs</span>
+          )}
+
+          <div className="flex flex-col items-center gap-2 w-1/3">
             <Image
               src={match.teamB.logo}
               alt={`${match.teamB.name} logo`}
@@ -58,7 +74,7 @@ export function MatchCard({ match }: MatchCardProps) {
               className="rounded-full"
               data-ai-hint="team logo"
             />
-            <span className="font-semibold">{match.teamB.name}</span>
+            <span className="font-semibold truncate w-full">{match.teamB.name}</span>
           </div>
         </div>
       </CardContent>
@@ -69,6 +85,7 @@ export function MatchCard({ match }: MatchCardProps) {
               variant={isBetSelected(`${match.id}-${mainMarket.name}-${homeOdd.label}`) ? "default" : "secondary"}
               className="flex flex-col h-auto py-2"
               onClick={() => handleBetClick(homeOdd)}
+              disabled={match.status !== 'NS'}
             >
               <span className="text-xs text-muted-foreground">1</span>
               <span className="font-bold">{homeOdd.value}</span>
@@ -79,6 +96,7 @@ export function MatchCard({ match }: MatchCardProps) {
               variant={isBetSelected(`${match.id}-${mainMarket.name}-${drawOdd.label}`) ? "default" : "secondary"}
               className="flex flex-col h-auto py-2"
               onClick={() => handleBetClick(drawOdd)}
+              disabled={match.status !== 'NS'}
             >
               <span className="text-xs text-muted-foreground">X</span>
               <span className="font-bold">{drawOdd.value}</span>
@@ -89,6 +107,7 @@ export function MatchCard({ match }: MatchCardProps) {
               variant={isBetSelected(`${match.id}-${mainMarket.name}-${awayOdd.label}`) ? "default" : "secondary"}
               className="flex flex-col h-auto py-2"
               onClick={() => handleBetClick(awayOdd)}
+              disabled={match.status !== 'NS'}
             >
               <span className="text-xs text-muted-foreground">2</span>
               <span className="font-bold">{awayOdd.value}</span>
@@ -96,7 +115,7 @@ export function MatchCard({ match }: MatchCardProps) {
           )}
         </div>
         <MoreMarketsDialog match={match}>
-          <Button variant="ghost" size="sm">
+          <Button variant="ghost" size="sm" disabled={match.status !== 'NS'}>
             Mais Mercados
           </Button>
         </MoreMarketsDialog>

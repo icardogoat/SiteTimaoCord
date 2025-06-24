@@ -18,6 +18,11 @@ type DbMatch = {
     name: string;
     odds: { label: string; value: string }[];
   }[];
+  status: string;
+  goals: {
+    home: number | null;
+    away: number | null;
+  };
 };
 
 async function getMatches(): Promise<Match[]> {
@@ -67,6 +72,8 @@ async function getMatches(): Promise<Match[]> {
           name: market.name,
           odds: market.odds,
         })),
+        status: dbMatch.status,
+        goals: dbMatch.goals,
       };
     });
 
