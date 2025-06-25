@@ -74,6 +74,15 @@ export default async function ProfilePage() {
 
     const { level, progress, xp, xpForNextLevel } = userLevel ?? { level: 1, xp: 0, xpForNextLevel: 100, progress: 0 };
 
+    const sortedAchievements = [...allAchievements].sort((a, b) => {
+        const aUnlocked = unlockedSet.has(a.id);
+        const bUnlocked = unlockedSet.has(b.id);
+        if (aUnlocked === bUnlocked) return 0;
+        return aUnlocked ? -1 : 1;
+    });
+
+    const totalVisibleAchievements = allAchievements.filter(a => !a.hidden).length;
+
     return (
         <AppLayout availableLeagues={availableLeagues}>
             <div className="flex-1 space-y-8 p-4 sm:p-6 lg:p-8">
@@ -187,13 +196,20 @@ export default async function ProfilePage() {
                         </Card>
                          <Card>
                             <CardHeader>
-                                <CardTitle>Conquistas</CardTitle>
-                                <CardDescription>Suas medalhas e troféus desbloqueados na FielBet.</CardDescription>
+                                <div className="flex justify-between items-center">
+                                    <div>
+                                        <CardTitle>Conquistas</CardTitle>
+                                        <CardDescription>Suas medalhas e troféus desbloqueados na FielBet.</CardDescription>
+                                    </div>
+                                    <p className="text-sm font-medium text-muted-foreground whitespace-nowrap">
+                                        {unlockedAchievementIds.length} / {totalVisibleAchievements} Concluídas
+                                    </p>
+                                </div>
                             </CardHeader>
                             <CardContent>
                                 <TooltipProvider>
                                     <div className="flex flex-wrap gap-4">
-                                        {allAchievements.map(ach => {
+                                        {sortedAchievements.map(ach => {
                                             const isUnlocked = unlockedSet.has(ach.id);
                                             if (ach.hidden && !isUnlocked) return null;
 
