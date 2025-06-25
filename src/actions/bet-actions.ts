@@ -184,12 +184,41 @@ export async function getMatches({ league, page = 1 }: { league?: string; page?:
     const displayQuery = league ? { ...timeRangeQuery, league: league } : timeRangeQuery;
     const skip = (page - 1) * MATCHES_PER_PAGE;
 
-    const dbMatches = await matchesCollection
-      .find(displayQuery)
-      .sort({ isFinished: 1, timestamp: 1 }) // Sort upcoming first (isFinished: false), then by time.
-      .skip(skip)
-      .limit(MATCHES_PER_PAGE)
-      .toArray();
+    // Define statuses for sorting
+    const finishedOrPostponedStatuses = ['FT', 'AET', 'PEN', 'PST'];
+    
+    const aggregationPipeline: any[] = [
+        { $match: displayQuery },
+        {
+            $addFields: {
+                sortOrder: {
+                    $switch: {
+                        branches: [
+                            {
+                                case: { $in: ['$status', finishedOrPostponedStatuses] },
+                                then: 2 // Finished or Postponed
+                            },
+                            {
+                                case: { $eq: ['$status', 'NS'] },
+                                then: 3 // Not Started (upcoming)
+                            }
+                        ],
+                        default: 1 // Live games
+                    }
+                }
+            }
+        },
+        {
+            $sort: {
+                sortOrder: 1, // 1 (Live), 2 (Finished/Postponed), 3 (Upcoming)
+                timestamp: 1 // Then sort by time
+            }
+        },
+        { $skip: skip },
+        { $limit: MATCHES_PER_PAGE }
+    ];
+
+    const dbMatches = await matchesCollection.aggregate(aggregationPipeline).toArray();
     
     // Get date parts for today and tomorrow in Brasília time for comparison.
     const todayDatePart = nowInBrasilia.toLocaleDateString('pt-BR', { timeZone, day: '2-digit', month: '2-digit', year: 'numeric' });
@@ -198,7 +227,7 @@ export async function getMatches({ league, page = 1 }: { league?: string; page?:
     tomorrowInBrasilia.setDate(nowInBrasilia.getDate() + 1);
     const tomorrowDatePart = tomorrowInBrasilia.toLocaleDateString('pt-BR', { timeZone, day: '2-digit', month: '2-digit', year: 'numeric' });
 
-    const matches: Match[] = dbMatches.map((dbMatch) => {
+    const matches: Match[] = (dbMatches as DbMatch[]).map((dbMatch) => {
       const date = new Date(dbMatch.timestamp * 1000);
       let timeString: string;
       
