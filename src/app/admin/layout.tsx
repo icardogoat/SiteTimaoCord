@@ -14,8 +14,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
-import { FielBetLogo } from "../icons"
-import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar"
+import { FielBetLogo } from "@/components/icons"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { cn } from "@/lib/utils"
 
 interface AdminLayoutProps {
@@ -34,7 +34,7 @@ const navLinks = [
 ];
 
 
-export function AdminLayout({ children }: AdminLayoutProps) {
+export default function AdminLayout({ children }: AdminLayoutProps) {
   const pathname = usePathname();
   const { data: session } = useSession();
 

@@ -71,7 +71,7 @@ export default async function ProfilePage() {
     const userRichestRank = richestUsers.find(u => u.discordId === discordId)?.rank;
     const userActiveRank = mostActiveBettors.find(u => u.discordId === discordId)?.rank;
 
-    const { level, progress, xp, xpForNextLevel } = userLevel ?? { level: 1, xp: 0, xpForNextLevel: 100, progress: 0 };
+    const { level, progress, xp, xpForNextLevel } = userLevel ?? { level: 1, xp: 0, xpForNextLevel: 1500, progress: 0 };
 
     const sortedAchievements = [...allAchievements].sort((a, b) => {
         const aUnlocked = unlockedSet.has(a.id);
