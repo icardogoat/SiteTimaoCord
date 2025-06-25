@@ -11,7 +11,7 @@ import { cn } from "@/lib/utils";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { getAvailableLeagues } from "@/actions/bet-actions";
-import { getUserStats, getRankings } from "@/actions/user-actions";
+import { getUserStats, getTopWinners } from "@/actions/user-actions";
 import { redirect } from "next/navigation";
 import { Progress } from "@/components/ui/progress";
 
@@ -27,7 +27,7 @@ export default async function ProfilePage() {
     availableLeagues
   ] = await Promise.all([
     getUserStats(session.user.discordId),
-    getRankings(),
+    getTopWinners(),
     getAvailableLeagues()
   ]);
 

@@ -2,7 +2,7 @@
 'use server';
 
 import clientPromise from '@/lib/mongodb';
-import type { UserRanking, PlacedBet, UserLevel } from '@/types';
+import type { UserRanking, ActiveBettorRanking, TopLevelUserRanking, PlacedBet, UserLevel } from '@/types';
 import type { WithId } from 'mongodb';
 
 export interface UserStats {
@@ -42,7 +42,7 @@ export async function getUserStats(userId: string): Promise<UserStats> {
     }
 }
 
-export async function getRankings(): Promise<UserRanking[]> {
+export async function getTopWinners(): Promise<UserRanking[]> {
     try {
         const client = await clientPromise;
         const db = client.db('timaocord');
@@ -87,10 +87,86 @@ export async function getRankings(): Promise<UserRanking[]> {
         }));
 
     } catch (error) {
-        console.error('Error fetching rankings:', error);
+        console.error('Error fetching top winners:', error);
         return [];
     }
 }
+
+export async function getMostActiveBettors(): Promise<ActiveBettorRanking[]> {
+    try {
+        const client = await clientPromise;
+        const db = client.db('timaocord');
+        const betsCollection = db.collection('bets');
+
+        const rankingsData = await betsCollection.aggregate([
+            {
+                $group: {
+                    _id: '$userId',
+                    totalBets: { $sum: 1 }
+                }
+            },
+            { $sort: { totalBets: -1 } },
+            { $limit: 10 },
+            {
+                $lookup: {
+                    from: 'users',
+                    localField: '_id',
+                    foreignField: 'discordId',
+                    as: 'userDetails'
+                }
+            },
+            { $unwind: '$userDetails' },
+            {
+                $project: {
+                    _id: 0,
+                    name: '$userDetails.name',
+                    avatar: '$userDetails.image',
+                    totalBets: 1,
+                    isVip: '$userDetails.isVip',
+                }
+            }
+        ]).toArray();
+        
+        return rankingsData.map((user, index) => ({
+            rank: index + 1,
+            name: user.name as string,
+            avatar: user.avatar as string,
+            totalBets: user.totalBets as number,
+            isVip: user.isVip as boolean ?? false,
+        }));
+
+    } catch (error) {
+        console.error('Error fetching most active bettors:', error);
+        return [];
+    }
+}
+
+export async function getTopLevelUsers(): Promise<TopLevelUserRanking[]> {
+    try {
+        const client = await clientPromise;
+        const db = client.db('timaocord');
+        const usersCollection = db.collection('users');
+
+        const rankingsData = await usersCollection.find({})
+            .sort({ xp: -1 })
+            .limit(10)
+            .toArray();
+        
+        return rankingsData.map((user, index) => ({
+            rank: index + 1,
+            name: user.name as string,
+            avatar: user.image as string,
+            level: user.level ?? 1,
+            xp: user.xp ?? 0,
+            isVip: user.isVip as boolean ?? false,
+        }));
+
+    } catch (error) {
+        console.error('Error fetching top level users:', error);
+        return [];
+    }
+}
+
 
 const LEVEL_THRESHOLDS = [
     { level: 1, xp: 0 },

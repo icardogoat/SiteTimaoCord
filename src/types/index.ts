@@ -84,6 +84,23 @@ export type UserRanking = {
   isVip?: boolean;
 };
 
+export type ActiveBettorRanking = {
+  rank: number;
+  avatar: string;
+  name: string;
+  totalBets: number;
+  isVip?: boolean;
+};
+
+export type TopLevelUserRanking = {
+  rank: number;
+  avatar: string;
+  name: string;
+  level: number;
+  xp: number;
+  isVip?: boolean;
+};
+
 export type UserLevel = {
   level: number;
   xp: number;
