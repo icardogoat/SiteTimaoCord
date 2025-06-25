@@ -11,6 +11,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Loader2, Crown, Star } from 'lucide-react';
 import { Session } from 'next-auth';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
+import { Badge } from './ui/badge';
 
 interface MvpCardProps {
     voting: MvpVoting;
