@@ -4,9 +4,10 @@
 import { getServerSession } from 'next-auth/next';
 import clientPromise from '@/lib/mongodb';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
-import type { BetInSlip, Transaction, PlacedBet } from '@/types';
+import type { BetInSlip, Transaction, PlacedBet, Match } from '@/types';
 import { revalidatePath } from 'next/cache';
 import { ObjectId } from 'mongodb';
+import { translateMarketData } from '@/lib/translations';
 
 
 interface PlaceBetResult {
@@ -136,4 +137,120 @@ export async function getAvailableLeagues(): Promise<string[]> {
         console.error('Failed to fetch available leagues:', error);
         return [];
     }
+}
+
+const MATCHES_PER_PAGE = 6;
+
+type DbMatch = {
+  _id: number;
+  homeTeam: string;
+  homeLogo: string;
+  awayTeam: string;
+  awayLogo: string;
+  league: string;
+  timestamp: number;
+  isFinished: boolean;
+  markets: {
+    name: string;
+    odds: { label: string; value: string }[];
+  }[];
+  status: string;
+  goals: {
+    home: number | null;
+    away: number | null;
+  };
+};
+
+export async function getMatches({ league, page = 1 }: { league?: string; page?: number; }): Promise<Match[]> {
+  try {
+    const client = await clientPromise;
+    const db = client.db("timaocord");
+    const matchesCollection = db.collection<DbMatch>("matches");
+
+    const timeZone = 'America/Sao_Paulo';
+
+    // Get the current date in Brasília time zone to correctly define "today".
+    const nowInBrasilia = new Date(new Date().toLocaleString('en-US', { timeZone }));
+    
+    // Get the start of today in Brasília time.
+    const start = new Date(nowInBrasilia);
+    start.setHours(0, 0, 0, 0);
+
+    // Get the end of tomorrow in Brasília time.
+    const end = new Date(nowInBrasilia);
+    end.setDate(end.getDate() + 1);
+    end.setHours(23, 59, 59, 999);
+
+    // .getTime() is always UTC-based, so this gives us the correct timestamp range for the query.
+    const startTimestamp = Math.floor(start.getTime() / 1000);
+    const endTimestamp = Math.floor(end.getTime() / 1000);
+
+    const timeRangeQuery = {
+      timestamp: { $gte: startTimestamp, $lte: endTimestamp },
+    };
+    
+    const displayQuery = league ? { ...timeRangeQuery, league: league } : timeRangeQuery;
+    const skip = (page - 1) * MATCHES_PER_PAGE;
+
+    const dbMatches = await matchesCollection
+      .find(displayQuery)
+      .sort({ isFinished: 1, timestamp: 1 }) // Sort upcoming first (isFinished: false), then by time.
+      .skip(skip)
+      .limit(MATCHES_PER_PAGE)
+      .toArray();
+    
+    // Get date parts for today and tomorrow in Brasília time for comparison.
+    const todayDatePart = nowInBrasilia.toLocaleDateString('pt-BR', { timeZone, day: '2-digit', month: '2-digit', year: 'numeric' });
+
+    const tomorrowInBrasilia = new Date(nowInBrasilia);
+    tomorrowInBrasilia.setDate(nowInBrasilia.getDate() + 1);
+    const tomorrowDatePart = tomorrowInBrasilia.toLocaleDateString('pt-BR', { timeZone, day: '2-digit', month: '2-digit', year: 'numeric' });
+
+    const matches: Match[] = dbMatches.map((dbMatch) => {
+      const date = new Date(dbMatch.timestamp * 1000);
+      let timeString: string;
+      
+      const matchTimePart = date.toLocaleTimeString('pt-BR', {
+          hour: '2-digit',
+          minute: '2-digit',
+          timeZone,
+      });
+
+      const matchDatePart = date.toLocaleDateString('pt-BR', { timeZone, day: '2-digit', month: '2-digit', year: 'numeric' });
+
+      if (matchDatePart === todayDatePart) {
+        timeString = `Hoje, ${matchTimePart}`;
+      } else if (matchDatePart === tomorrowDatePart) {
+        timeString = `Amanhã, ${matchTimePart}`;
+      } else {
+        // Fallback for other dates, correctly formatted for Brasília timezone.
+        timeString = `${date.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', timeZone })}, ${matchTimePart}`;
+      }
+      
+      const translatedMarkets = dbMatch.markets.map(translateMarketData);
+
+      return {
+        id: dbMatch._id,
+        teamA: {
+          name: dbMatch.homeTeam,
+          logo: dbMatch.homeLogo || 'https://placehold.co/40x40.png',
+        },
+        teamB: {
+          name: dbMatch.awayTeam,
+          logo: dbMatch.awayLogo || 'https://placehold.co/40x40.png',
+        },
+        time: timeString,
+        league: dbMatch.league,
+        markets: translatedMarkets,
+        status: dbMatch.status,
+        goals: dbMatch.goals,
+        isFinished: dbMatch.isFinished,
+      };
+    });
+
+    return matches;
+  } catch (error) {
+    console.error('Failed to fetch matches from MongoDB:', error);
+    return [];
+  }
 }

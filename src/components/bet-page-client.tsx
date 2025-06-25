@@ -1,20 +1,55 @@
 
 'use client';
 
+import { useState, useEffect } from 'react';
 import type { Match } from '@/types';
 import { MatchCard } from '@/components/match-card';
 import { AppLayout } from '@/components/app-layout';
 import { Card, CardHeader, CardTitle } from '@/components/ui/card';
 import { useSearchParams } from 'next/navigation';
+import { Button } from '@/components/ui/button';
+import { getMatches } from '@/actions/bet-actions';
+import { Loader2 } from 'lucide-react';
 
 interface BetPageClientProps {
-    matches: Match[];
+    initialMatches: Match[];
     availableLeagues: string[];
 }
 
-export function BetPageClient({ matches, availableLeagues }: BetPageClientProps) {
+const MATCHES_PER_PAGE = 6;
+
+export function BetPageClient({ initialMatches, availableLeagues }: BetPageClientProps) {
     const searchParams = useSearchParams();
     const selectedLeague = searchParams.get('league');
+
+    const [matches, setMatches] = useState<Match[]>(initialMatches);
+    const [page, setPage] = useState(1);
+    const [isLoading, setIsLoading] = useState(false);
+    const [hasMore, setHasMore] = useState(initialMatches.length === MATCHES_PER_PAGE);
+
+    useEffect(() => {
+        setMatches(initialMatches);
+        setPage(1);
+        setHasMore(initialMatches.length === MATCHES_PER_PAGE);
+    }, [selectedLeague, initialMatches]);
+
+
+    const loadMoreMatches = async () => {
+        setIsLoading(true);
+        const nextPage = page + 1;
+        const newMatches = await getMatches({ league: selectedLeague ?? undefined, page: nextPage });
+        
+        if (newMatches.length > 0) {
+            setMatches(prevMatches => [...prevMatches, ...newMatches]);
+            setPage(nextPage);
+        }
+
+        if (newMatches.length < MATCHES_PER_PAGE) {
+            setHasMore(false);
+        }
+        
+        setIsLoading(false);
+    };
 
     const corinthiansMatches = matches.filter(
         (match) => match.teamA.name === 'Corinthians' || match.teamB.name === 'Corinthians'
@@ -31,7 +66,7 @@ export function BetPageClient({ matches, availableLeagues }: BetPageClientProps)
                     <p className="text-muted-foreground">Os jogos mais quentes para você apostar.</p>
                 </div>
                 
-                {matches.length === 0 ? (
+                {matches.length === 0 && !isLoading ? (
                     <div className="flex items-center justify-center pt-16">
                         <Card className="w-full max-w-lg text-center">
                             <CardHeader>
@@ -62,6 +97,21 @@ export function BetPageClient({ matches, availableLeagues }: BetPageClientProps)
                                 </div>
                             </section>
                         )}
+                    </div>
+                )}
+
+                {hasMore && (
+                    <div className="flex justify-center mt-8">
+                        <Button onClick={loadMoreMatches} disabled={isLoading} variant="outline" className="w-full sm:w-auto">
+                            {isLoading ? (
+                                <>
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    Carregando...
+                                </>
+                            ) : (
+                                'Ver mais partidas'
+                            )}
+                        </Button>
                     </div>
                 )}
             </div>
