@@ -13,7 +13,6 @@ import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { getAvailableLeagues } from "@/actions/bet-actions";
 import { getUserStats, getTopWinners, getMostActiveBettors, getRichestUsers } from "@/actions/user-actions";
 import { redirect } from "next/navigation";
-import type { ReactNode } from "react";
 import { getAllAchievements, getUserAchievements } from "@/actions/achievement-actions";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { AvatarFallbackText } from "@/components/avatar-fallback-text";
@@ -208,7 +207,7 @@ export default async function ProfilePage() {
                             </CardHeader>
                             <CardContent>
                                 <TooltipProvider>
-                                    <div className="flex flex-wrap gap-4">
+                                    <div className="flex flex-wrap justify-center gap-4">
                                         {sortedAchievements.map(ach => {
                                             const isUnlocked = unlockedSet.has(ach.id);
                                             if (ach.hidden && !isUnlocked) return null;
