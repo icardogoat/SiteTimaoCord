@@ -15,20 +15,17 @@ export async function getApiSettings(): Promise<Partial<ApiSettings>> {
 
         const settings = await settingsCollection.findOne({ _id: new ObjectId(SETTINGS_ID) });
 
-        if (!settings) {
-            return {
-                apiFootballKey: '',
-            };
-        }
+        // If there's a key in the database, use it. Otherwise, fallback to the .env variable.
+        const apiKey = settings?.apiFootballKey || process.env.API_FOOTBALL_KEY || '';
 
         return {
-            _id: settings._id.toString(),
-            apiFootballKey: settings.apiFootballKey || '',
+            _id: settings?._id.toString() || SETTINGS_ID,
+            apiFootballKey: apiKey,
         };
     } catch (error) {
         console.error("Error fetching API settings:", error);
         return {
-            apiFootballKey: '',
+            apiFootballKey: process.env.API_FOOTBALL_KEY || '',
         };
     }
 }
