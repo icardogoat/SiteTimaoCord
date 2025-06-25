@@ -19,7 +19,7 @@ export function MatchCard({ match }: MatchCardProps) {
   const { toggleBet, isBetSelected } = useBetSlip();
   const isCorinthiansMatch = match.teamA.name === 'Corinthians' || match.teamB.name === 'Corinthians';
 
-  const [isClosed, setIsClosed] = useState(false);
+  const [isBettingClosedByTime, setIsBettingClosedByTime] = useState(false);
 
   useEffect(() => {
     // This effect runs only on the client
@@ -28,14 +28,14 @@ export function MatchCard({ match }: MatchCardProps) {
       const matchStartTime = match.timestamp * 1000;
 
       if (now >= matchStartTime) {
-        setIsClosed(true);
+        setIsBettingClosedByTime(true);
         return null; // No timer needed if it's already past
       } else {
-        setIsClosed(false);
+        setIsBettingClosedByTime(false);
         // Set a timer to close betting exactly when the match starts
         const timeUntilMatch = matchStartTime - now;
         const timer = setTimeout(() => {
-          setIsClosed(true);
+          setIsBettingClosedByTime(true);
         }, timeUntilMatch);
         return timer;
       }
@@ -67,14 +67,25 @@ export function MatchCard({ match }: MatchCardProps) {
   const showScore = match.status !== 'NS' && match.goals.home !== null && match.goals.away !== null;
   const isLive = !match.isFinished && match.status !== 'NS';
 
-  const isBettingDisabled = isClosed || match.status !== 'NS';
+  // Betting is disabled if the start time has passed OR if the status from the DB is not 'Not Started'.
+  const isBettingDisabled = isBettingClosedByTime || match.status !== 'NS';
+
+  // Determine the status text based on DB data, not the betting status
+  let statusText: string;
+  if (match.isFinished) {
+      statusText = 'Finalizado';
+  } else if (isLive) {
+      statusText = 'Ao Vivo';
+  } else {
+      statusText = match.time;
+  }
 
   return (
     <Card className={cn("flex flex-col", isCorinthiansMatch && "border-primary/50 shadow-lg shadow-primary/10")}>
       <CardHeader className="flex-row items-center justify-between pb-2">
         <CardTitle className="text-sm font-medium text-muted-foreground">{match.league}</CardTitle>
-        <Badge variant={isClosed || isLive ? 'destructive' : 'outline'}>
-          {isBettingDisabled ? 'Encerrado' : (match.isFinished ? 'Finalizado' : isLive ? 'Ao Vivo' : match.time)}
+        <Badge variant={isLive ? 'destructive' : 'outline'}>
+          {statusText}
         </Badge>
       </CardHeader>
       <CardContent className="flex-grow pt-4">
