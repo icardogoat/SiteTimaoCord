@@ -93,7 +93,7 @@ export default async function ProfilePage() {
                     <div>
                         <div className="flex justify-between items-center mb-1 text-xs text-muted-foreground">
                              <p>
-                                {xp.toLocaleString('pt-BR')} / {xpForNextLevel.toLocaleString('pt-BR')} XP
+                                {xp} / {xpForNextLevel} XP
                             </p>
                             <p>
                                 Nível {level + 1}
@@ -131,11 +131,11 @@ export default async function ProfilePage() {
                 <CardContent className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                     <div className="rounded-lg border bg-card p-4">
                         <p className="text-sm text-muted-foreground">Total Ganho</p>
-                        <p className="text-2xl font-bold text-green-400">R$ {totalWinnings.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
+                        <p className="text-2xl font-bold text-green-400">R$ {totalWinnings.toFixed(2)}</p>
                     </div>
                     <div className="rounded-lg border bg-card p-4">
                         <p className="text-sm text-muted-foreground">Total Perdido</p>
-                        <p className="text-2xl font-bold text-red-400">R$ {totalLosses.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
+                        <p className="text-2xl font-bold text-red-400">R$ {totalLosses.toFixed(2)}</p>
                     </div>
                 </CardContent>
             </Card>

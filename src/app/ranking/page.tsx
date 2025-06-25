@@ -1,3 +1,4 @@
+
 import { AppLayout } from "@/components/app-layout";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -62,7 +63,7 @@ export default async function RankingPage() {
                           </div>
                         </TableCell>
                         <TableCell className="text-right font-semibold text-green-400">
-                          R$ {user.winnings.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          R$ {user.winnings.toFixed(2)}
                         </TableCell>
                       </TableRow>
                     ))
