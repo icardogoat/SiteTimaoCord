@@ -25,7 +25,7 @@ type DbMatch = {
   };
 };
 
-async function getMatches(): Promise<{ matches: Match[]; availableLeagues: string[] }> {
+async function getMatches(league?: string): Promise<{ matches: Match[]; availableLeagues: string[] }> {
   try {
     const client = await clientPromise;
     const db = client.db("timaocord");
@@ -49,23 +49,22 @@ async function getMatches(): Promise<{ matches: Match[]; availableLeagues: strin
     const startTimestamp = Math.floor(start.getTime() / 1000);
     const endTimestamp = Math.floor(end.getTime() / 1000);
 
+    const timeRangeQuery = {
+      timestamp: { $gte: startTimestamp, $lte: endTimestamp },
+    };
+    
+    // Get unique leagues from ALL today's/tomorrow's matches before filtering and limiting
+    const allLeaguesInTimeframe = await matchesCollection.distinct('league', timeRangeQuery);
+    const availableLeagues = allLeaguesInTimeframe.filter((l): l is string => typeof l === 'string' && l.length > 0);
+
+    // Now, get the matches to display
+    const displayQuery = league ? { ...timeRangeQuery, league: league } : timeRangeQuery;
+
     const dbMatches = await matchesCollection
-      .find({
-        timestamp: { $gte: startTimestamp, $lte: endTimestamp },
-      })
+      .find(displayQuery)
+      .sort({ isFinished: 1, timestamp: 1 }) // Sort upcoming first (isFinished: false), then by time.
+      .limit(6)
       .toArray();
-
-    // Get unique leagues from today's matches
-    const availableLeagues = [...new Set(dbMatches.map(m => m.league))];
-
-    // Sort to show upcoming matches first, then finished matches.
-    // Within each group, sort by time.
-    dbMatches.sort((a, b) => {
-        if (a.isFinished !== b.isFinished) {
-            return a.isFinished ? 1 : -1; // false (not finished) comes first
-        }
-        return a.timestamp - b.timestamp; // Then sort by time
-    });
     
     // Get date parts for today and tomorrow in Brasília time for comparison.
     const todayDatePart = nowInBrasilia.toLocaleDateString('pt-BR', { timeZone, day: '2-digit', month: '2-digit', year: 'numeric' });
@@ -123,7 +122,10 @@ async function getMatches(): Promise<{ matches: Match[]; availableLeagues: strin
   }
 }
 
-export default async function BetPage() {
-  const { matches, availableLeagues } = await getMatches();
+export default async function BetPage({ searchParams }: { searchParams?: { [key: string]: string | string[] | undefined }}) {
+  const leagueParam = searchParams?.league;
+  const league = Array.isArray(leagueParam) ? leagueParam[0] : leagueParam;
+  
+  const { matches, availableLeagues } = await getMatches(league);
   return <BetPageClient matches={matches} availableLeagues={availableLeagues} />;
 }

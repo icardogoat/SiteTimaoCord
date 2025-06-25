@@ -16,14 +16,10 @@ export function BetPageClient({ matches, availableLeagues }: BetPageClientProps)
     const searchParams = useSearchParams();
     const selectedLeague = searchParams.get('league');
 
-    const filteredMatches = selectedLeague
-        ? matches.filter((match) => match.league === selectedLeague)
-        : matches;
-
-    const corinthiansMatches = filteredMatches.filter(
+    const corinthiansMatches = matches.filter(
         (match) => match.teamA.name === 'Corinthians' || match.teamB.name === 'Corinthians'
     );
-    const otherMatches = filteredMatches.filter(
+    const otherMatches = matches.filter(
         (match) => match.teamA.name !== 'Corinthians' && match.teamB.name !== 'Corinthians'
     );
 
@@ -35,7 +31,7 @@ export function BetPageClient({ matches, availableLeagues }: BetPageClientProps)
                     <p className="text-muted-foreground">Os jogos mais quentes para você apostar.</p>
                 </div>
                 
-                {filteredMatches.length === 0 ? (
+                {matches.length === 0 ? (
                     <div className="flex items-center justify-center pt-16">
                         <Card className="w-full max-w-lg text-center">
                             <CardHeader>
