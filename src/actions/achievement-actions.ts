@@ -1,7 +1,10 @@
+
 'use server';
 
 import clientPromise from '@/lib/mongodb';
-import { Award, Badge, Crown, Gem, Heart, Medal, Rocket, Star, Trophy, UserPlus, Zap } from 'lucide-react';
+import {
+    Activity, AlertCircle, AlertTriangle, Award, Badge, BarChart2, Calendar, ChevronsUp, Clock, Combine, CornerRightUp, Crown, DollarSign, Edit, FileMinus, Flag, Flame, Gem, Gift, Goal, Handshake, Heart, HelpCircle, Layers, Medal, MessageCircle, MinusCircle, Rocket, RotateCcw, Send, Share2, Shield, ShieldCheck, Slash, Smile, Sparkles, Star, StarHalf, Target, ThumbsUp, TrendingUp, Trophy, Umbrella, UserCheck, UserPlus, Users, Users2, Wallet, XCircle, Zap
+} from 'lucide-react';
 import { revalidatePath } from 'next/cache';
 import type { Notification } from '@/types';
 
@@ -25,18 +28,50 @@ const allAchievementsList: Achievement[] = [
     { id: 'bet_10', name: 'Apostador Frequente', description: 'Fez 10 apostas.', icon: Badge },
     { id: 'bet_50', name: 'Apostador Viciado', description: 'Fez 50 apostas.', icon: Medal },
     { id: 'win_10', name: 'Pé Quente', description: 'Ganhou 10 apostas.', icon: Award },
+    { id: 'win_50', name: 'Campeão Consagrado', description: 'Ganhou 50 apostas.', icon: Trophy },
+    { id: 'multiple_win', name: 'Multiplicador', description: 'Ganhou uma aposta múltipla.', icon: Combine },
+    { id: 'multiple_win_5', name: 'Combo Perfeito', description: 'Ganhou 5 apostas múltiplas.', icon: Layers },
+    { id: 'first_deposit', name: 'Investidor', description: 'Fez seu primeiro depósito.', icon: Wallet },
+    { id: 'daily_login_7', name: 'Fiel Presença', description: 'Entrou 7 dias seguidos.', icon: Calendar },
+    { id: 'daily_login_30', name: 'Assíduo', description: 'Entrou 30 dias seguidos.', icon: Clock },
+    { id: 'profile_completed', name: 'Perfil Completo', description: 'Preencheu todas as informações do perfil.', icon: UserCheck },
+    { id: 'shared_bet', name: 'Influencer', description: 'Compartilhou uma aposta.', icon: Share2 },
+    { id: 'liked_bet', name: 'Torcedor Participativo', description: 'Curtiu uma aposta.', icon: ThumbsUp },
+    { id: 'commented_bet', name: 'Palpiteiro', description: 'Comentou em uma aposta.', icon: MessageCircle },
+    { id: 'following_5', name: 'Na Fila do Bolão', description: 'Seguiu 5 usuários.', icon: Users },
+    { id: 'follower_10', name: 'Famosinho', description: 'Conseguiu 10 seguidores.', icon: Smile },
+    { id: 'lost_streak_5', name: 'Resiliente', description: 'Perdeu 5 apostas seguidas.', icon: Umbrella },
+    { id: 'win_streak_5', name: 'Em Alta', description: 'Ganhou 5 apostas seguidas.', icon: Flame },
+    { id: 'win_streak_10', name: 'Invicto', description: 'Ganhou 10 apostas seguidas.', icon: ShieldCheck },
+    { id: 'streak_breaker', name: 'Fim da Linha', description: 'Interrompeu a sequência de vitórias.', icon: Slash },
+    { id: 'bet_live', name: 'Aposte ao Vivo', description: 'Fez uma aposta ao vivo.', icon: Activity },
+    { id: 'cashout_used', name: 'Jogada de Mestre', description: 'Usou o recurso de cashout.', icon: RotateCcw },
+    { id: 'friend_invited', name: 'Recrutador', description: 'Convidou um amigo para a plataforma.', icon: Send },
+    { id: 'friend_joined', name: 'Parceiro de Aposta', description: 'Um amigo aceitou seu convite.', icon: Handshake },
+    { id: 'referral_5', name: 'Influência Crescente', description: '5 amigos convidados se registraram.', icon: BarChart2 },
+    { id: 'first_feedback', name: 'Opinião Importa', description: 'Deixou um feedback sobre a plataforma.', icon: Edit },
+    { id: 'support_contact', name: 'Buscou Ajuda', description: 'Entrou em contato com o suporte.', icon: HelpCircle },
+    { id: 'event_participation', name: 'Evento Especial', description: 'Participou de um evento ou campanha.', icon: Gift },
+    { id: 'bet_derby', name: 'Clássico é Clássico', description: 'Apostou em um clássico do futebol.', icon: Target },
+    { id: 'underdog_win', name: 'Contra Tudo e Todos', description: 'Ganhou apostando no azarão.', icon: TrendingUp },
+    { id: 'high_odds_win', name: 'Quase Impossível', description: 'Ganhou uma aposta com odds acima de 5.0.', icon: StarHalf },
+    { id: 'low_odds_loss', name: 'Zebraça!', description: 'Perdeu uma aposta com odds abaixo de 1.3.', icon: AlertTriangle },
+    { id: 'bet_cancelled', name: 'Sem Jogo', description: 'Aposta foi cancelada.', icon: XCircle },
+    { id: 'balance_zero', name: 'Zerado', description: 'Ficou com saldo zerado.', icon: MinusCircle },
+    { id: 'balance_1000', name: 'Milionário da Sorte', description: 'Alcançou saldo de R$ 1.000.', icon: DollarSign },
+    { id: 'first_boost', name: 'Impulsionado', description: 'Usou um bônus de aposta.', icon: ChevronsUp },
+    { id: 'bet_on_final', name: 'Decisão', description: 'Apostou em uma final de campeonato.', icon: Flag },
+    { id: 'bet_with_friend', name: 'Bolão de Amigos', description: 'Fez uma aposta em grupo.', icon: Users2 },
+    { id: 'risk_taker', name: 'Corajoso', description: 'Apostou todo o saldo disponível.', icon: AlertCircle },
+    { id: 'safe_bet', name: 'Cauteloso', description: 'Fez uma aposta com odds abaixo de 1.2.', icon: Shield },
+    { id: 'goal_bet', name: 'Na Rede', description: 'Fez uma aposta no mercado de gols.', icon: Goal },
+    { id: 'corner_bet', name: 'Escanteando', description: 'Fez uma aposta no mercado de escanteios.', icon: CornerRightUp },
+    { id: 'card_bet', name: 'Cartão Vermelho', description: 'Fez uma aposta no mercado de cartões.', icon: FileMinus },
+    { id: 'custom_badge', name: 'Exclusivo', description: 'Conquista personalizada da comunidade.', icon: Sparkles },
 ];
 
 export async function getAllAchievements(): Promise<Achievement[]> {
-    // Fill up to 50 with placeholders
-    const placeholders: Achievement[] = Array.from({ length: 40 }, (_, i) => ({
-        id: `placeholder_${i + 1}`,
-        name: 'Em Breve',
-        description: 'Esta conquista será revelada no futuro.',
-        icon: Gem
-    }));
-
-    return [...allAchievementsList, ...placeholders];
+    return allAchievementsList;
 }
 
 export async function getUserAchievements(userId: string): Promise<string[]> {

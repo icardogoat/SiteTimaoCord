@@ -586,6 +586,11 @@ export async function resolveMatch(fixtureId: number, options: { revalidate: boo
 
                         // Grant first win achievement
                         await grantAchievement(bet.userId, 'first_win');
+                        
+                        // Grant multiple win achievement if applicable
+                        if (bet.bets.length > 1) {
+                            await grantAchievement(bet.userId, 'multiple_win');
+                        }
                     }
                     
                     await betsCollection.updateOne(
