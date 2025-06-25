@@ -13,6 +13,7 @@ import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { getAvailableLeagues } from "@/actions/bet-actions";
 import { getUserStats, getRankings } from "@/actions/user-actions";
 import { redirect } from "next/navigation";
+import { Progress } from "@/components/ui/progress";
 
 export default async function ProfilePage() {
   const session = await getServerSession(authOptions);
@@ -45,6 +46,8 @@ export default async function ProfilePage() {
 
   const userRankData = rankings.find(rankedUser => rankedUser.name === userName);
 
+  const { level, progress, xp, xpForNextLevel } = user.level;
+
   return (
     <AppLayout availableLeagues={availableLeagues}>
       <div className="flex-1 space-y-8 p-4 sm:p-6 lg:p-8">
@@ -72,6 +75,30 @@ export default async function ProfilePage() {
                     <div className="space-y-2">
                         <Label htmlFor="email">Email</Label>
                         <Input id="email" type="email" defaultValue={userEmail} readOnly disabled />
+                    </div>
+                </CardContent>
+            </Card>
+
+            <Card>
+                <CardHeader>
+                    <CardTitle>Nível de Experiência</CardTitle>
+                    <CardDescription>Seu progresso baseado no total apostado (XP).</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                    <div className="flex justify-between items-baseline">
+                        <p className="text-sm text-muted-foreground">Nível Atual</p>
+                        <p className="text-3xl font-bold">{level}</p>
+                    </div>
+                    <div>
+                        <div className="flex justify-between items-center mb-1 text-xs text-muted-foreground">
+                             <p>
+                                {xp.toLocaleString('pt-BR')} / {xpForNextLevel.toLocaleString('pt-BR')} XP
+                            </p>
+                            <p>
+                                Nível {level + 1}
+                            </p>
+                        </div>
+                        <Progress value={progress} className="h-2" />
                     </div>
                 </CardContent>
             </Card>

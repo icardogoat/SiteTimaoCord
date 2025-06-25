@@ -39,18 +39,15 @@ export function Header() {
 
   React.useEffect(() => {
     fetchNotifications();
-    // Poll for new notifications every minute
     const intervalId = setInterval(fetchNotifications, 60000);
     return () => clearInterval(intervalId);
   }, [fetchNotifications]);
 
   const handleOpenChange = async (open: boolean) => {
     if (open && unreadCount > 0 && session?.user?.discordId) {
-        // Optimistically update the UI
         setUnreadCount(0);
         setNotifications(prev => prev.map(n => ({ ...n, read: true })));
         
-        // Mark as read in the backend
         await markNotificationsAsRead(session.user.discordId);
     }
   }
@@ -59,6 +56,7 @@ export function Header() {
   const userName = user?.name ?? 'Usuário';
   const userImage = user?.image;
   const userBalance = user?.balance ?? 0;
+  const userLevel = user?.level?.level ?? 1;
   const userFallback = userName
     .split(' ')
     .map((word) => word[0])
@@ -139,10 +137,15 @@ export function Header() {
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Avatar className="h-9 w-9 cursor-pointer">
-              <AvatarImage src={userImage ?? undefined} alt={userName} />
-              <AvatarFallback>{userFallback}</AvatarFallback>
-            </Avatar>
+            <Button variant="ghost" className="relative h-9 w-9 rounded-full p-0">
+                <Avatar className="h-9 w-9">
+                    <AvatarImage src={userImage ?? undefined} alt={userName} />
+                    <AvatarFallback>{userFallback}</AvatarFallback>
+                </Avatar>
+                <div className="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-secondary text-xs font-bold text-secondary-foreground border-2 border-background">
+                    {userLevel}
+                </div>
+            </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-56">
             <DropdownMenuLabel>{userName}</DropdownMenuLabel>

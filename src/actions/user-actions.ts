@@ -1,7 +1,7 @@
 'use server';
 
 import clientPromise from '@/lib/mongodb';
-import type { UserRanking, PlacedBet } from '@/types';
+import type { UserRanking, PlacedBet, UserLevel } from '@/types';
 import type { WithId } from 'mongodb';
 
 export interface UserStats {
@@ -86,5 +86,57 @@ export async function getRankings(): Promise<UserRanking[]> {
     } catch (error) {
         console.error('Error fetching rankings:', error);
         return [];
+    }
+}
+
+const LEVEL_THRESHOLDS = [
+    { level: 1, xp: 0 },
+    { level: 2, xp: 100 },
+    { level: 3, xp: 500 },
+    { level: 4, xp: 1000 },
+    { level: 5, xp: 2500 },
+    { level: 6, xp: 5000 },
+    { level: 7, xp: 10000 },
+    { level: 8, xp: 20000 },
+    { level: 9, xp: 50000 },
+    { level: 10, xp: 100000 },
+];
+
+export async function getUserLevel(userId: string): Promise<UserLevel> {
+    try {
+        const { totalWagered } = await getUserStats(userId);
+        const xp = totalWagered;
+
+        let currentLevel = 1;
+        let xpForNextLevel = LEVEL_THRESHOLDS[1]?.xp ?? Infinity;
+        let xpForCurrentLevel = 0;
+
+        for (let i = LEVEL_THRESHOLDS.length - 1; i >= 0; i--) {
+            if (xp >= LEVEL_THRESHOLDS[i].xp) {
+                currentLevel = LEVEL_THRESHOLDS[i].level;
+                xpForCurrentLevel = LEVEL_THRESHOLDS[i].xp;
+                xpForNextLevel = LEVEL_THRESHOLDS[i + 1]?.xp ?? LEVEL_THRESHOLDS[i].xp;
+                break;
+            }
+        }
+        
+        if (currentLevel === LEVEL_THRESHOLDS[LEVEL_THRESHOLDS.length - 1].level) {
+            xpForNextLevel = xpForCurrentLevel;
+        }
+
+        const xpInCurrentLevel = xp - xpForCurrentLevel;
+        const xpNeededForNextLevel = xpForNextLevel - xpForCurrentLevel;
+        
+        const progress = xpNeededForNextLevel > 0 ? Math.floor((xpInCurrentLevel / xpNeededForNextLevel) * 100) : 100;
+
+        return {
+            level: currentLevel,
+            xp,
+            xpForNextLevel: xpForNextLevel,
+            progress: Math.min(progress, 100),
+        };
+    } catch (error) {
+        console.error(`Error fetching user level for ${userId}:`, error);
+        return { level: 1, xp: 0, xpForNextLevel: LEVEL_THRESHOLDS[1]?.xp ?? 100, progress: 0 };
     }
 }

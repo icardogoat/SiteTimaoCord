@@ -1,6 +1,7 @@
 
 import 'next-auth';
 import type { DefaultSession, DefaultUser } from 'next-auth';
+import type { UserLevel } from '@/types';
 
 declare module 'next-auth' {
   /**
@@ -12,6 +13,7 @@ declare module 'next-auth' {
       discordId: string;
       balance: number;
       admin: boolean;
+      level: UserLevel;
     } & DefaultSession['user'];
   }
 

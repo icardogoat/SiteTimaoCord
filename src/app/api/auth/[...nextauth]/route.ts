@@ -5,6 +5,7 @@ import DiscordProvider from 'next-auth/providers/discord';
 import { MongoDBAdapter } from "@next-auth/mongodb-adapter";
 import clientPromise from "@/lib/mongodb";
 import type { Notification, Transaction } from '@/types';
+import { getUserLevel } from '@/actions/user-actions';
 
 export const authOptions: AuthOptions = {
   adapter: MongoDBAdapter(clientPromise, { databaseName: "timaocord" }),
@@ -14,7 +15,6 @@ export const authOptions: AuthOptions = {
       clientSecret: process.env.DISCORD_CLIENT_SECRET!,
       profile(profile) {
         if (!profile.discriminator || profile.discriminator === "0") {
-            // Use a deterministic way to generate the avatar number from the user's ID
             const numericId = BigInt(profile.id);
             const defaultAvatarNumber = Number(numericId % 6n);
             const image_url = `https://cdn.discordapp.com/embed/avatars/${defaultAvatarNumber}.png`;
@@ -101,18 +101,14 @@ export const authOptions: AuthOptions = {
       return true;
     },
     async jwt({ token, user }) {
-      // On sign-in, `user` object is present and we can seed the token.
       if (user) {
         token.discordId = user.discordId;
         token.admin = user.admin ?? false;
       }
       
-      // To keep the admin status updated after manual DB changes,
-      // we re-fetch the user from the database when the JWT is processed.
       try {
         const client = await clientPromise;
         const db = client.db("timaocord");
-        // The `users` collection is managed by the MongoDB adapter
         const dbUser = await db.collection("users").findOne({ discordId: token.discordId as string });
         if (dbUser) {
           token.admin = dbUser.admin ?? false;
@@ -134,9 +130,14 @@ export const authOptions: AuthOptions = {
           const db = client.db("timaocord");
           const wallet = await db.collection("wallets").findOne({ userId: token.discordId as string });
           session.user.balance = wallet ? wallet.balance : 0;
+          
+          const levelData = await getUserLevel(token.discordId as string);
+          session.user.level = levelData;
+
         } catch (error) {
-            console.error("Failed to fetch user balance for session:", error);
+            console.error("Failed to fetch user balance/level for session:", error);
             session.user.balance = 0;
+            session.user.level = { level: 1, xp: 0, xpForNextLevel: 100, progress: 0 }; // Default level
         }
       }
       return session;

@@ -31,9 +31,8 @@ export type Match = {
   isFinished: boolean;
 };
 
-// This is the bet selection that goes into the bet slip
 export type BetInSlip = {
-  id: string; // A unique identifier for the bet, e.g., `${match.id}-${market.name}-${odd.label}`
+  id: string; 
   matchId: number;
   matchTime: string;
   teamA: string;
@@ -43,11 +42,10 @@ export type BetInSlip = {
   odd: Odd;
 };
 
-// This is the structure of a bet placed and saved in the DB
 export type PlacedBet = {
-  _id: string | ObjectId; // string on client, ObjectId on server
+  _id: string | ObjectId; 
   userId: string;
-  bets: { // The individual selections in the bet slip
+  bets: { 
     matchId: number;
     matchTime: string;
     teamA: string;
@@ -82,6 +80,13 @@ export type UserRanking = {
   avatar: string;
   name: string;
   winnings: number;
+};
+
+export type UserLevel = {
+  level: number;
+  xp: number;
+  xpForNextLevel: number;
+  progress: number;
 };
 
 export type Transaction = {
