@@ -15,7 +15,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { LogOut, User, Wallet, Ticket, Bell, Trophy, LayoutGrid, Store, Table, Swords } from 'lucide-react';
+import { LogOut, User, Wallet, Ticket, Bell, Trophy, LayoutGrid, Store, Table, Swords, Star } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useSession, signOut } from 'next-auth/react';
@@ -121,6 +121,15 @@ export function Header() {
                 Bolão
             </Link>
             <Link 
+                href="/mvp" 
+                className={cn(
+                    "transition-colors hover:text-foreground",
+                    pathname === "/mvp" ? "text-foreground font-semibold" : "text-muted-foreground"
+                )}
+            >
+                MVP
+            </Link>
+            <Link 
                 href="/store" 
                 className={cn(
                     "transition-colors hover:text-foreground",
@@ -222,6 +231,12 @@ export function Header() {
               <Link href="/bolao">
                 <Swords className="mr-2 h-4 w-4" />
                 <span>Bolão</span>
+              </Link>
+            </DropdownMenuItem>
+             <DropdownMenuItem asChild>
+              <Link href="/mvp">
+                <Star className="mr-2 h-4 w-4" />
+                <span>MVP</span>
               </Link>
             </DropdownMenuItem>
             <DropdownMenuItem asChild>

@@ -44,6 +44,7 @@ export const config = {
     "/store",
     "/standings",
     "/bolao",
+    "/mvp",
     "/admin/:path*",
   ],
   runtime: "nodejs",

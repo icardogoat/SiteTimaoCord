@@ -2,7 +2,7 @@
 'use server';
 
 import clientPromise from '@/lib/mongodb';
-import type { PlacedBet, Transaction, UserRanking } from '@/types';
+import type { PlacedBet, Transaction, UserRanking, MvpVoting, MvpPlayer, MvpTeamLineup } from '@/types';
 import { ObjectId, WithId } from 'mongodb';
 import { revalidatePath } from 'next/cache';
 import { getBotConfig } from './bot-config-actions';
@@ -51,6 +51,8 @@ type MatchAdminView = {
     isProcessed: boolean;
     hasBolao: boolean;
     bolaoId?: string;
+    hasMvpVoting: boolean;
+    mvpVotingId?: string;
 };
 
 type UserAdminView = {
@@ -169,9 +171,13 @@ export async function getAdminMatches(): Promise<MatchAdminView[]> {
         const db = client.db('timaocord');
         const matchesCollection = db.collection<MatchFromDb>('matches');
         const boloesCollection = db.collection('boloes');
+        const mvpVotingsCollection = db.collection('mvp_votings');
 
         const activeBoloes = await boloesCollection.find({ status: 'Aberto' }).project({ matchId: 1, _id: 1 }).toArray();
         const bolaoMatchMap = new Map(activeBoloes.map(b => [b.matchId, b._id.toString()]));
+
+        const activeVotings = await mvpVotingsCollection.find({}).project({ matchId: 1, _id: 1 }).toArray();
+        const mvpMatchMap = new Map(activeVotings.map(v => [v.matchId, v._id.toString()]));
         
         // Find all matches and sort by timestamp descending
         const matchesFromDb = await matchesCollection.find({}).sort({ 'timestamp': -1 }).limit(100).toArray();
@@ -221,6 +227,8 @@ export async function getAdminMatches(): Promise<MatchAdminView[]> {
                 isProcessed: match.isProcessed ?? false,
                 hasBolao: bolaoMatchMap.has(match._id),
                 bolaoId: bolaoMatchMap.get(match._id),
+                hasMvpVoting: mvpMatchMap.has(match._id),
+                mvpVotingId: mvpMatchMap.get(match._id),
             };
         });
         
@@ -911,5 +919,141 @@ export async function getSiteSettings() {
             maintenanceMode: false,
             welcomeBonus: 1000,
         };
+    }
+}
+
+// ---- MVP VOTING ACTIONS ----
+const getTeamIdFromLogo = (url: string | undefined): number | null => {
+    if (!url) return null;
+    const match = url.match(/\/teams\/(\d+)\.png$/);
+    return match ? parseInt(match[1], 10) : null;
+};
+
+// NOTE: This function uses mock data for player lineups.
+// In a real-world application, this should be replaced with a call to an API
+// that provides the actual lineup for the match.
+const generateMockPlayers = (teamId: number, teamName: string): MvpPlayer[] => {
+    const players: MvpPlayer[] = [];
+    const positions = ['GOL', 'DEF', 'DEF', 'DEF', 'DEF', 'MEI', 'MEI', 'MEI', 'ATA', 'ATA', 'ATA'];
+    for (let i = 1; i <= 11; i++) {
+        players.push({
+            id: Number(`${teamId}${i}`),
+            name: `Jogador ${i} (${teamName.substring(0, 3)})`,
+            number: i,
+            photo: `https://placehold.co/80x80.png`,
+        });
+    }
+    return players;
+};
+
+
+export async function createMvpVoting(matchId: number): Promise<{ success: boolean; message: string }> {
+    try {
+        const client = await clientPromise;
+        const db = client.db('timaocord');
+        const matchesCollection = db.collection('matches');
+        const mvpVotingsCollection = db.collection('mvp_votings');
+
+        const existingVoting = await mvpVotingsCollection.findOne({ matchId });
+        if (existingVoting) {
+            return { success: false, message: 'Já existe uma votação de MVP para esta partida.' };
+        }
+
+        const matchData = await matchesCollection.findOne({ _id: matchId });
+        if (!matchData) {
+            return { success: false, message: 'Partida não encontrada.' };
+        }
+
+        const homeTeamId = getTeamIdFromLogo(matchData.homeLogo);
+        const awayTeamId = getTeamIdFromLogo(matchData.awayLogo);
+
+        if (!homeTeamId || !awayTeamId) {
+            return { success: false, message: 'Não foi possível determinar os IDs dos times.' };
+        }
+
+        const homeLineup: MvpTeamLineup = {
+            teamId: homeTeamId,
+            teamName: matchData.homeTeam,
+            teamLogo: matchData.homeLogo || '',
+            players: generateMockPlayers(homeTeamId, matchData.homeTeam),
+        };
+
+        const awayLineup: MvpTeamLineup = {
+            teamId: awayTeamId,
+            teamName: matchData.awayTeam,
+            teamLogo: matchData.awayLogo || '',
+            players: generateMockPlayers(awayTeamId, matchData.awayTeam),
+        };
+
+        const newVoting: Omit<MvpVoting, '_id'> = {
+            matchId: matchData._id,
+            homeTeam: matchData.homeTeam,
+            awayTeam: matchData.awayTeam,
+            homeLogo: matchData.homeLogo || '',
+            awayLogo: matchData.awayLogo || '',
+            league: matchData.league,
+            status: 'Aberto',
+            lineups: [homeLineup, awayLineup],
+            votes: [],
+            createdAt: new Date(),
+        };
+
+        await mvpVotingsCollection.insertOne(newVoting as any);
+
+        revalidatePath('/admin/matches');
+        revalidatePath('/admin/mvp');
+        revalidatePath('/mvp');
+
+        return { success: true, message: 'Votação de MVP criada com sucesso!' };
+
+    } catch (error) {
+        console.error('Error creating MVP voting:', error);
+        return { success: false, message: 'Ocorreu um erro ao criar a votação de MVP.' };
+    }
+}
+
+export async function getAdminVotings(): Promise<MvpVoting[]> {
+    try {
+        const client = await clientPromise;
+        const db = client.db('timaocord');
+        const votings = await db.collection<MvpVoting>('mvp_votings')
+            .find({})
+            .sort({ createdAt: -1 })
+            .toArray();
+        return JSON.parse(JSON.stringify(votings));
+    } catch (error) {
+        console.error('Error fetching admin votings:', error);
+        return [];
+    }
+}
+
+export async function finalizeMvpVoting(votingId: string, mvpPlayerId: number): Promise<{ success: boolean; message: string }> {
+     try {
+        const client = await clientPromise;
+        const db = client.db('timaocord');
+        const mvpVotingsCollection = db.collection('mvp_votings');
+
+        const result = await mvpVotingsCollection.updateOne(
+            { _id: new ObjectId(votingId), status: 'Aberto' },
+            {
+                $set: {
+                    status: 'Finalizado',
+                    mvpPlayerId: mvpPlayerId,
+                    finalizedAt: new Date(),
+                }
+            }
+        );
+
+        if (result.modifiedCount === 0) {
+            return { success: false, message: 'Votação não encontrada ou já finalizada.' };
+        }
+
+        revalidatePath('/admin/mvp');
+        revalidatePath('/mvp');
+
+        return { success: true, message: 'Votação de MVP finalizada com sucesso!' };
+    } catch (error) {
+        console.error('Error finalizing MVP voting:', error);
+        return { success: false, message: 'Ocorreu um erro ao finalizar a votação.' };
     }
 }

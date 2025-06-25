@@ -234,3 +234,39 @@ export type Bolao = {
   createdAt: Date | string;
   finalScore?: { home: number, away: number };
 };
+
+export type MvpPlayer = {
+  id: number;
+  name: string;
+  number: number;
+  photo: string;
+};
+
+export type MvpTeamLineup = {
+  teamId: number;
+  teamName: string;
+  teamLogo: string;
+  players: MvpPlayer[];
+};
+
+export type MvpVote = {
+    userId: string;
+    playerId: number;
+    votedAt: Date | string;
+};
+
+export type MvpVoting = {
+  _id: string | ObjectId;
+  matchId: number;
+  homeTeam: string;
+  awayTeam: string;
+  homeLogo: string;
+  awayLogo: string;
+  league: string;
+  status: 'Aberto' | 'Finalizado';
+  lineups: MvpTeamLineup[];
+  votes: MvpVote[];
+  mvpPlayerId?: number;
+  createdAt: Date | string;
+  finalizedAt?: Date | string;
+};

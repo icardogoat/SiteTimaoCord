@@ -24,10 +24,11 @@ import {
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuTrigger,
+  DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu"
 import { Button } from "@/components/ui/button"
-import { MoreHorizontal, Loader2, RefreshCw, BellRing, Crown } from "lucide-react"
-import { getAdminMatches, processAllFinishedMatches, resolveMatch } from "@/actions/admin-actions";
+import { MoreHorizontal, Loader2, RefreshCw, BellRing, Crown, Star } from "lucide-react"
+import { getAdminMatches, processAllFinishedMatches, resolveMatch, createMvpVoting } from "@/actions/admin-actions";
 import { useToast } from "@/hooks/use-toast";
 import { sendUpcomingMatchNotifications } from "@/actions/match-notifications";
 import { createBolao, cancelBolao } from "@/actions/bolao-actions";
@@ -43,6 +44,8 @@ type MatchAdminView = {
     isProcessed: boolean;
     hasBolao: boolean;
     bolaoId?: string;
+    hasMvpVoting: boolean;
+    mvpVotingId?: string;
 };
 
 interface AdminMatchesClientProps {
@@ -57,6 +60,7 @@ export function AdminMatchesClient({ initialMatches }: AdminMatchesClientProps) 
     const [isNotifying, setIsNotifying] = useState(false);
     const [isCreatingBolao, setIsCreatingBolao] = useState<number | null>(null);
     const [isCancelingBolao, setIsCancelingBolao] = useState<number | null>(null);
+    const [isCreatingMvp, setIsCreatingMvp] = useState<number | null>(null);
     const { toast } = useToast();
 
     const handleResolve = async (fixtureId: number) => {
@@ -148,6 +152,19 @@ export function AdminMatchesClient({ initialMatches }: AdminMatchesClientProps) 
         setIsCancelingBolao(null);
     }
 
+    const handleCreateMvp = async (fixtureId: number) => {
+        setIsCreatingMvp(fixtureId);
+        const result = await createMvpVoting(fixtureId);
+        if (result.success) {
+            toast({ title: "Sucesso!", description: result.message });
+            const updatedMatches = await getAdminMatches();
+            setMatches(updatedMatches);
+        } else {
+            toast({ title: "Erro", description: result.message, variant: "destructive" });
+        }
+        setIsCreatingMvp(null);
+    }
+
     return (
         <Card>
             <CardHeader className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
@@ -187,6 +204,7 @@ export function AdminMatchesClient({ initialMatches }: AdminMatchesClientProps) 
                                 <TableCell>
                                     <div className="flex items-center gap-2 font-medium">
                                         {match.hasBolao && <Crown className="h-4 w-4 text-yellow-400" title="Bolão Ativo" />}
+                                        {match.hasMvpVoting && <Star className="h-4 w-4 text-orange-400" title="Votação MVP Ativa" />}
                                         {match.teamA} vs {match.teamB}
                                     </div>
                                 </TableCell>
@@ -209,8 +227,8 @@ export function AdminMatchesClient({ initialMatches }: AdminMatchesClientProps) 
                                 <TableCell>
                                     <DropdownMenu>
                                         <DropdownMenuTrigger asChild>
-                                            <Button aria-haspopup="true" size="icon" variant="ghost" disabled={isResolving === match.fixtureId || isCancelingBolao === match.fixtureId}>
-                                                {isResolving === match.fixtureId || isCancelingBolao === match.fixtureId ? (
+                                            <Button aria-haspopup="true" size="icon" variant="ghost" disabled={isResolving === match.fixtureId || isCancelingBolao === match.fixtureId || isCreatingMvp === match.fixtureId}>
+                                                {(isResolving === match.fixtureId || isCancelingBolao === match.fixtureId || isCreatingMvp === match.fixtureId) ? (
                                                     <Loader2 className="h-4 w-4 animate-spin" />
                                                 ) : (
                                                     <MoreHorizontal className="h-4 w-4" />
@@ -219,14 +237,16 @@ export function AdminMatchesClient({ initialMatches }: AdminMatchesClientProps) 
                                             </Button>
                                         </DropdownMenuTrigger>
                                         <DropdownMenuContent align="end">
-                                            <DropdownMenuLabel>Ações</DropdownMenuLabel>
+                                            <DropdownMenuLabel>Ações da Partida</DropdownMenuLabel>
                                             <DropdownMenuItem 
                                                 onClick={() => handleResolve(match.fixtureId)}
                                                 disabled={match.status !== 'Pendente Pagamento'}
                                             >
                                                 Resolver Partida
                                             </DropdownMenuItem>
-                                             <DropdownMenuItem
+                                            <DropdownMenuSeparator />
+                                            <DropdownMenuLabel>Eventos</DropdownMenuLabel>
+                                            <DropdownMenuItem
                                                 onClick={() => handleCreateBolao(match.fixtureId)}
                                                 disabled={match.status !== 'Agendada' || match.hasBolao || isCreatingBolao === match.fixtureId}
                                             >
@@ -240,6 +260,13 @@ export function AdminMatchesClient({ initialMatches }: AdminMatchesClientProps) 
                                             >
                                                 {isCancelingBolao === match.fixtureId && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                                                 Cancelar Bolão
+                                            </DropdownMenuItem>
+                                             <DropdownMenuItem
+                                                onClick={() => handleCreateMvp(match.fixtureId)}
+                                                disabled={match.status !== 'Pago' || match.hasMvpVoting || isCreatingMvp === match.fixtureId}
+                                            >
+                                                {isCreatingMvp === match.fixtureId && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                                {match.hasMvpVoting ? "Votação MVP Já Criada" : "Criar Votação MVP"}
                                             </DropdownMenuItem>
                                         </DropdownMenuContent>
                                     </DropdownMenu>
