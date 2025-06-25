@@ -1,3 +1,4 @@
+
 import type { ObjectId } from "mongodb";
 
 export type Team = {
@@ -224,7 +225,6 @@ export type Bolao = {
   homeLogo: string;
   awayLogo: string;
   league: string;
-  leagueLogo: string;
   matchTime: string;
   entryFee: number;
   prizePool: number;

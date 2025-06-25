@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from "react";
@@ -29,7 +30,7 @@ import { MoreHorizontal, Loader2, RefreshCw, BellRing, Crown } from "lucide-reac
 import { getAdminMatches, processAllFinishedMatches, resolveMatch } from "@/actions/admin-actions";
 import { useToast } from "@/hooks/use-toast";
 import { sendUpcomingMatchNotifications } from "@/actions/match-notifications";
-import { createBolao } from "@/actions/bolao-actions";
+import { createBolao, cancelBolao } from "@/actions/bolao-actions";
 
 type MatchAdminView = {
     id: string;
@@ -41,6 +42,7 @@ type MatchAdminView = {
     status: string;
     isProcessed: boolean;
     hasBolao: boolean;
+    bolaoId?: string;
 };
 
 interface AdminMatchesClientProps {
@@ -54,6 +56,7 @@ export function AdminMatchesClient({ initialMatches }: AdminMatchesClientProps) 
     const [isProcessingAll, setIsProcessingAll] = useState(false);
     const [isNotifying, setIsNotifying] = useState(false);
     const [isCreatingBolao, setIsCreatingBolao] = useState<number | null>(null);
+    const [isCancelingBolao, setIsCancelingBolao] = useState<number | null>(null);
     const { toast } = useToast();
 
     const handleResolve = async (fixtureId: number) => {
@@ -127,6 +130,23 @@ export function AdminMatchesClient({ initialMatches }: AdminMatchesClientProps) 
         }
         setIsCreatingBolao(null);
     }
+    
+    const handleCancelBolao = async (bolaoId: string | undefined, fixtureId: number) => {
+        if (!bolaoId) {
+            toast({ title: "Erro", description: "ID do Bolão não encontrado.", variant: "destructive" });
+            return;
+        }
+        setIsCancelingBolao(fixtureId);
+        const result = await cancelBolao(bolaoId);
+        if (result.success) {
+            toast({ title: "Sucesso!", description: result.message });
+            const updatedMatches = await getAdminMatches();
+            setMatches(updatedMatches);
+        } else {
+            toast({ title: "Erro", description: result.message, variant: "destructive" });
+        }
+        setIsCancelingBolao(null);
+    }
 
     return (
         <Card>
@@ -189,8 +209,8 @@ export function AdminMatchesClient({ initialMatches }: AdminMatchesClientProps) 
                                 <TableCell>
                                     <DropdownMenu>
                                         <DropdownMenuTrigger asChild>
-                                            <Button aria-haspopup="true" size="icon" variant="ghost" disabled={isResolving === match.fixtureId}>
-                                                {isResolving === match.fixtureId ? (
+                                            <Button aria-haspopup="true" size="icon" variant="ghost" disabled={isResolving === match.fixtureId || isCancelingBolao === match.fixtureId}>
+                                                {isResolving === match.fixtureId || isCancelingBolao === match.fixtureId ? (
                                                     <Loader2 className="h-4 w-4 animate-spin" />
                                                 ) : (
                                                     <MoreHorizontal className="h-4 w-4" />
@@ -211,7 +231,15 @@ export function AdminMatchesClient({ initialMatches }: AdminMatchesClientProps) 
                                                 disabled={match.status !== 'Agendada' || match.hasBolao || isCreatingBolao === match.fixtureId}
                                             >
                                                 {isCreatingBolao === match.fixtureId && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                                {match.hasBolao ? "Bolão Ativo" : "Criar Bolão"}
+                                                {match.hasBolao ? "Bolão Já Criado" : "Criar Bolão"}
+                                            </DropdownMenuItem>
+                                            <DropdownMenuItem
+                                                onClick={() => handleCancelBolao(match.bolaoId, match.fixtureId)}
+                                                disabled={!match.hasBolao || isCancelingBolao === match.fixtureId}
+                                                className="text-destructive focus:bg-destructive/10 focus:text-destructive"
+                                            >
+                                                {isCancelingBolao === match.fixtureId && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                                Cancelar Bolão
                                             </DropdownMenuItem>
                                         </DropdownMenuContent>
                                     </DropdownMenu>

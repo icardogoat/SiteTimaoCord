@@ -1,10 +1,11 @@
+
 'use server';
 
 import clientPromise from '@/lib/mongodb';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import { getServerSession } from 'next-auth/next';
 import { revalidatePath } from 'next/cache';
-import type { Bolao, Transaction } from '@/types';
+import type { Bolao, Notification, Transaction } from '@/types';
 import { ObjectId } from 'mongodb';
 
 const ENTRY_FEE = 5;
@@ -20,25 +21,16 @@ export async function createBolao(matchId: number): Promise<{ success: boolean, 
         const db = client.db('timaocord');
         const matchesCollection = db.collection('matches');
         const boloesCollection = db.collection('boloes');
-        const standingsCollection = db.collection('standings');
 
         const existingBolao = await boloesCollection.findOne({ matchId });
         if (existingBolao) {
             return { success: false, message: 'Já existe um bolão para esta partida.' };
         }
         
-        const activeBolao = await boloesCollection.findOne({ status: 'Aberto' });
-        if (activeBolao) {
-            return { success: false, message: 'Já existe um bolão ativo. Finalize o anterior antes de criar um novo.' };
-        }
-
         const matchData = await matchesCollection.findOne({ _id: matchId });
         if (!matchData) {
             return { success: false, message: 'Partida não encontrada.' };
         }
-
-        const standing = await standingsCollection.findOne({ 'league.name': matchData.league });
-        const leagueLogo = standing?.league.logo ?? '';
 
         const newBolao: Omit<Bolao, '_id'> = {
             matchId: matchData._id,
@@ -47,7 +39,6 @@ export async function createBolao(matchId: number): Promise<{ success: boolean, 
             homeLogo: matchData.homeLogo,
             awayLogo: matchData.awayLogo,
             league: matchData.league,
-            leagueLogo: leagueLogo,
             matchTime: new Date(matchData.timestamp * 1000).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' }),
             entryFee: ENTRY_FEE,
             prizePool: 0,
@@ -68,19 +59,19 @@ export async function createBolao(matchId: number): Promise<{ success: boolean, 
     }
 }
 
-export async function getActiveBolao(): Promise<Bolao | null> {
+export async function getActiveBoloes(): Promise<Bolao[]> {
     try {
         const client = await clientPromise;
         const db = client.db('timaocord');
         const boloesCollection = db.collection<Bolao>('boloes');
 
-        const activeBolao = await boloesCollection.findOne({ status: 'Aberto' });
-        if (!activeBolao) return null;
+        const activeBoloes = await boloesCollection.find({ status: 'Aberto' }).sort({ createdAt: -1 }).toArray();
+        if (!activeBoloes) return [];
 
-        return JSON.parse(JSON.stringify(activeBolao));
+        return JSON.parse(JSON.stringify(activeBoloes));
     } catch (error) {
-        console.error('Error fetching active bolao:', error);
-        return null;
+        console.error('Error fetching active boloes:', error);
+        return [];
     }
 }
 
@@ -175,5 +166,88 @@ export async function joinBolao(bolaoId: string, guess: { home: number, away: nu
     } catch (error: any) {
         await mongoSession.endSession();
         return { success: false, message: error.message || 'Ocorreu um erro ao entrar no bolão.' };
+    }
+}
+
+
+export async function cancelBolao(bolaoId: string): Promise<{ success: boolean; message: string }> {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.admin) {
+        return { success: false, message: 'Acesso negado.' };
+    }
+
+    const client = await clientPromise;
+    const db = client.db('timaocord');
+    const mongoSession = client.startSession();
+
+    try {
+        let result: { success: boolean, message: string } | undefined;
+
+        await mongoSession.withTransaction(async () => {
+            const boloesCollection = db.collection<Bolao>('boloes');
+            const walletsCollection = db.collection('wallets');
+            const notificationsCollection = db.collection('notifications');
+
+            const bolao = await boloesCollection.findOne({ _id: new ObjectId(bolaoId), status: 'Aberto' }, { session: mongoSession });
+            if (!bolao) {
+                throw new Error('Bolão não encontrado ou já não está mais aberto.');
+            }
+
+            // Refund all participants
+            for (const participant of bolao.participants) {
+                const refundAmount = bolao.entryFee;
+                const newTransaction: Transaction = {
+                    id: new ObjectId().toString(),
+                    type: 'Bônus',
+                    description: `Reembolso: Bolão cancelado - ${bolao.homeTeam} vs ${bolao.awayTeam}`,
+                    amount: refundAmount,
+                    date: new Date().toISOString(),
+                    status: 'Concluído',
+                };
+                await walletsCollection.updateOne(
+                    { userId: participant.userId },
+                    {
+                        $inc: { balance: refundAmount },
+                        $push: { transactions: { $each: [newTransaction], $sort: { date: -1 } } },
+                    },
+                    { session: mongoSession }
+                );
+
+                const newNotification: Omit<Notification, '_id'> = {
+                    userId: participant.userId,
+                    title: 'Bolão Cancelado',
+                    description: `O bolão para a partida ${bolao.homeTeam} vs ${bolao.awayTeam} foi cancelado. R$ ${refundAmount.toFixed(2)} foram devolvidos à sua carteira.`,
+                    date: new Date(),
+                    read: false,
+                    link: '/wallet'
+                };
+                await notificationsCollection.insertOne(newNotification as any, { session: mongoSession });
+            }
+
+            // Update bolao status
+            await boloesCollection.updateOne(
+                { _id: new ObjectId(bolaoId) },
+                { $set: { status: 'Cancelado' } },
+                { session: mongoSession }
+            );
+
+            result = { success: true, message: `Bolão cancelado e ${bolao.participants.length} participante(s) reembolsado(s).` };
+        });
+
+        await mongoSession.endSession();
+        
+        if (result?.success) {
+            revalidatePath('/bolao');
+            revalidatePath('/admin/matches');
+            revalidatePath('/wallet');
+            revalidatePath('/notifications');
+            return result;
+        }
+
+        return { success: false, message: 'A transação falhou.' };
+
+    } catch (error: any) {
+        await mongoSession.endSession();
+        return { success: false, message: error.message || 'Ocorreu um erro ao cancelar o bolão.' };
     }
 }

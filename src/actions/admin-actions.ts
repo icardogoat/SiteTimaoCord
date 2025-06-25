@@ -50,6 +50,7 @@ type MatchAdminView = {
     status: string;
     isProcessed: boolean;
     hasBolao: boolean;
+    bolaoId?: string;
 };
 
 type UserAdminView = {
@@ -169,8 +170,8 @@ export async function getAdminMatches(): Promise<MatchAdminView[]> {
         const matchesCollection = db.collection<MatchFromDb>('matches');
         const boloesCollection = db.collection('boloes');
 
-        const activeBoloes = await boloesCollection.find({ status: 'Aberto' }).project({ matchId: 1 }).toArray();
-        const bolaoMatchIds = new Set(activeBoloes.map(b => b.matchId));
+        const activeBoloes = await boloesCollection.find({ status: 'Aberto' }).project({ matchId: 1, _id: 1 }).toArray();
+        const bolaoMatchMap = new Map(activeBoloes.map(b => [b.matchId, b._id.toString()]));
         
         // Find all matches and sort by timestamp descending
         const matchesFromDb = await matchesCollection.find({}).sort({ 'timestamp': -1 }).limit(100).toArray();
@@ -218,7 +219,8 @@ export async function getAdminMatches(): Promise<MatchAdminView[]> {
                 time: new Date(match.timestamp * 1000).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' }),
                 status: statusLabel,
                 isProcessed: match.isProcessed ?? false,
-                hasBolao: bolaoMatchIds.has(match._id),
+                hasBolao: bolaoMatchMap.has(match._id),
+                bolaoId: bolaoMatchMap.get(match._id),
             };
         });
         
