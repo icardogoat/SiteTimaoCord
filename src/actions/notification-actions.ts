@@ -31,4 +31,24 @@ export async function getNotificationsForUser(userId: string): Promise<Notificat
     }
 }
 
+export async function markNotificationsAsRead(userId: string): Promise<{ success: boolean }> {
+    if (!userId) return { success: false };
+    try {
+        const client = await clientPromise;
+        const db = client.db('timaocord');
+        const notificationsCollection = db.collection('notifications');
+        
+        await notificationsCollection.updateMany(
+            { userId: userId, read: false },
+            { $set: { read: true } }
+        );
+
+        revalidatePath('/notifications'); // Revalidate the main notifications page
+        
+        return { success: true };
+    } catch (error) {
+        console.error('Error marking notifications as read:', error);
+        return { success: false };
+    }
+}
     

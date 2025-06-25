@@ -18,35 +18,42 @@ import { LogOut, User, Wallet, Ticket, Bell, Trophy, LayoutGrid } from 'lucide-r
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useSession, signOut } from 'next-auth/react';
-
-const notifications = [
-    {
-        id: '1',
-        title: 'Aposta Ganha!',
-        description: 'Sua aposta em Corinthians vs Palmeiras foi vitoriosa.',
-        time: '5 min atrás',
-        read: false,
-    },
-    {
-        id: '2',
-        title: 'Novo Bônus Disponível',
-        description: 'Você recebeu um bônus de R$20 para apostar.',
-        time: '2 horas atrás',
-        read: false,
-    },
-    {
-        id: '3',
-        title: 'Lembrete de Partida',
-        description: 'Flamengo vs Vasco da Gama começa em 1 hora.',
-        time: '1 dia atrás',
-        read: true,
-    },
-];
+import type { Notification } from '@/types';
+import { getNotificationsForUser, markNotificationsAsRead } from '@/actions/notification-actions';
+import { formatDistanceToNow } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 
 export function Header() {
   const { data: session } = useSession();
   const { isMobile } = useSidebar();
-  const unreadCount = notifications.filter(n => !n.read).length;
+  const [notifications, setNotifications] = React.useState<Notification[]>([]);
+  const [unreadCount, setUnreadCount] = React.useState(0);
+
+  const fetchNotifications = React.useCallback(async () => {
+    if (session?.user?.discordId) {
+        const userNotifications = await getNotificationsForUser(session.user.discordId);
+        setNotifications(userNotifications);
+        setUnreadCount(userNotifications.filter(n => !n.read).length);
+    }
+  }, [session]);
+
+  React.useEffect(() => {
+    fetchNotifications();
+    // Poll for new notifications every minute
+    const intervalId = setInterval(fetchNotifications, 60000);
+    return () => clearInterval(intervalId);
+  }, [fetchNotifications]);
+
+  const handleOpenChange = async (open: boolean) => {
+    if (open && unreadCount > 0 && session?.user?.discordId) {
+        // Optimistically update the UI
+        setUnreadCount(0);
+        setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+        
+        // Mark as read in the backend
+        await markNotificationsAsRead(session.user.discordId);
+    }
+  }
 
   const user = session?.user;
   const userName = user?.name ?? 'Usuário';
@@ -74,13 +81,13 @@ export function Header() {
           <span className="font-semibold text-foreground">R$ {userBalance.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
         </div>
 
-        <DropdownMenu>
+        <DropdownMenu onOpenChange={handleOpenChange}>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="icon" className="relative h-9 w-9">
                 <Bell className="h-5 w-5" />
                 {unreadCount > 0 && (
                     <span className="absolute top-0 right-0 flex h-4 w-4 items-center justify-center rounded-full bg-destructive text-[10px] font-bold text-destructive-foreground">
-                        {unreadCount}
+                        {unreadCount > 9 ? '9+' : unreadCount}
                     </span>
                 )}
                  <span className="sr-only">Toggle notifications</span>
@@ -92,8 +99,8 @@ export function Header() {
             <div className='max-h-80 overflow-y-auto'>
                 {notifications.length > 0 ? (
                     notifications.map((notification) => (
-                        <DropdownMenuItem key={notification.id} asChild className="p-0">
-                           <Link href="#" className={cn(
+                        <DropdownMenuItem key={notification._id as string} asChild className="p-0">
+                           <Link href={notification.link || '/notifications'} className={cn(
                                "flex flex-col items-start gap-1 p-3 cursor-pointer transition-colors hover:bg-accent w-full",
                                !notification.read && "bg-accent/50 hover:bg-accent"
                            )}>
@@ -102,7 +109,9 @@ export function Header() {
                                    "text-sm font-medium",
                                    !notification.read ? "text-foreground" : "text-muted-foreground"
                                 )}>{notification.title}</p>
-                               <p className="ml-auto text-xs text-muted-foreground">{notification.time}</p>
+                               <p className="ml-auto text-xs text-muted-foreground">
+                                 {formatDistanceToNow(new Date(notification.date), { addSuffix: true, locale: ptBR })}
+                               </p>
                              </div>
                                 <p className={cn(
                                     "text-xs w-full text-left",
