@@ -1,4 +1,3 @@
-
 import { AppLayout } from "@/components/app-layout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -67,7 +66,7 @@ export default async function WalletPage() {
                                 <CardDescription>Seu saldo disponível para apostas.</CardDescription>
                             </CardHeader>
                             <CardContent>
-                                <p className="text-4xl font-bold">R$ {currentBalance.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                                <p className="text-4xl font-bold">R$ {currentBalance.toFixed(2)}</p>
                             </CardContent>
                         </Card>
                     </div>
@@ -98,7 +97,7 @@ export default async function WalletPage() {
                                                 <TableCell className="text-center">{new Date(t.date).toLocaleDateString('pt-BR', {timeZone: 'UTC'})}</TableCell>
                                                 <TableCell className={cn("text-center font-medium", getStatusClass(t.status))}>{t.status}</TableCell>
                                                 <TableCell className={cn("text-right font-bold", getAmountClass(t.amount))}>
-                                                    {t.amount > 0 ? '+' : ''} R$ {Math.abs(t.amount).toLocaleString('pt-BR', { minimumFraction Digits: 2, maximumFractionDigits: 2 })}
+                                                    {t.amount > 0 ? '+' : ''} R$ {Math.abs(t.amount).toFixed(2)}
                                                 </TableCell>
                                             </TableRow>
                                         )) : (
