@@ -1,3 +1,4 @@
+
 import type { ObjectId } from "mongodb";
 
 export type Team = {
@@ -155,4 +156,5 @@ export type BotConfig = {
   logChannelId: string;
   bettingChannelId: string;
   adminRoleId: string;
+  vipRoleIds: string[];
 };

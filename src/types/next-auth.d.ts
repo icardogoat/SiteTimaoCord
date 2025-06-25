@@ -14,6 +14,7 @@ declare module 'next-auth' {
       balance: number;
       admin: boolean;
       level: UserLevel;
+      isVip: boolean;
     } & DefaultSession['user'];
   }
 
@@ -24,5 +25,6 @@ declare module 'next-auth' {
   interface User extends DefaultUser {
     discordId: string;
     admin: boolean;
+    isVip: boolean;
   }
 }

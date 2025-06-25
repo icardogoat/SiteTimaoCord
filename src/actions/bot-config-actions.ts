@@ -1,3 +1,4 @@
+
 'use server';
 
 import clientPromise from '@/lib/mongodb';
@@ -22,6 +23,7 @@ export async function getBotConfig(): Promise<Partial<BotConfig>> {
                 logChannelId: '',
                 bettingChannelId: '',
                 adminRoleId: '',
+                vipRoleIds: [],
             };
         }
 
@@ -32,6 +34,7 @@ export async function getBotConfig(): Promise<Partial<BotConfig>> {
             logChannelId: config.logChannelId || '',
             bettingChannelId: config.bettingChannelId || '',
             adminRoleId: config.adminRoleId || '',
+            vipRoleIds: config.vipRoleIds || [],
         };
     } catch (error) {
         console.error("Error fetching bot config:", error);
@@ -41,6 +44,7 @@ export async function getBotConfig(): Promise<Partial<BotConfig>> {
             logChannelId: '',
             bettingChannelId: '',
             adminRoleId: '',
+            vipRoleIds: [],
         };
     }
 }
@@ -51,6 +55,7 @@ type UpdateConfigData = {
     logChannelId: string;
     bettingChannelId: string;
     adminRoleId: string;
+    vipRoleIds: string[];
 };
 
 export async function updateBotConfig(data: UpdateConfigData): Promise<{ success: boolean; message: string }> {

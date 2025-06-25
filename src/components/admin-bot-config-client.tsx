@@ -1,9 +1,11 @@
+
 'use client';
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
 import { useState } from "react";
+import { cn } from "@/lib/utils"
 
 import { Button } from "@/components/ui/button";
 import {
@@ -20,7 +22,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { useToast } from "@/hooks/use-toast";
 import type { BotConfig } from "@/types";
 import { updateBotConfig, getDiscordServerDetails, type DiscordChannel, type DiscordRole } from "@/actions/bot-config-actions";
-import { Loader2, Terminal } from "lucide-react";
+import { Loader2, Terminal, Check, ChevronsUpDown, X } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -28,6 +30,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command"
+import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "./ui/alert";
 
 
@@ -37,6 +49,7 @@ const formSchema = z.object({
   logChannelId: z.string().optional(),
   bettingChannelId: z.string().optional(),
   adminRoleId: z.string().optional(),
+  vipRoleIds: z.array(z.string()).max(3, { message: "Você pode selecionar no máximo 3 cargos VIP." }).optional(),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -62,6 +75,7 @@ export default function AdminBotConfigClient({ initialConfig, initialChannels, i
             logChannelId: initialConfig.logChannelId || "",
             bettingChannelId: initialConfig.bettingChannelId || "",
             adminRoleId: initialConfig.adminRoleId || "",
+            vipRoleIds: initialConfig.vipRoleIds || [],
         },
     });
 
@@ -81,6 +95,7 @@ export default function AdminBotConfigClient({ initialConfig, initialChannels, i
             logChannelId: '',
             bettingChannelId: '',
             adminRoleId: '',
+            vipRoleIds: [],
         });
 
         const result = await getDiscordServerDetails(id);
@@ -111,6 +126,7 @@ export default function AdminBotConfigClient({ initialConfig, initialChannels, i
             logChannelId: values.logChannelId || '',
             bettingChannelId: values.bettingChannelId || '',
             adminRoleId: values.adminRoleId || '',
+            vipRoleIds: values.vipRoleIds || [],
         });
 
         if (result.success) {
@@ -279,6 +295,79 @@ export default function AdminBotConfigClient({ initialConfig, initialChannels, i
                                     </Select>
                                     <FormDescription>
                                         O cargo que tem permissão para usar comandos de admin do bot.
+                                    </FormDescription>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                         <FormField
+                            control={form.control}
+                            name="vipRoleIds"
+                            render={({ field }) => (
+                                <FormItem className="flex flex-col">
+                                    <FormLabel>Cargos VIP</FormLabel>
+                                    <Popover>
+                                        <PopoverTrigger asChild>
+                                            <FormControl>
+                                                <Button
+                                                    variant="outline"
+                                                    role="combobox"
+                                                    className={cn(
+                                                        "w-full justify-between h-auto min-h-10",
+                                                        !field.value?.length && "text-muted-foreground"
+                                                    )}
+                                                    disabled={roles.length === 0}
+                                                >
+                                                    <div className="flex gap-1 flex-wrap">
+                                                        {field.value?.length ?
+                                                          roles
+                                                            .filter(role => field.value?.includes(role.id))
+                                                            .map(role => <Badge variant="secondary" key={role.id}>{role.name}</Badge>)
+                                                          : "Selecione até 3 cargos"
+                                                        }
+                                                    </div>
+                                                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                                </Button>
+                                            </FormControl>
+                                        </PopoverTrigger>
+                                        <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                                            <Command>
+                                                <CommandInput placeholder="Pesquisar cargo..." />
+                                                <CommandList>
+                                                    <CommandEmpty>Nenhum cargo encontrado.</CommandEmpty>
+                                                    <CommandGroup>
+                                                        {roles.map((role) => {
+                                                            const isSelected = field.value?.includes(role.id) ?? false;
+                                                            return (
+                                                                <CommandItem
+                                                                    key={role.id}
+                                                                    onSelect={() => {
+                                                                        if (isSelected) {
+                                                                            field.onChange(field.value?.filter((id) => id !== role.id));
+                                                                        } else {
+                                                                            if ((field.value?.length ?? 0) < 3) {
+                                                                                field.onChange([...(field.value ?? []), role.id]);
+                                                                            }
+                                                                        }
+                                                                    }}
+                                                                >
+                                                                    <Check
+                                                                        className={cn(
+                                                                            "mr-2 h-4 w-4",
+                                                                            isSelected ? "opacity-100" : "opacity-0"
+                                                                        )}
+                                                                    />
+                                                                    {role.name}
+                                                                </CommandItem>
+                                                            );
+                                                        })}
+                                                    </CommandGroup>
+                                                </CommandList>
+                                            </Command>
+                                        </PopoverContent>
+                                    </Popover>
+                                    <FormDescription>
+                                        Selecione até 3 cargos que darão status VIP aos usuários (desconto na loja, 2x XP, etc).
                                     </FormDescription>
                                     <FormMessage />
                                 </FormItem>

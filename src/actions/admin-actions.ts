@@ -495,10 +495,14 @@ export async function resolveMatch(fixtureId: number, options: { revalidate: boo
                             { session: mongoSession }
                         );
 
+                        const user = await usersCollection.findOne({ discordId: bet.userId }, { session: mongoSession });
+                        const xpMultiplier = user?.isVip ? 2 : 1;
+                        const xpGain = bet.stake * xpMultiplier;
+                        
                         // Add user XP for won bet
                         await usersCollection.updateOne(
                             { discordId: bet.userId },
-                            { $inc: { xp: bet.stake } },
+                            { $inc: { xp: xpGain } },
                             { session: mongoSession }
                         );
                     }

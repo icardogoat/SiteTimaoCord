@@ -1,3 +1,4 @@
+
 'use server';
 
 import { getServerSession } from 'next-auth/next';
@@ -39,6 +40,8 @@ interface PurchaseResult {
     message: string;
 }
 
+const VIP_DISCOUNT_MULTIPLIER = 0.9; // 10% discount
+
 export async function purchaseItem(itemId: string): Promise<PurchaseResult> {
     const session = await getServerSession(authOptions);
     if (!session?.user?.discordId) {
@@ -46,11 +49,14 @@ export async function purchaseItem(itemId: string): Promise<PurchaseResult> {
     }
 
     const userId = session.user.discordId;
+    const isVip = session.user.isVip;
     const item = storeItems.find(i => i.id === itemId);
 
     if (!item) {
         return { success: false, message: 'Item não encontrado.' };
     }
+
+    const finalPrice = isVip ? item.price * VIP_DISCOUNT_MULTIPLIER : item.price;
 
     const client = await clientPromise;
     const db = client.db('timaocord');
@@ -65,7 +71,7 @@ export async function purchaseItem(itemId: string): Promise<PurchaseResult> {
 
             const userWallet = await walletsCollection.findOne({ userId }, { session: mongoSession });
 
-            if (!userWallet || userWallet.balance < item.price) {
+            if (!userWallet || userWallet.balance < finalPrice) {
                 throw new Error('Saldo insuficiente.');
             }
 
@@ -83,12 +89,12 @@ export async function purchaseItem(itemId: string): Promise<PurchaseResult> {
                 id: new ObjectId().toString(),
                 type: 'Loja',
                 description: `Compra: ${item.name}`,
-                amount: -item.price,
+                amount: -finalPrice,
                 date: new Date().toISOString(),
                 status: 'Concluído',
             };
 
-            const newBalance = userWallet.balance - item.price;
+            const newBalance = userWallet.balance - finalPrice;
             await walletsCollection.updateOne(
                 { userId },
                 {
