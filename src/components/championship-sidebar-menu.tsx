@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import {
@@ -110,7 +110,33 @@ export function ChampionshipSidebarMenu({ availableLeagues }: ChampionshipSideba
     });
   }
 
-  const [openMenus, setOpenMenus] = useState<string[]>(filteredChampionshipGroups.map(g => g.name));
+  const [openMenus, setOpenMenus] = useState<string[]>([]);
+  const [isInitialStateLoaded, setIsInitialStateLoaded] = useState(false);
+
+  // Load state from localStorage on mount
+  useEffect(() => {
+    const defaultOpen = filteredChampionshipGroups.map(g => g.name);
+    try {
+        const storedState = localStorage.getItem('sidebarOpenMenus');
+        setOpenMenus(storedState ? JSON.parse(storedState) : defaultOpen);
+    } catch {
+        setOpenMenus(defaultOpen);
+    }
+    setIsInitialStateLoaded(true);
+  // Using availableLeagues as a dependency because filteredChampionshipGroups depends on it.
+  // This ensures the default state is correct if the leagues change.
+  }, [availableLeagues]);
+
+  // Save state to localStorage on change
+  useEffect(() => {
+    if (isInitialStateLoaded) {
+        try {
+            localStorage.setItem('sidebarOpenMenus', JSON.stringify(openMenus));
+        } catch (error) {
+            console.error("Failed to save sidebar state to localStorage:", error);
+        }
+    }
+  }, [openMenus, isInitialStateLoaded]);
 
   const toggleMenu = (name: string) => {
     setOpenMenus((prev) =>
