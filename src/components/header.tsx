@@ -24,6 +24,46 @@ import { getNotificationsForUser, markNotificationsAsRead } from '@/actions/noti
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
+// Sub-component to safely render the formatted date only on the client
+function NotificationDropdownItem({ notification }: { notification: Notification }) {
+    const [timeAgo, setTimeAgo] = React.useState('');
+
+    React.useEffect(() => {
+        // This runs only on the client, after hydration, preventing mismatch
+        setTimeAgo(
+            formatDistanceToNow(new Date(notification.date), {
+                addSuffix: true,
+                locale: ptBR,
+            })
+        );
+    }, [notification.date]);
+
+    return (
+        <DropdownMenuItem key={notification._id as string} asChild className="p-0">
+           <Link href={notification.link || '/notifications'} className={cn(
+               "flex flex-col items-start gap-1 p-3 cursor-pointer transition-colors hover:bg-accent w-full",
+               !notification.read && "bg-accent/50 hover:bg-accent"
+           )}>
+             <div className='flex items-center w-full'>
+               <p className={cn(
+                   "text-sm font-medium",
+                   !notification.read ? "text-foreground" : "text-muted-foreground"
+                )}>{notification.title}</p>
+               {timeAgo && (
+                 <p className="ml-auto text-xs text-muted-foreground">
+                   {timeAgo}
+                 </p>
+               )}
+             </div>
+                <p className={cn(
+                    "text-xs w-full text-left",
+                    !notification.read ? "text-foreground/80" : "text-muted-foreground"
+                    )}>{notification.description}</p>
+           </Link>
+        </DropdownMenuItem>
+    );
+}
+
 export function Header() {
   const { data: session } = useSession();
   const { isMobile } = useSidebar();
@@ -120,26 +160,7 @@ export function Header() {
             <div className='max-h-80 overflow-y-auto'>
                 {notifications.length > 0 ? (
                     notifications.map((notification) => (
-                        <DropdownMenuItem key={notification._id as string} asChild className="p-0">
-                           <Link href={notification.link || '/notifications'} className={cn(
-                               "flex flex-col items-start gap-1 p-3 cursor-pointer transition-colors hover:bg-accent w-full",
-                               !notification.read && "bg-accent/50 hover:bg-accent"
-                           )}>
-                             <div className='flex items-center w-full'>
-                               <p className={cn(
-                                   "text-sm font-medium",
-                                   !notification.read ? "text-foreground" : "text-muted-foreground"
-                                )}>{notification.title}</p>
-                               <p className="ml-auto text-xs text-muted-foreground">
-                                 {formatDistanceToNow(new Date(notification.date), { addSuffix: true, locale: ptBR })}
-                               </p>
-                             </div>
-                                <p className={cn(
-                                    "text-xs w-full text-left",
-                                    !notification.read ? "text-foreground/80" : "text-muted-foreground"
-                                    )}>{notification.description}</p>
-                           </Link>
-                        </DropdownMenuItem>
+                        <NotificationDropdownItem key={notification._id as string} notification={notification} />
                     ))
                 ) : (
                     <p className='p-4 text-sm text-center text-muted-foreground'>Nenhuma notificação nova.</p>

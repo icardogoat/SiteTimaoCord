@@ -16,7 +16,7 @@ export function NotificationItem({ notification }: NotificationItemProps) {
     const [timeAgo, setTimeAgo] = useState('');
 
     useEffect(() => {
-        // This will only run on the client, after hydration
+        // This will only run on the client, after hydration, to prevent a mismatch
         setTimeAgo(formatDistanceToNow(new Date(notification.date), {
             addSuffix: true,
             locale: ptBR,
