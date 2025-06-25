@@ -237,6 +237,7 @@ export async function getMatches({ league, page = 1 }: { league?: string; page?:
         status: dbMatch.status,
         goals: dbMatch.goals,
         isFinished: dbMatch.isFinished,
+        timestamp: dbMatch.timestamp,
       };
     });
 

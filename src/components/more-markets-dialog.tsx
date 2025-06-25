@@ -24,6 +24,7 @@ import { cn } from '@/lib/utils';
 interface MoreMarketsDialogProps {
   match: Match;
   children: React.ReactNode;
+  isBettingDisabled: boolean;
 }
 
 const allowedMarkets = [
@@ -43,7 +44,7 @@ const allowedMarkets = [
 ];
 
 
-export function MoreMarketsDialog({ match, children }: MoreMarketsDialogProps) {
+export function MoreMarketsDialog({ match, children, isBettingDisabled }: MoreMarketsDialogProps) {
   const { toggleBet, isBetSelected } = useBetSlip();
   
   const filteredMarkets = match.markets.filter(market => allowedMarkets.includes(market.name));
@@ -72,6 +73,7 @@ export function MoreMarketsDialog({ match, children }: MoreMarketsDialogProps) {
                         className="flex flex-col h-auto py-2"
                         key={odd.label}
                         onClick={() => toggleBet(match, market, odd)}
+                        disabled={isBettingDisabled}
                       >
                         <span className="text-xs text-muted-foreground">{odd.label}</span>
                         <span className="font-bold">{odd.value}</span>
