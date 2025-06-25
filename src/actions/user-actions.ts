@@ -1,3 +1,4 @@
+
 'use server';
 
 import clientPromise from '@/lib/mongodb';
@@ -104,8 +105,12 @@ const LEVEL_THRESHOLDS = [
 
 export async function getUserLevel(userId: string): Promise<UserLevel> {
     try {
-        const { totalWagered } = await getUserStats(userId);
-        const xp = totalWagered;
+        const client = await clientPromise;
+        const db = client.db('timaocord');
+        const usersCollection = db.collection('users');
+        const user = await usersCollection.findOne({ discordId: userId });
+
+        const xp = user?.xp ?? 0;
 
         let currentLevel = 1;
         let xpForNextLevel = LEVEL_THRESHOLDS[1]?.xp ?? Infinity;
@@ -120,6 +125,11 @@ export async function getUserLevel(userId: string): Promise<UserLevel> {
             }
         }
         
+        // Self-correcting: if the level in DB is not correct, update it.
+        if (user && user.level !== currentLevel) {
+            await usersCollection.updateOne({ _id: user._id }, { $set: { level: currentLevel } });
+        }
+
         if (currentLevel === LEVEL_THRESHOLDS[LEVEL_THRESHOLDS.length - 1].level) {
             xpForNextLevel = xpForCurrentLevel;
         }

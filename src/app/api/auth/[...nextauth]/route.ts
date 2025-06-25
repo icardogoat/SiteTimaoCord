@@ -63,8 +63,20 @@ export const authOptions: AuthOptions = {
       try {
         const client = await clientPromise;
         const db = client.db("timaocord");
-        const walletsCollection = db.collection("wallets");
 
+        const usersCollection = db.collection("users");
+        const dbUser = await usersCollection.findOne({ discordId: userId });
+        
+        // If user exists but doesn't have level data, initialize it.
+        // This handles both new users (after adapter creation) and old users.
+        if (dbUser && typeof dbUser.level === 'undefined') {
+          await usersCollection.updateOne(
+            { _id: dbUser._id },
+            { $set: { level: 1, xp: 0 } }
+          );
+        }
+
+        const walletsCollection = db.collection("wallets");
         const existingWallet = await walletsCollection.findOne({ userId: userId });
 
         if (!existingWallet) {
@@ -95,7 +107,7 @@ export const authOptions: AuthOptions = {
           await notificationsCollection.insertOne(welcomeNotification as any);
         }
       } catch (error) {
-        console.error("Failed to create or check wallet for user:", error);
+        console.error("Failed to create or check wallet/level for user:", error);
         return false;
       }
       return true;

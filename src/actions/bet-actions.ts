@@ -1,3 +1,4 @@
+
 'use server';
 
 import { getServerSession } from 'next-auth/next';
@@ -36,6 +37,7 @@ export async function placeBet(betsInSlip: BetInSlip[], stake: number): Promise<
     await mongoSession.withTransaction(async () => {
       const walletsCollection = db.collection('wallets');
       const betsCollection = db.collection('bets');
+      const usersCollection = db.collection('users');
 
       const userWallet = await walletsCollection.findOne({ userId }, { session: mongoSession });
 
@@ -88,6 +90,13 @@ export async function placeBet(betsInSlip: BetInSlip[], stake: number): Promise<
         { session: mongoSession }
       );
       
+      // Update user XP
+      await usersCollection.updateOne(
+          { discordId: userId },
+          { $inc: { xp: stake } },
+          { session: mongoSession }
+      );
+
       // Set result on successful transaction
       finalResult = { success: true, message: 'Aposta realizada com sucesso!', newBalance };
     });
@@ -95,6 +104,7 @@ export async function placeBet(betsInSlip: BetInSlip[], stake: number): Promise<
     if (finalResult?.success) {
         revalidatePath('/my-bets');
         revalidatePath('/wallet');
+        revalidatePath('/profile');
         
         return {
             success: finalResult.success,
