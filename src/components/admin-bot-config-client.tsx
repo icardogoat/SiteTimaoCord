@@ -154,7 +154,7 @@ export default function AdminBotConfigClient({ initialConfig, initialChannels, i
         }
         
         setIsTesting(channelType);
-        const result = await sendTestDiscordMessage(channelId, payload);
+        const result = await sendTestDiscordMessage(channelId as string, payload);
         if (result.success) {
             toast({ title: 'Sucesso!', description: result.message });
         } else {
