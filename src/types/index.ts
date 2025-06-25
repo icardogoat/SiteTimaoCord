@@ -28,6 +28,7 @@ export type Match = {
     away: number | null;
   };
   isFinished: boolean;
+  isNotificationSent?: boolean;
 };
 
 export type BetInSlip = {

@@ -16,6 +16,7 @@ type MatchFromDb = {
   timestamp: number;
   status: string;
   isProcessed?: boolean;
+  isNotificationSent?: boolean;
   homeLogo?: string;
   awayLogo?: string;
 };
