@@ -1078,19 +1078,19 @@ export async function cancelMvpVoting(votingId: string): Promise<{ success: bool
             }
 
             for (const vote of voting.votes) {
-                const refundAmount = VOTE_REWARD;
+                const debitAmount = -VOTE_REWARD;
                 const newTransaction: Transaction = {
                     id: new ObjectId().toString(),
-                    type: 'Bônus',
-                    description: `Reembolso: Votação MVP cancelada - ${voting.homeTeam} vs ${voting.awayTeam}`,
-                    amount: refundAmount,
+                    type: 'Ajuste',
+                    description: `Reversão de bônus: Votação MVP cancelada - ${voting.homeTeam} vs ${voting.awayTeam}`,
+                    amount: debitAmount,
                     date: new Date().toISOString(),
                     status: 'Concluído',
                 };
                 await walletsCollection.updateOne(
                     { userId: vote.userId },
                     {
-                        $inc: { balance: refundAmount },
+                        $inc: { balance: debitAmount },
                         $push: { transactions: { $each: [newTransaction], $sort: { date: -1 } } },
                     },
                     { session: mongoSession }
@@ -1099,7 +1099,7 @@ export async function cancelMvpVoting(votingId: string): Promise<{ success: bool
                 const newNotification: Omit<Notification, '_id'> = {
                     userId: vote.userId,
                     title: 'Votação MVP Cancelada',
-                    description: `A votação para MVP da partida ${voting.homeTeam} vs ${voting.awayTeam} foi cancelada. R$ ${refundAmount.toFixed(2)} foram devolvidos à sua carteira.`,
+                    description: `A votação MVP para ${voting.homeTeam} vs ${voting.awayTeam} foi cancelada. O bônus de R$ ${VOTE_REWARD.toFixed(2)} foi revertido.`,
                     date: new Date(),
                     read: false,
                     link: '/wallet'
@@ -1113,7 +1113,7 @@ export async function cancelMvpVoting(votingId: string): Promise<{ success: bool
                 { session: mongoSession }
             );
 
-            result = { success: true, message: `Votação cancelada e ${voting.votes.length} participante(s) reembolsado(s).` };
+            result = { success: true, message: `Votação cancelada e o bônus de ${voting.votes.length} participante(s) foi revertido.` };
         });
         
         await mongoSession.endSession();
@@ -1129,6 +1129,7 @@ export async function cancelMvpVoting(votingId: string): Promise<{ success: bool
         return { success: false, message: 'A transação falhou.' };
 
     } catch (error: any) {
+        console.error('Error canceling MVP voting:', error);
         await mongoSession.endSession();
         return { success: false, message: error.message || 'Ocorreu um erro ao cancelar a votação.' };
     }

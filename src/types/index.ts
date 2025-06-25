@@ -122,7 +122,7 @@ export type UserLevel = {
 
 export type Transaction = {
   id: string;
-  type: 'Depósito' | 'Saque' | 'Aposta' | 'Prêmio' | 'Bônus' | 'Loja';
+  type: 'Depósito' | 'Saque' | 'Aposta' | 'Prêmio' | 'Bônus' | 'Loja' | 'Ajuste';
   description: string;
   amount: number;
   date: string;
