@@ -20,22 +20,6 @@ export default async function TimaocordHome() {
           <FielBetLogo className="h-7 w-7 text-primary" />
           <span className="ml-2 text-xl font-bold font-headline text-primary">Timaocord</span>
         </Link>
-        <nav className="hidden md:flex gap-4 sm:gap-6">
-          <Link
-            href="/store"
-            className="text-sm font-medium hover:underline underline-offset-4"
-            prefetch={false}
-          >
-            Loja
-          </Link>
-          <Link
-            href="/ranking"
-            className="text-sm font-medium hover:underline underline-offset-4"
-            prefetch={false}
-          >
-            Tabela
-          </Link>
-        </nav>
       </header>
       <main className="flex-1 flex flex-col items-center justify-center text-center p-4">
         <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold font-headline tracking-tighter mb-4">
