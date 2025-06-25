@@ -46,7 +46,7 @@ const allAchievementsList: Achievement[] = [
     { id: 'low_odds_loss', name: 'Zebraça!', description: 'Perdeu uma aposta com odds abaixo de 1.3.', icon: AlertTriangle },
     { id: 'bet_cancelled', name: 'Sem Jogo', description: 'Aposta foi cancelada.', icon: XCircle },
     { id: 'balance_zero', name: 'Zerado', description: 'Ficou com saldo zerado.', icon: MinusCircle },
-    { id: 'balance_1000', name: 'Milionário da Sorte', description: 'Alcançou saldo de R$ 1.000.', icon: DollarSign },
+    { id: 'balance_1000', name: 'Milionário da Sorte', description: 'Alcançou saldo de R$ 1.000.000.', icon: DollarSign },
     { id: 'bet_on_final', name: 'Decisão', description: 'Apostou em uma final de campeonato.', icon: Flag },
     { id: 'bet_with_friend', name: 'Bolão de Amigos', description: 'Fez uma aposta em grupo.', icon: Users2 },
     { id: 'risk_taker', name: 'Corajoso', description: 'Apostou todo o saldo disponível.', icon: AlertCircle },
