@@ -961,12 +961,14 @@ async function getMatchLineups(fixtureId: number): Promise<{ success: boolean; d
         }
 
         const lineups: MvpTeamLineup[] = data.response.map((teamData: any) => {
-            const players = teamData.players.map((p: any) => ({
-                id: p.player.id,
-                name: p.player.name,
-                number: p.statistics[0]?.games?.number ?? 0,
-                photo: p.player.photo || 'https://placehold.co/40x40.png',
-            }));
+            const players = teamData.players
+                .filter((p: any) => p.statistics[0]?.games?.minutes > 0)
+                .map((p: any) => ({
+                    id: p.player.id,
+                    name: p.player.name,
+                    number: p.statistics[0]?.games?.number ?? 0,
+                    photo: p.player.photo || 'https://placehold.co/40x40.png',
+                }));
 
             return {
                 teamId: teamData.team.id,
@@ -977,7 +979,7 @@ async function getMatchLineups(fixtureId: number): Promise<{ success: boolean; d
         });
         
         if (lineups.length === 0 || lineups.every(l => l.players.length === 0)) {
-            return { success: false, message: 'Nenhum jogador com estatísticas encontrado na API.' };
+            return { success: false, message: 'Nenhum jogador que participou da partida foi encontrado na API. A votação MVP não pode ser criada.' };
         }
 
         return { success: true, data: lineups };
