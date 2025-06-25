@@ -2,7 +2,7 @@
 'use server';
 
 import clientPromise from '@/lib/mongodb';
-import type { PlacedBet, Transaction, UserRanking, MvpVoting, MvpPlayer, MvpTeamLineup } from '@/types';
+import type { PlacedBet, Transaction, UserRanking, MvpVoting, MvpPlayer, MvpTeamLineup, Notification } from '@/types';
 import { ObjectId, WithId } from 'mongodb';
 import { revalidatePath } from 'next/cache';
 import { getBotConfig } from './bot-config-actions';
@@ -1055,5 +1055,81 @@ export async function finalizeMvpVoting(votingId: string, mvpPlayerId: number): 
     } catch (error) {
         console.error('Error finalizing MVP voting:', error);
         return { success: false, message: 'Ocorreu um erro ao finalizar a votação.' };
+    }
+}
+
+export async function cancelMvpVoting(votingId: string): Promise<{ success: boolean; message: string }> {
+     try {
+        const client = await clientPromise;
+        const db = client.db('timaocord');
+        const mongoSession = client.startSession();
+        const VOTE_REWARD = 100;
+
+        let result: { success: boolean; message: string } | undefined;
+
+        await mongoSession.withTransaction(async () => {
+            const mvpVotingsCollection = db.collection<MvpVoting>('mvp_votings');
+            const walletsCollection = db.collection('wallets');
+            const notificationsCollection = db.collection('notifications');
+
+            const voting = await mvpVotingsCollection.findOne({ _id: new ObjectId(votingId), status: 'Aberto' }, { session: mongoSession });
+            if (!voting) {
+                throw new Error('Votação não encontrada ou já não está mais aberta.');
+            }
+
+            for (const vote of voting.votes) {
+                const refundAmount = VOTE_REWARD;
+                const newTransaction: Transaction = {
+                    id: new ObjectId().toString(),
+                    type: 'Bônus',
+                    description: `Reembolso: Votação MVP cancelada - ${voting.homeTeam} vs ${voting.awayTeam}`,
+                    amount: refundAmount,
+                    date: new Date().toISOString(),
+                    status: 'Concluído',
+                };
+                await walletsCollection.updateOne(
+                    { userId: vote.userId },
+                    {
+                        $inc: { balance: refundAmount },
+                        $push: { transactions: { $each: [newTransaction], $sort: { date: -1 } } },
+                    },
+                    { session: mongoSession }
+                );
+
+                const newNotification: Omit<Notification, '_id'> = {
+                    userId: vote.userId,
+                    title: 'Votação MVP Cancelada',
+                    description: `A votação para MVP da partida ${voting.homeTeam} vs ${voting.awayTeam} foi cancelada. R$ ${refundAmount.toFixed(2)} foram devolvidos à sua carteira.`,
+                    date: new Date(),
+                    read: false,
+                    link: '/wallet'
+                };
+                await notificationsCollection.insertOne(newNotification as any, { session: mongoSession });
+            }
+
+            await mvpVotingsCollection.updateOne(
+                { _id: new ObjectId(votingId) },
+                { $set: { status: 'Cancelado' } },
+                { session: mongoSession }
+            );
+
+            result = { success: true, message: `Votação cancelada e ${voting.votes.length} participante(s) reembolsado(s).` };
+        });
+        
+        await mongoSession.endSession();
+
+        if (result?.success) {
+            revalidatePath('/admin/mvp');
+            revalidatePath('/mvp');
+            revalidatePath('/wallet');
+            revalidatePath('/notifications');
+            return result;
+        }
+
+        return { success: false, message: 'A transação falhou.' };
+
+    } catch (error: any) {
+        await mongoSession.endSession();
+        return { success: false, message: error.message || 'Ocorreu um erro ao cancelar a votação.' };
     }
 }

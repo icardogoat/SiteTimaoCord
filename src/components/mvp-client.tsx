@@ -8,7 +8,7 @@ import { Button } from './ui/button';
 import { useState } from 'react';
 import { castVote } from '@/actions/mvp-actions';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Crown, Star } from 'lucide-react';
+import { Loader2, Crown, Star, XCircle } from 'lucide-react';
 import { Session } from 'next-auth';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { Badge } from './ui/badge';
@@ -41,12 +41,12 @@ function MvpCard({ voting, sessionUser, onVote }: MvpCardProps) {
     return (
         <Card>
             <CardHeader>
-                <div className="flex justify-between items-center">
+                <div className="flex justify-between items-start">
                     <div>
                         <CardTitle className="text-xl">{voting.homeTeam} vs {voting.awayTeam}</CardTitle>
                         <CardDescription>{voting.league}</CardDescription>
                     </div>
-                     <Badge variant={voting.status === 'Aberto' ? 'default' : 'secondary'}>
+                     <Badge variant={voting.status === 'Aberto' ? 'default' : voting.status === 'Cancelado' ? 'destructive' : 'secondary'}>
                         {voting.status}
                     </Badge>
                 </div>
@@ -98,6 +98,14 @@ function MvpCard({ voting, sessionUser, onVote }: MvpCardProps) {
                     </div>
                 </CardFooter>
             )}
+            {voting.status === 'Cancelado' && (
+                 <CardFooter className="bg-destructive/10 rounded-b-lg p-4">
+                    <div className="flex items-center gap-3">
+                        <XCircle className="h-6 w-6 text-destructive" />
+                        <p className="font-semibold text-destructive">Esta votação foi cancelada.</p>
+                    </div>
+                </CardFooter>
+            )}
         </Card>
     );
 }
@@ -118,7 +126,7 @@ export function MvpClient({ activeVotings, sessionUser }: MvpClientProps) {
     };
     
     const openVotings = votings.filter(v => v.status === 'Aberto');
-    const finalizedVotings = votings.filter(v => v.status === 'Finalizado');
+    const closedVotings = votings.filter(v => v.status === 'Finalizado' || v.status === 'Cancelado');
 
     return (
         <div className="flex-1 p-4 sm:p-6 lg:p-8">
@@ -150,7 +158,7 @@ export function MvpClient({ activeVotings, sessionUser }: MvpClientProps) {
                     )}
                 </TabsContent>
                  <TabsContent value="closed">
-                     {finalizedVotings.length === 0 ? (
+                     {closedVotings.length === 0 ? (
                         <div className="flex items-center justify-center pt-16">
                             <Card className="w-full max-w-md text-center">
                                 <CardHeader>
@@ -161,7 +169,7 @@ export function MvpClient({ activeVotings, sessionUser }: MvpClientProps) {
                         </div>
                     ) : (
                         <div className="grid gap-8 mt-6">
-                            {finalizedVotings.map(voting => (
+                            {closedVotings.map(voting => (
                                 <MvpCard key={voting._id as string} voting={voting} sessionUser={sessionUser} onVote={handleVoteSuccess} />
                             ))}
                         </div>

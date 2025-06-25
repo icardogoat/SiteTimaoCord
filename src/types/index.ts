@@ -263,7 +263,7 @@ export type MvpVoting = {
   homeLogo: string;
   awayLogo: string;
   league: string;
-  status: 'Aberto' | 'Finalizado';
+  status: 'Aberto' | 'Finalizado' | 'Cancelado';
   lineups: MvpTeamLineup[];
   votes: MvpVote[];
   mvpPlayerId?: number;

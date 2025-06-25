@@ -1,15 +1,15 @@
 'use client';
 
 import { useState } from 'react';
-import type { MvpVoting, MvpPlayer } from '@/types';
+import type { MvpVoting } from '@/types';
 import { Button } from './ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from './ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from './ui/dialog';
 import { ScrollArea } from './ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { useToast } from '@/hooks/use-toast';
-import { finalizeMvpVoting } from '@/actions/admin-actions';
-import { Loader2, Crown } from 'lucide-react';
+import { finalizeMvpVoting, cancelMvpVoting } from '@/actions/admin-actions';
+import { Loader2, Crown, XCircle } from 'lucide-react';
 import Image from 'next/image';
 
 interface AdminMvpClientProps {
@@ -26,14 +26,28 @@ export default function AdminMvpClient({ initialVotings }: AdminMvpClientProps) 
     const { toast } = useToast();
     const [votings, setVotings] = useState(initialVotings);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [isCanceling, setIsCanceling] = useState<string | null>(null);
     const [dialogState, setDialogState] = useState<FinalizeDialogState>({ open: false, voting: null, selectedPlayerId: null });
 
     const openVotings = votings.filter(v => v.status === 'Aberto');
     const finalizedVotings = votings.filter(v => v.status === 'Finalizado');
+    const canceledVotings = votings.filter(v => v.status === 'Cancelado');
 
     const handleFinalizeClick = (voting: MvpVoting) => {
         setDialogState({ open: true, voting, selectedPlayerId: null });
     };
+    
+    const handleCancelClick = async (voting: MvpVoting) => {
+        setIsCanceling(voting._id.toString());
+        const result = await cancelMvpVoting(voting._id.toString());
+        if (result.success) {
+            toast({ title: "Sucesso!", description: result.message });
+            setVotings(votings.map(v => v._id === voting._id ? { ...v, status: 'Cancelado' } : v));
+        } else {
+            toast({ title: "Erro", description: result.message, variant: "destructive" });
+        }
+        setIsCanceling(null);
+    }
 
     const handleConfirmFinalize = async () => {
         if (!dialogState.voting || dialogState.selectedPlayerId === null) {
@@ -95,8 +109,12 @@ export default function AdminMvpClient({ initialVotings }: AdminMvpClientProps) 
                     </div>
                 </CardContent>
                 {voting.status === 'Aberto' && (
-                    <CardFooter>
-                        <Button onClick={() => handleFinalizeClick(voting)}>Finalizar Votação</Button>
+                    <CardFooter className="flex items-center justify-between">
+                        <Button onClick={() => handleFinalizeClick(voting)} disabled={isCanceling === voting._id.toString()}>Finalizar Votação</Button>
+                        <Button variant="destructive" size="sm" onClick={() => handleCancelClick(voting)} disabled={isCanceling === voting._id.toString()}>
+                             {isCanceling === voting._id.toString() ? <Loader2 className="h-4 w-4 animate-spin" /> : <XCircle className="mr-2 h-4 w-4" />}
+                             Cancelar
+                        </Button>
                     </CardFooter>
                 )}
             </Card>
@@ -111,15 +129,19 @@ export default function AdminMvpClient({ initialVotings }: AdminMvpClientProps) 
     return (
         <>
             <Tabs defaultValue="open">
-                <TabsList>
+                <TabsList className="grid w-full grid-cols-3">
                     <TabsTrigger value="open">Abertas</TabsTrigger>
                     <TabsTrigger value="finalized">Finalizadas</TabsTrigger>
+                    <TabsTrigger value="canceled">Canceladas</TabsTrigger>
                 </TabsList>
                 <TabsContent value="open" className="space-y-4">
                     {openVotings.length > 0 ? openVotings.map(renderVotingCard) : <p className="text-muted-foreground mt-4">Nenhuma votação de MVP aberta.</p>}
                 </TabsContent>
                 <TabsContent value="finalized" className="space-y-4">
                     {finalizedVotings.length > 0 ? finalizedVotings.map(renderVotingCard) : <p className="text-muted-foreground mt-4">Nenhuma votação de MVP finalizada.</p>}
+                </TabsContent>
+                 <TabsContent value="canceled" className="space-y-4">
+                    {canceledVotings.length > 0 ? canceledVotings.map(renderVotingCard) : <p className="text-muted-foreground mt-4">Nenhuma votação de MVP cancelada.</p>}
                 </TabsContent>
             </Tabs>
 
