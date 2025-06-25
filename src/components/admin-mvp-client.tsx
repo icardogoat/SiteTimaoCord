@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState } from 'react';
@@ -79,12 +78,17 @@ export default function AdminMvpClient({ initialVotings }: AdminMvpClientProps) 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             {playersWithVotes.map(player => (
                                 <div key={player.id} className="flex items-center justify-between p-2 rounded-md bg-muted">
-                                    <div className="flex items-center gap-2">
+                                    <div className="flex items-center gap-2 overflow-hidden">
                                         <Image src={player.photo} alt={player.name} width={32} height={32} className="rounded-full" data-ai-hint="player photo" />
-                                        <span className="text-sm font-medium">{player.name}</span>
-                                        {mvpPlayer?.id === player.id && <Crown className="h-4 w-4 text-yellow-500" />}
+                                        <div className="overflow-hidden">
+                                            <p className="text-sm font-medium truncate flex items-center gap-1">
+                                                {player.name}
+                                                {mvpPlayer?.id === player.id && <Crown className="h-4 w-4 text-yellow-500 shrink-0" />}
+                                            </p>
+                                            <p className="text-xs text-muted-foreground">#{player.number}</p>
+                                        </div>
                                     </div>
-                                    <span className="font-bold text-sm">{player.voteCount} votos</span>
+                                    <span className="font-bold text-sm shrink-0">{player.voteCount} votos</span>
                                 </div>
                             ))}
                         </div>
@@ -139,7 +143,7 @@ export default function AdminMvpClient({ initialVotings }: AdminMvpClientProps) 
                                         <Image src={player.photo} alt={player.name} width={40} height={40} className="rounded-full" data-ai-hint="player photo" />
                                         <div>
                                             <p className="font-semibold">{player.name}</p>
-                                            <p className="text-xs">{player.voteCount} votos</p>
+                                            <p className="text-xs text-muted-foreground">#{player.number} • {player.voteCount} votos</p>
                                         </div>
                                     </div>
                                     {dialogState.selectedPlayerId === player.id && <Crown className="h-5 w-5" />}
