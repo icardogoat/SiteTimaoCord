@@ -57,7 +57,7 @@ export async function getTopWinners(): Promise<UserRanking[]> {
                 }
             },
             { $sort: { winnings: -1 } },
-            { $limit: 10 },
+            { $limit: 50 },
             {
                 $lookup: {
                     from: 'users',
@@ -106,7 +106,7 @@ export async function getMostActiveBettors(): Promise<ActiveBettorRanking[]> {
                 }
             },
             { $sort: { totalBets: -1 } },
-            { $limit: 10 },
+            { $limit: 50 },
             {
                 $lookup: {
                     from: 'users',
@@ -149,7 +149,7 @@ export async function getTopLevelUsers(): Promise<TopLevelUserRanking[]> {
 
         const rankingsData = await usersCollection.find({})
             .sort({ xp: -1 })
-            .limit(10)
+            .limit(50)
             .toArray();
         
         return rankingsData.map((user, index) => ({
@@ -175,7 +175,7 @@ export async function getRichestUsers(): Promise<RichestUserRanking[]> {
 
         const rankingsData = await walletsCollection.aggregate([
             { $sort: { balance: -1 } },
-            { $limit: 10 },
+            { $limit: 50 },
             {
                 $lookup: {
                     from: 'users',
