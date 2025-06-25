@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { processAllFinishedMatches } from '@/actions/admin-actions';
 
+// Renamed the file to process/route.ts to avoid conflict
+// This will now be accessible at /api/cron/process
 export async function GET(request: Request) {
   const authHeader = request.headers.get('authorization');
   if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
