@@ -104,22 +104,13 @@ export const authOptions: AuthOptions = {
         
         const dbUser = await usersCollection.findOne({ discordId: userId });
         
-        if (dbUser) {
-          const isVip = await checkUserVipStatus(userId);
-          const updates: { $set: { [key: string]: any } } = { $set: {} };
-
-          if (typeof dbUser.level === 'undefined') {
-              updates.$set.level = 1;
-              updates.$set.xp = 0;
-          }
-          // Update VIP status only if it has changed
-          if (dbUser.isVip !== isVip) {
-              updates.$set.isVip = isVip;
-          }
-
-          if (Object.keys(updates.$set).length > 0) {
-              await usersCollection.updateOne({ _id: dbUser._id }, updates);
-          }
+        // Ensure user record has level/xp initialized.
+        // The JWT callback will handle the VIP status sync.
+        if (dbUser && typeof dbUser.level === 'undefined') {
+            await usersCollection.updateOne(
+                { _id: dbUser._id },
+                { $set: { level: 1, xp: 0 } }
+            );
         }
 
         const walletsCollection = db.collection("wallets");
@@ -158,37 +149,48 @@ export const authOptions: AuthOptions = {
       }
       return true;
     },
-    async jwt({ token, user, trigger }) {
+    async jwt({ token, user }) {
       try {
+        // On initial sign-in, attach the discordId to the token
         if (user) {
           token.discordId = user.discordId;
-          token.admin = user.admin ?? false;
-          token.isVip = user.isVip ?? false;
+        }
+
+        const discordId = token.discordId as string;
+        if (!discordId) {
+            return token; // Cannot proceed without discordId
         }
 
         const client = await clientPromise;
         const db = client.db("timaocord");
         const usersCollection = db.collection("users");
         
-        // On initial sign-in or session update, refresh VIP status
-        if (trigger === 'signIn' || trigger === 'update') {
-          const isVip = await checkUserVipStatus(token.discordId as string);
-          if (token.isVip !== isVip) {
-              token.isVip = isVip;
-              await usersCollection.updateOne({ discordId: token.discordId as string }, { $set: { isVip } });
-          }
+        // Always check for the latest user data from DB
+        const dbUser = await usersCollection.findOne({ discordId });
+
+        if (!dbUser) {
+            // This case should ideally not happen if signIn is successful
+            return token;
         }
-        
-        const dbUser = await usersCollection.findOne({ discordId: token.discordId as string });
-        if (dbUser) {
-          token.admin = dbUser.admin ?? false;
-          // Ensure token.isVip is correctly sourced from DB if not already set
-          if (typeof token.isVip === 'undefined') {
-            token.isVip = dbUser.isVip ?? false;
-          }
+
+        // Always check the current VIP status from Discord
+        const currentVipStatus = await checkUserVipStatus(discordId);
+
+        // If the VIP status in the database is different from the live status, update it
+        if (dbUser.isVip !== currentVipStatus) {
+            await usersCollection.updateOne({ _id: dbUser._id }, { $set: { isVip: currentVipStatus } });
+            // Update the status on the token immediately
+            token.isVip = currentVipStatus;
+        } else {
+            // Otherwise, use the status from the database
+            token.isVip = dbUser.isVip;
         }
+
+        // Always use the admin status from the database
+        token.admin = dbUser.admin ?? false;
+
       } catch (error) {
-        console.error("Error in JWT callback, returning original token:", error);
+        console.error("Error in JWT callback, returning existing token to avoid session loss:", error);
       }
 
       return token;
