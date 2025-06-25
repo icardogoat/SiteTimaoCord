@@ -8,16 +8,24 @@ import { useSession } from 'next-auth/react';
 import { useToast } from '@/hooks/use-toast';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from './ui/alert-dialog';
 import { purchaseItem } from '@/actions/store-actions';
-import { Loader2 } from 'lucide-react';
+import { Award, Loader2, Star, Tag } from 'lucide-react';
+
+type StoreItemData = Omit<StoreItem, 'icon'>;
 
 interface StoreClientProps {
-    initialItems: StoreItem[];
+    initialItems: StoreItemData[];
 }
+
+const iconMap = {
+    'chat-tag': Tag,
+    'xp-boost': Star,
+    'vip-status': Award,
+};
 
 export function StoreClient({ initialItems }: StoreClientProps) {
     const { data: session, update: updateSession } = useSession();
     const { toast } = useToast();
-    const [isConfirming, setIsConfirming] = useState<StoreItem | null>(null);
+    const [isConfirming, setIsConfirming] = useState<StoreItemData | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     const userBalance = session?.user?.balance ?? 0;
@@ -56,7 +64,7 @@ export function StoreClient({ initialItems }: StoreClientProps) {
 
                 <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
                     {initialItems.map((item) => {
-                        const Icon = item.icon;
+                        const Icon = iconMap[item.id as keyof typeof iconMap];
                         const canAfford = userBalance >= item.price;
                         return (
                             <Card key={item.id} className="flex flex-col">

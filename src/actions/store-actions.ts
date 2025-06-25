@@ -3,13 +3,12 @@
 import { getServerSession } from 'next-auth/next';
 import clientPromise from '@/lib/mongodb';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
-import type { StoreItem, Transaction } from '@/types';
-import { Award, Star, Tag } from 'lucide-react';
+import type { Transaction } from '@/types';
 import { revalidatePath } from 'next/cache';
 import { ObjectId } from 'mongodb';
 
 // In a real application, these would be stored in the database.
-const storeItems: Omit<StoreItem, 'icon'>[] = [
+const storeItems = [
     {
         id: 'chat-tag',
         name: 'Tag de Chat Exclusiva',
@@ -30,19 +29,9 @@ const storeItems: Omit<StoreItem, 'icon'>[] = [
     }
 ];
 
-// This function maps the static data to include the React component for the icon.
-// This is done to keep React components out of server-only action files.
-export const getStoreItems = (): StoreItem[] => {
-    const iconMap = {
-        'chat-tag': Tag,
-        'xp-boost': Star,
-        'vip-status': Award,
-    };
-
-    return storeItems.map(item => ({
-        ...item,
-        icon: iconMap[item.id as keyof typeof iconMap],
-    }));
+// This function returns serializable store item data.
+export async function getStoreItems() {
+    return storeItems;
 };
 
 interface PurchaseResult {
