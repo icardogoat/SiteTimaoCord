@@ -22,7 +22,7 @@ export default async function NotificationsPage() {
 
     return (
         <AppLayout availableLeagues={availableLeagues}>
-            <main className="flex-1 p-4 sm:p-6 lg:p-8">
+            <div className="flex-1 p-4 sm:p-6 lg:p-8">
                 <div className="mb-8">
                     <h1 className="text-3xl font-bold font-headline tracking-tight">Notificações</h1>
                     <p className="text-muted-foreground">Veja todas as suas notificações aqui.</p>
@@ -43,7 +43,7 @@ export default async function NotificationsPage() {
                         </div>
                     </CardContent>
                 </Card>
-            </main>
+            </div>
         </AppLayout>
     )
 }

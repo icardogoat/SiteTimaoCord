@@ -53,7 +53,7 @@ export default async function WalletPage() {
     
     return (
         <AppLayout availableLeagues={availableLeagues}>
-            <main className="flex-1 p-4 sm:p-6 lg:p-8">
+            <div className="flex-1 p-4 sm:p-6 lg:p-8">
                 <div className="mb-8">
                     <h1 className="text-3xl font-bold font-headline tracking-tight">Minha Carteira</h1>
                     <p className="text-muted-foreground">Gerencie seu saldo e veja seu histórico de transações.</p>
@@ -98,7 +98,7 @@ export default async function WalletPage() {
                                                 <TableCell className="text-center">{new Date(t.date).toLocaleDateString('pt-BR', {timeZone: 'UTC'})}</TableCell>
                                                 <TableCell className={cn("text-center font-medium", getStatusClass(t.status))}>{t.status}</TableCell>
                                                 <TableCell className={cn("text-right font-bold", getAmountClass(t.amount))}>
-                                                    {t.amount > 0 ? '+' : ''} R$ {Math.abs(t.amount).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                                    {t.amount > 0 ? '+' : ''} R$ {Math.abs(t.amount).toLocaleString('pt-BR', { minimumFraction Digits: 2, maximumFractionDigits: 2 })}
                                                 </TableCell>
                                             </TableRow>
                                         )) : (
@@ -112,7 +112,7 @@ export default async function WalletPage() {
                         </Card>
                     </div>
                 </div>
-            </main>
+            </div>
         </AppLayout>
     );
 }

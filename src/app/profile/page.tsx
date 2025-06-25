@@ -51,7 +51,7 @@ export default async function ProfilePage() {
 
   return (
     <AppLayout availableLeagues={availableLeagues}>
-      <main className="flex-1 p-4 sm:p-6 lg:p-8">
+      <div className="flex-1 p-4 sm:p-6 lg:p-8">
           <div className="mb-8">
               <h1 className="text-3xl font-bold font-headline tracking-tight">Perfil</h1>
               <p className="text-muted-foreground">Veja suas informações de perfil e estatísticas.</p>
@@ -116,7 +116,7 @@ export default async function ProfilePage() {
                 </CardContent>
             </Card>
           </div>
-      </main>
+      </div>
     </AppLayout>
   )
 }

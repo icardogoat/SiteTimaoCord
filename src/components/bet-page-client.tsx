@@ -29,7 +29,7 @@ export function BetPageClient({ matches, availableLeagues }: BetPageClientProps)
 
     return (
         <AppLayout availableLeagues={availableLeagues}>
-            <main className="p-4 sm:p-6 lg:p-8 pb-32 md:pb-8 md:pr-[26rem]">
+            <div className="p-4 sm:p-6 lg:p-8 pb-32 md:pb-8 md:pr-[26rem]">
                 <div className="mb-8">
                     <h1 className="text-3xl font-bold font-headline tracking-tight">{selectedLeague || 'Próximas Partidas'}</h1>
                     <p className="text-muted-foreground">Os jogos mais quentes para você apostar.</p>
@@ -68,7 +68,7 @@ export function BetPageClient({ matches, availableLeagues }: BetPageClientProps)
                         )}
                     </div>
                 )}
-            </main>
+            </div>
         </AppLayout>
     )
 }

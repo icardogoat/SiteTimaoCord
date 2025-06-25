@@ -60,7 +60,7 @@ export default async function MyBetsPage() {
 
     return (
         <AppLayout availableLeagues={availableLeagues}>
-            <main className="flex-1 p-4 sm:p-6 lg:p-8">
+            <div className="flex-1 p-4 sm:p-6 lg:p-8">
                 <div className="mb-8">
                     <h1 className="text-3xl font-bold font-headline tracking-tight">Minhas Apostas</h1>
                     <p className="text-muted-foreground">Acompanhe suas apostas abertas e resolvidas.</p>
@@ -90,7 +90,7 @@ export default async function MyBetsPage() {
                         </div>
                     </TabsContent>
                 </Tabs>
-            </main>
+            </div>
         </AppLayout>
     )
 }

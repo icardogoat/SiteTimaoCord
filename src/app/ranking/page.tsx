@@ -24,7 +24,7 @@ export default async function RankingPage() {
 
   return (
     <AppLayout availableLeagues={availableLeagues}>
-      <main className="flex-1 p-4 sm:p-6 lg:p-8">
+      <div className="flex-1 p-4 sm:p-6 lg:p-8">
         <div className="mb-8">
           <h1 className="text-3xl font-bold font-headline tracking-tight">Ranking de Ganhadores</h1>
           <p className="text-muted-foreground">Veja quem são os maiores vencedores da FielBet.</p>
@@ -79,7 +79,7 @@ export default async function RankingPage() {
             </Table>
           </CardContent>
         </Card>
-      </main>
+      </div>
     </AppLayout>
   );
 }
