@@ -7,6 +7,7 @@ import { ObjectId, WithId } from 'mongodb';
 import { revalidatePath } from 'next/cache';
 import { getBotConfig } from './bot-config-actions';
 import { grantAchievement } from './achievement-actions';
+import { getApiSettings } from './settings-actions';
 
 // Base type for a match in the DB (for admin list view)
 type MatchFromDb = {
@@ -929,22 +930,64 @@ const getTeamIdFromLogo = (url: string | undefined): number | null => {
     return match ? parseInt(match[1], 10) : null;
 };
 
-// NOTE: This function uses mock data for player lineups.
-// In a real-world application, this should be replaced with a call to an API
-// that provides the actual lineup for the match.
-const generateMockPlayers = (teamId: number, teamName: string): MvpPlayer[] => {
-    const players: MvpPlayer[] = [];
-    const positions = ['GOL', 'DEF', 'DEF', 'DEF', 'DEF', 'MEI', 'MEI', 'MEI', 'ATA', 'ATA', 'ATA'];
-    for (let i = 1; i <= 11; i++) {
-        players.push({
-            id: Number(`${teamId}${i}`),
-            name: `Jogador ${i} (${teamName.substring(0, 3)})`,
-            number: i,
-            photo: `https://placehold.co/80x80.png`,
-        });
+
+async function getMatchLineups(fixtureId: number): Promise<{ success: boolean; data?: MvpTeamLineup[]; message?: string }> {
+    const { apiFootballKey } = await getApiSettings();
+    if (!apiFootballKey) {
+        return { success: false, message: 'Chave da API-Football não configurada.' };
     }
-    return players;
-};
+
+    const url = `https://api-football-v1.p.rapidapi.com/v3/fixtures/lineups?fixture=${fixtureId}`;
+    const options = {
+        method: 'GET',
+        headers: {
+            'X-RapidAPI-Key': apiFootballKey,
+            'X-RapidAPI-Host': 'api-football-v1.p.rapidapi.com'
+        },
+        cache: 'no-store' as RequestCache
+    };
+
+    try {
+        const response = await fetch(url, options);
+        if (!response.ok) {
+            const errorData = await response.json();
+            console.error(`API Error fetching lineups for fixture ${fixtureId}:`, errorData);
+            return { success: false, message: `Erro na API: ${errorData.message || 'Falha ao buscar escalações.'}` };
+        }
+
+        const data = await response.json();
+        if (!data.response || data.response.length === 0) {
+            return { success: false, message: 'Escalações não disponíveis para esta partida na API.' };
+        }
+
+        const lineups: MvpTeamLineup[] = data.response.map((teamLineup: any) => {
+            // Combine starters and substitutes
+            const allPlayers = [...teamLineup.startXI, ...teamLineup.substitutes].map((p: any) => ({
+                id: p.player.id,
+                name: p.player.name,
+                number: p.player.number,
+                photo: p.player.photo,
+            }));
+
+            return {
+                teamId: teamLineup.team.id,
+                teamName: teamLineup.team.name,
+                teamLogo: teamLineup.team.logo,
+                players: allPlayers,
+            };
+        });
+        
+        if (lineups.length === 0 || lineups.every(l => l.players.length === 0)) {
+            return { success: false, message: 'Nenhum jogador encontrado nas escalações da API.' };
+        }
+
+        return { success: true, data: lineups };
+
+    } catch (error) {
+        console.error(`Failed to fetch lineups for fixture ${fixtureId}:`, error);
+        return { success: false, message: 'Falha crítica ao se comunicar com a API de escalações.' };
+    }
+}
 
 
 export async function createMvpVoting(matchId: number): Promise<{ success: boolean; message: string }> {
@@ -964,26 +1007,16 @@ export async function createMvpVoting(matchId: number): Promise<{ success: boole
             return { success: false, message: 'Partida não encontrada.' };
         }
 
-        const homeTeamId = getTeamIdFromLogo(matchData.homeLogo);
-        const awayTeamId = getTeamIdFromLogo(matchData.awayLogo);
-
-        if (!homeTeamId || !awayTeamId) {
-            return { success: false, message: 'Não foi possível determinar os IDs dos times.' };
+        const lineupResult = await getMatchLineups(matchId);
+        if (!lineupResult.success || !lineupResult.data) {
+            return { success: false, message: lineupResult.message || 'Não foi possível obter as escalações.' };
+        }
+        
+        const lineups = lineupResult.data;
+        if(lineups.length < 2) {
+             return { success: false, message: 'Dados de escalação incompletos da API.' };
         }
 
-        const homeLineup: MvpTeamLineup = {
-            teamId: homeTeamId,
-            teamName: matchData.homeTeam,
-            teamLogo: matchData.homeLogo || '',
-            players: generateMockPlayers(homeTeamId, matchData.homeTeam),
-        };
-
-        const awayLineup: MvpTeamLineup = {
-            teamId: awayTeamId,
-            teamName: matchData.awayTeam,
-            teamLogo: matchData.awayLogo || '',
-            players: generateMockPlayers(awayTeamId, matchData.awayTeam),
-        };
 
         const newVoting: Omit<MvpVoting, '_id'> = {
             matchId: matchData._id,
@@ -993,7 +1026,7 @@ export async function createMvpVoting(matchId: number): Promise<{ success: boole
             awayLogo: matchData.awayLogo || '',
             league: matchData.league,
             status: 'Aberto',
-            lineups: [homeLineup, awayLineup],
+            lineups: lineups,
             votes: [],
             createdAt: new Date(),
         };
