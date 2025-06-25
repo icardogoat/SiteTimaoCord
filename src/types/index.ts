@@ -155,6 +155,7 @@ export type BotConfig = {
   welcomeChannelId: string;
   logChannelId: string;
   bettingChannelId: string;
+  winnersChannelId: string;
   adminRoleId: string;
   vipRoleIds: string[];
 };
@@ -162,4 +163,6 @@ export type BotConfig = {
 export type ApiSettings = {
     _id: string | ObjectId;
     apiFootballKey?: string;
+    maintenanceMode?: boolean;
+    welcomeBonus?: number;
 };

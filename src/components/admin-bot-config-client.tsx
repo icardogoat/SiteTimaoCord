@@ -48,6 +48,7 @@ const formSchema = z.object({
   welcomeChannelId: z.string().optional(),
   logChannelId: z.string().optional(),
   bettingChannelId: z.string().optional(),
+  winnersChannelId: z.string().optional(),
   adminRoleId: z.string().optional(),
   vipRoleIds: z.array(z.string()).max(3, { message: "Você pode selecionar no máximo 3 cargos VIP." }).optional(),
 });
@@ -74,6 +75,7 @@ export default function AdminBotConfigClient({ initialConfig, initialChannels, i
             welcomeChannelId: initialConfig.welcomeChannelId || "",
             logChannelId: initialConfig.logChannelId || "",
             bettingChannelId: initialConfig.bettingChannelId || "",
+            winnersChannelId: initialConfig.winnersChannelId || "",
             adminRoleId: initialConfig.adminRoleId || "",
             vipRoleIds: initialConfig.vipRoleIds || [],
         },
@@ -94,6 +96,7 @@ export default function AdminBotConfigClient({ initialConfig, initialChannels, i
             welcomeChannelId: '',
             logChannelId: '',
             bettingChannelId: '',
+            winnersChannelId: '',
             adminRoleId: '',
             vipRoleIds: [],
         });
@@ -125,6 +128,7 @@ export default function AdminBotConfigClient({ initialConfig, initialChannels, i
             welcomeChannelId: values.welcomeChannelId || '',
             logChannelId: values.logChannelId || '',
             bettingChannelId: values.bettingChannelId || '',
+            winnersChannelId: values.winnersChannelId || '',
             adminRoleId: values.adminRoleId || '',
             vipRoleIds: values.vipRoleIds || [],
         });
@@ -268,6 +272,33 @@ export default function AdminBotConfigClient({ initialConfig, initialChannels, i
                                     </Select>
                                     <FormDescription>
                                        O canal principal onde as apostas são anunciadas ou permitidas.
+                                    </FormDescription>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                        <FormField
+                            control={form.control}
+                            name="winnersChannelId"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Canal de Vencedores</FormLabel>
+                                    <Select onValueChange={field.onChange} value={field.value} disabled={channels.length === 0}>
+                                        <FormControl>
+                                            <SelectTrigger>
+                                                <SelectValue placeholder="Selecione um canal" />
+                                            </SelectTrigger>
+                                        </FormControl>
+                                        <SelectContent>
+                                            {channels.map(channel => (
+                                                <SelectItem key={channel.id} value={channel.id}>
+                                                    #{channel.name}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                    <FormDescription>
+                                       Canal para anunciar os grandes vencedores de apostas.
                                     </FormDescription>
                                     <FormMessage />
                                 </FormItem>

@@ -2,9 +2,10 @@
 'use server';
 
 import clientPromise from '@/lib/mongodb';
-import type { PlacedBet, Transaction } from '@/types';
+import type { PlacedBet, Transaction, UserRanking } from '@/types';
 import { ObjectId, WithId } from 'mongodb';
 import { revalidatePath } from 'next/cache';
+import { getBotConfig } from './bot-config-actions';
 
 // Base type for a match in the DB (for admin list view)
 type MatchFromDb = {
@@ -103,6 +104,60 @@ export type RecentBet = {
     stake: number;
 };
 
+// Helper function to send a win notification to a Discord channel
+async function sendWinNotification(bet: WithId<PlacedBet>, user: UserRanking, winnings: number) {
+    const config = await getBotConfig();
+    const botToken = process.env.DISCORD_BOT_TOKEN;
+
+    if (!config.winnersChannelId || !botToken || botToken === 'YOUR_BOT_TOKEN_HERE') {
+        if (!config.winnersChannelId) console.log('Winners channel not configured. Skipping Discord notification.');
+        if (!botToken || botToken === 'YOUR_BOT_TOKEN_HERE') console.log('Bot token not configured. Skipping Discord notification.');
+        return;
+    }
+
+    const betDescription = bet.bets.length > 1
+        ? `Múltipla (${bet.bets.length} seleções)`
+        : `${bet.bets[0].teamA} vs ${bet.bets[0].teamB}`;
+
+    const embed = {
+        color: 0x22c55e, // Tailwind's green-500
+        title: '🏆 Aposta Vencedora! 🏆',
+        author: {
+            name: user.name,
+            icon_url: user.avatar,
+        },
+        fields: [
+            { name: 'Aposta', value: betDescription, inline: false },
+            { name: 'Valor Apostado', value: `R$ ${bet.stake.toFixed(2)}`, inline: true },
+            { name: 'Prêmio Recebido', value: `**R$ ${winnings.toFixed(2)}**`, inline: true },
+        ],
+        footer: {
+            text: 'Parabéns ao vencedor! 🎉',
+        },
+        timestamp: new Date().toISOString(),
+    };
+
+    try {
+        const response = await fetch(`https://discord.com/api/v10/channels/${config.winnersChannelId}/messages`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bot ${botToken}`,
+            },
+            body: JSON.stringify({ embeds: [embed] }),
+            cache: 'no-store'
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            console.error('Failed to send win notification to Discord:', JSON.stringify(errorData, null, 2));
+        } else {
+            console.log(`Successfully sent win notification for user ${user.name}`);
+        }
+    } catch (error) {
+        console.error('Error sending win notification to Discord:', error);
+    }
+}
 
 // Fetch matches for admin page
 export async function getAdminMatches(): Promise<MatchAdminView[]> {
@@ -509,6 +564,10 @@ export async function resolveMatch(fixtureId: number, options: { revalidate: boo
                             { $inc: { xp: xpGain } },
                             { session: mongoSession }
                         );
+                        
+                        if (user) {
+                           await sendWinNotification(bet, user as any, winnings);
+                        }
                     }
                     
                     await betsCollection.updateOne(
@@ -800,5 +859,26 @@ export async function getRecentBets(): Promise<RecentBet[]> {
     } catch (error) {
         console.error("Error fetching recent bets for dashboard:", error);
         return [];
+    }
+}
+
+// Function to get general site settings
+export async function getSiteSettings() {
+    try {
+        const client = await clientPromise;
+        const db = client.db('timaocord');
+        const settingsCollection = db.collection('site_settings');
+        const settings = await settingsCollection.findOne({});
+        
+        return {
+            maintenanceMode: settings?.maintenanceMode ?? false,
+            welcomeBonus: settings?.welcomeBonus ?? 1000,
+        };
+    } catch (error) {
+        console.error("Error fetching site settings:", error);
+        return {
+            maintenanceMode: false,
+            welcomeBonus: 1000,
+        };
     }
 }
