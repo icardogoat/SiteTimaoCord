@@ -51,13 +51,15 @@ export const authOptions: AuthOptions = {
   },
   secret: process.env.NEXTAUTH_SECRET,
   callbacks: {
-    async signIn({ user }) {
+    async signIn({ profile }) {
+      if (!profile) return false;
+
       try {
         const client = await clientPromise;
         const db = client.db("timaocord");
         const walletsCollection = db.collection("wallets");
 
-        const existingWallet = await walletsCollection.findOne({ userId: user.id });
+        const existingWallet = await walletsCollection.findOne({ userId: profile.id });
 
         if (!existingWallet) {
           const initialTransaction: Transaction = {
@@ -70,14 +72,14 @@ export const authOptions: AuthOptions = {
           };
           
           await walletsCollection.insertOne({
-            userId: user.id,
+            userId: profile.id,
             balance: 1000,
             transactions: [initialTransaction]
           });
 
           const notificationsCollection = db.collection("notifications");
           const welcomeNotification: Omit<Notification, '_id'> = {
-              userId: user.id,
+              userId: profile.id,
               title: 'Bem-vindo ao Timaocord!',
               description: 'Você recebeu R$ 1.000,00 de bônus para começar a apostar. Boa sorte!',
               date: new Date(),
