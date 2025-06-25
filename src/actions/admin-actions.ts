@@ -937,7 +937,7 @@ async function getMatchLineups(fixtureId: number): Promise<{ success: boolean; d
         return { success: false, message: 'Chave da API-Football não configurada.' };
     }
 
-    const url = `https://api-football-v1.p.rapidapi.com/v3/fixtures/lineups?fixture=${fixtureId}`;
+    const url = `https://api-football-v1.p.rapidapi.com/v3/fixtures/players?fixture=${fixtureId}`;
     const options = {
         method: 'GET',
         headers: {
@@ -951,41 +951,40 @@ async function getMatchLineups(fixtureId: number): Promise<{ success: boolean; d
         const response = await fetch(url, options);
         if (!response.ok) {
             const errorData = await response.json();
-            console.error(`API Error fetching lineups for fixture ${fixtureId}:`, errorData);
-            return { success: false, message: `Erro na API: ${errorData.message || 'Falha ao buscar escalações.'}` };
+            console.error(`API Error fetching players for fixture ${fixtureId}:`, errorData);
+            return { success: false, message: `Erro na API: ${errorData.message || 'Falha ao buscar jogadores da partida.'}` };
         }
 
         const data = await response.json();
         if (!data.response || data.response.length === 0) {
-            return { success: false, message: 'Escalações não disponíveis para esta partida na API.' };
+            return { success: false, message: 'Jogadores não disponíveis para esta partida na API.' };
         }
 
-        const lineups: MvpTeamLineup[] = data.response.map((teamLineup: any) => {
-            // Combine starters and substitutes
-            const allPlayers = [...teamLineup.startXI, ...teamLineup.substitutes].map((p: any) => ({
+        const lineups: MvpTeamLineup[] = data.response.map((teamData: any) => {
+            const players = teamData.players.map((p: any) => ({
                 id: p.player.id,
                 name: p.player.name,
-                number: p.player.number,
-                photo: p.player.photo,
+                number: p.statistics[0]?.games?.number ?? 0,
+                photo: p.player.photo || 'https://placehold.co/40x40.png',
             }));
 
             return {
-                teamId: teamLineup.team.id,
-                teamName: teamLineup.team.name,
-                teamLogo: teamLineup.team.logo,
-                players: allPlayers,
+                teamId: teamData.team.id,
+                teamName: teamData.team.name,
+                teamLogo: teamData.team.logo,
+                players: players,
             };
         });
         
         if (lineups.length === 0 || lineups.every(l => l.players.length === 0)) {
-            return { success: false, message: 'Nenhum jogador encontrado nas escalações da API.' };
+            return { success: false, message: 'Nenhum jogador com estatísticas encontrado na API.' };
         }
 
         return { success: true, data: lineups };
 
     } catch (error) {
-        console.error(`Failed to fetch lineups for fixture ${fixtureId}:`, error);
-        return { success: false, message: 'Falha crítica ao se comunicar com a API de escalações.' };
+        console.error(`Failed to fetch players for fixture ${fixtureId}:`, error);
+        return { success: false, message: 'Falha crítica ao se comunicar com a API de jogadores.' };
     }
 }
 
