@@ -25,9 +25,10 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Button } from "@/components/ui/button"
-import { MoreHorizontal, Loader2, RefreshCw } from "lucide-react"
+import { MoreHorizontal, Loader2, RefreshCw, BellRing } from "lucide-react"
 import { getAdminMatches, processAllFinishedMatches, resolveMatch } from "@/actions/admin-actions";
 import { useToast } from "@/hooks/use-toast";
+import { sendUpcomingMatchNotifications } from "@/actions/match-notifications";
 
 type MatchAdminView = {
     id: string;
@@ -49,6 +50,7 @@ export function AdminMatchesClient({ initialMatches }: AdminMatchesClientProps) 
     const [matches, setMatches] = useState(initialMatches);
     const [isResolving, setIsResolving] = useState<number | null>(null);
     const [isProcessingAll, setIsProcessingAll] = useState(false);
+    const [isNotifying, setIsNotifying] = useState(false);
     const { toast } = useToast();
 
     const handleResolve = async (fixtureId: number) => {
@@ -93,19 +95,42 @@ export function AdminMatchesClient({ initialMatches }: AdminMatchesClientProps) 
         setIsProcessingAll(false);
     }
 
+    const handleNotifyUpcoming = async () => {
+        setIsNotifying(true);
+        toast({
+            title: "Verificando Partidas",
+            description: "Buscando partidas prestes a começar para notificar...",
+        });
+        const result = await sendUpcomingMatchNotifications();
+        
+        toast({
+            title: "Verificação Concluída",
+            description: result.message,
+            variant: result.success ? "default" : "destructive",
+        });
+        
+        setIsNotifying(false);
+    }
+
     return (
         <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
+            <CardHeader className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
                 <div>
                     <CardTitle>Gerenciar Partidas</CardTitle>
                     <CardDescription>
-                        Resolva as partidas finalizadas para pagar as apostas.
+                        Resolva partidas, pague apostas e notifique sobre jogos futuros.
                     </CardDescription>
                 </div>
-                 <Button onClick={handleProcessAll} disabled={isProcessingAll}>
-                    {isProcessingAll ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
-                    Processar Finalizadas
-                </Button>
+                 <div className="flex gap-2 flex-wrap">
+                     <Button onClick={handleNotifyUpcoming} disabled={isNotifying || isProcessingAll} variant="outline">
+                        {isNotifying ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <BellRing className="mr-2 h-4 w-4" />}
+                        Notificar Próximas
+                    </Button>
+                    <Button onClick={handleProcessAll} disabled={isProcessingAll || isNotifying}>
+                        {isProcessingAll ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
+                        Processar Finalizadas
+                    </Button>
+                </div>
             </CardHeader>
             <CardContent>
                 <Table>
