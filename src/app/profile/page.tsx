@@ -16,6 +16,7 @@ import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
 import { getAllAchievements, getUserAchievements } from "@/actions/achievement-actions";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { AvatarFallbackText } from "@/components/avatar-fallback-text";
 
 
 interface StatCardProps {
@@ -71,7 +72,6 @@ export default async function ProfilePage() {
     const userRichestRank = richestUsers.find(u => u.discordId === discordId)?.rank;
     const userActiveRank = mostActiveBettors.find(u => u.discordId === discordId)?.rank;
 
-    const userFallback = userName.split(' ').map((word) => word[0]).join('').substring(0, 2).toUpperCase();
     const { level, progress, xp, xpForNextLevel } = userLevel ?? { level: 1, xp: 0, xpForNextLevel: 100, progress: 0 };
 
     return (
@@ -88,8 +88,10 @@ export default async function ProfilePage() {
                         <Card>
                             <CardContent className="pt-6 text-center">
                                 <Avatar className={cn("h-24 w-24 mx-auto", isVip && "ring-2 ring-offset-4 ring-vip ring-offset-card")}>
-                                    <AvatarImage src={image ?? undefined} alt="User Avatar" />
-                                    <AvatarFallback>{userFallback}</AvatarFallback>
+                                    <AvatarImage src={image ?? undefined} alt={userName} data-ai-hint="user avatar" />
+                                    <AvatarFallback>
+                                        <AvatarFallbackText name={userName} />
+                                    </AvatarFallback>
                                 </Avatar>
                                 <h2 className="text-xl font-semibold mt-4 flex items-center justify-center gap-2">
                                     {userName}

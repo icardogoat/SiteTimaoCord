@@ -23,6 +23,7 @@ import type { Notification } from '@/types';
 import { getNotificationsForUser, markNotificationsAsRead } from '@/actions/notification-actions';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { AvatarFallbackText } from './avatar-fallback-text';
 
 // Sub-component to safely render the formatted date only on the client
 function NotificationDropdownItem({ notification }: { notification: Notification }) {
@@ -100,12 +101,6 @@ export function Header() {
   const userBalance = user?.balance ?? 0;
   const userLevel = user?.level?.level ?? 1;
   const isVip = user?.isVip ?? false;
-  const userFallback = userName
-    .split(' ')
-    .map((word) => word[0])
-    .join('')
-    .substring(0, 2)
-    .toUpperCase();
 
   return (
     <header className="sticky top-0 z-10 flex h-16 items-center justify-between border-b bg-background/80 px-4 backdrop-blur-sm sm:px-6 lg:px-8">
@@ -183,8 +178,10 @@ export function Header() {
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="relative h-9 w-9 rounded-full p-0">
                 <Avatar className={cn("h-9 w-9", isVip && "ring-2 ring-offset-2 ring-vip ring-offset-background")}>
-                    <AvatarImage src={userImage ?? undefined} alt={userName} />
-                    <AvatarFallback>{userFallback}</AvatarFallback>
+                    <AvatarImage src={userImage ?? undefined} alt={userName} data-ai-hint="user avatar" />
+                    <AvatarFallback>
+                        <AvatarFallbackText name={userName} />
+                    </AvatarFallback>
                 </Avatar>
                 <div className="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-secondary text-xs font-bold text-secondary-foreground border-2 border-background">
                     {userLevel}
