@@ -1,4 +1,3 @@
-
 import type { ObjectId } from "mongodb";
 
 export type Team = {
@@ -91,7 +90,7 @@ export type UserLevel = {
 
 export type Transaction = {
   id: string;
-  type: 'Depósito' | 'Saque' | 'Aposta' | 'Prêmio' | 'Bônus';
+  type: 'Depósito' | 'Saque' | 'Aposta' | 'Prêmio' | 'Bônus' | 'Loja';
   description: string;
   amount: number;
   date: string;
@@ -105,4 +104,10 @@ export type Wallet = {
     transactions: Transaction[];
 };
 
-    
+export type StoreItem = {
+  id: string;
+  name: string;
+  description: string;
+  price: number;
+  icon: React.ComponentType<{ className?: string }>;
+};

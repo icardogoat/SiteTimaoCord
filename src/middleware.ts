@@ -24,6 +24,7 @@ export const config = {
     "/profile",
     "/ranking",
     "/wallet",
+    "/store",
     "/admin/:path*",
   ],
 }
