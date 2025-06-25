@@ -40,7 +40,11 @@ export function BetPageClient({ initialMatches, availableLeagues }: BetPageClien
         const newMatches = await getMatches({ league: selectedLeague ?? undefined, page: nextPage });
         
         if (newMatches.length > 0) {
-            setMatches(prevMatches => [...prevMatches, ...newMatches]);
+            setMatches(prevMatches => {
+                const existingIds = new Set(prevMatches.map(m => m.id));
+                const uniqueNewMatches = newMatches.filter(m => !existingIds.has(m.id));
+                return [...prevMatches, ...uniqueNewMatches];
+            });
             setPage(nextPage);
         }
 
