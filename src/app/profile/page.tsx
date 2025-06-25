@@ -14,6 +14,9 @@ import { getAvailableLeagues } from "@/actions/bet-actions";
 import { getUserStats, getTopWinners, getMostActiveBettors, getRichestUsers } from "@/actions/user-actions";
 import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
+import { getAllAchievements, getUserAchievements } from "@/actions/achievement-actions";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+
 
 interface StatCardProps {
     icon: React.ReactNode;
@@ -48,15 +51,20 @@ export default async function ProfilePage() {
         topWinners,
         mostActiveBettors,
         richestUsers,
-        availableLeagues
+        availableLeagues,
+        allAchievements,
+        unlockedAchievementIds,
     ] = await Promise.all([
         getUserStats(discordId),
         getTopWinners(),
         getMostActiveBettors(),
         getRichestUsers(),
-        getAvailableLeagues()
+        getAvailableLeagues(),
+        getAllAchievements(),
+        getUserAchievements(discordId),
     ]);
 
+    const unlockedSet = new Set(unlockedAchievementIds);
     const { totalWinnings, totalLosses, totalWagered, totalBets, betsWon, betsLost } = userStats;
 
     const userWinnerRank = topWinners.find(u => u.discordId === discordId)?.rank;
@@ -112,7 +120,7 @@ export default async function ProfilePage() {
                     </aside>
 
                     {/* Coluna da Direita */}
-                    <main className="lg:col-span-2">
+                    <main className="lg:col-span-2 space-y-8">
                         <Card>
                             <CardHeader>
                                 <CardTitle>Estatísticas & Rankings</CardTitle>
@@ -174,6 +182,39 @@ export default async function ProfilePage() {
                                     Ver Rankings Completos
                                 </Link>
                             </CardFooter>
+                        </Card>
+                         <Card>
+                            <CardHeader>
+                                <CardTitle>Conquistas</CardTitle>
+                                <CardDescription>Suas medalhas e troféus desbloqueados na FielBet.</CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                <TooltipProvider>
+                                    <div className="flex flex-wrap gap-4">
+                                        {allAchievements.map(ach => {
+                                            const isUnlocked = unlockedSet.has(ach.id);
+                                            if (ach.hidden && !isUnlocked) return null;
+
+                                            return (
+                                                <Tooltip key={ach.id} delayDuration={100}>
+                                                    <TooltipTrigger>
+                                                        <div className={cn(
+                                                            "w-16 h-16 rounded-lg bg-card-foreground/5 border-2 border-transparent flex items-center justify-center transition-all",
+                                                            isUnlocked ? 'border-primary/50 text-primary' : 'grayscale opacity-60'
+                                                        )}>
+                                                            <ach.icon className="w-8 h-8" />
+                                                        </div>
+                                                    </TooltipTrigger>
+                                                    <TooltipContent>
+                                                        <p className="font-bold">{ach.name}</p>
+                                                        <p className="text-muted-foreground">{ach.description}</p>
+                                                    </TooltipContent>
+                                                </Tooltip>
+                                            )
+                                        })}
+                                    </div>
+                                </TooltipProvider>
+                            </CardContent>
                         </Card>
                     </main>
 

@@ -8,6 +8,7 @@ import type { BetInSlip, Transaction, PlacedBet, Match } from '@/types';
 import { revalidatePath } from 'next/cache';
 import { ObjectId } from 'mongodb';
 import { translateMarketData } from '@/lib/translations';
+import { grantAchievement } from './achievement-actions';
 
 
 interface PlaceBetResult {
@@ -95,6 +96,12 @@ export async function placeBet(betsInSlip: BetInSlip[], stake: number): Promise<
     });
 
     if (finalResult?.success) {
+        // Grant achievements
+        await grantAchievement(userId, 'first_bet');
+        if (betsInSlip.length > 1) {
+            await grantAchievement(userId, 'first_multiple');
+        }
+
         revalidatePath('/my-bets');
         revalidatePath('/wallet');
         revalidatePath('/profile');

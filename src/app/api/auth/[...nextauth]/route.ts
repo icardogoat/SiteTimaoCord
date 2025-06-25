@@ -7,6 +7,7 @@ import clientPromise from "@/lib/mongodb";
 import type { Notification, Transaction } from '@/types';
 import { getUserLevel } from '@/actions/user-actions';
 import { getBotConfig } from '@/actions/bot-config-actions';
+import { grantAchievement } from '@/actions/achievement-actions';
 
 async function checkUserVipStatus(discordId: string): Promise<boolean> {
     try {
@@ -104,13 +105,20 @@ export const authOptions: AuthOptions = {
         
         const dbUser = await usersCollection.findOne({ discordId: userId });
         
-        // Ensure user record has level/xp initialized.
+        // Ensure user record has level/xp/achievements initialized.
         // The JWT callback will handle the VIP status sync.
-        if (dbUser && typeof dbUser.level === 'undefined') {
-            await usersCollection.updateOne(
-                { _id: dbUser._id },
-                { $set: { level: 1, xp: 0 } }
-            );
+        if (dbUser) {
+            const updateOps: any = {};
+            if (typeof dbUser.level === 'undefined') updateOps.level = 1;
+            if (typeof dbUser.xp === 'undefined') updateOps.xp = 0;
+            if (typeof dbUser.unlockedAchievements === 'undefined') updateOps.unlockedAchievements = [];
+            
+            if (Object.keys(updateOps).length > 0) {
+                 await usersCollection.updateOne(
+                    { _id: dbUser._id },
+                    { $set: updateOps }
+                );
+            }
         }
 
         const walletsCollection = db.collection("wallets");
@@ -142,6 +150,9 @@ export const authOptions: AuthOptions = {
               link: '/wallet'
           };
           await notificationsCollection.insertOne(welcomeNotification as any);
+          
+          // Grant beginner achievement for new users
+          await grantAchievement(userId, 'beginner');
         }
       } catch (error) {
         console.error("Failed to create or check wallet/level for user:", error);

@@ -6,6 +6,7 @@ import type { PlacedBet, Transaction, UserRanking } from '@/types';
 import { ObjectId, WithId } from 'mongodb';
 import { revalidatePath } from 'next/cache';
 import { getBotConfig } from './bot-config-actions';
+import { grantAchievement } from './achievement-actions';
 
 // Base type for a match in the DB (for admin list view)
 type MatchFromDb = {
@@ -538,6 +539,10 @@ export async function resolveMatch(fixtureId: number, options: { revalidate: boo
                     const isBetLost = updatedSelections.some(s => s.status === 'Perdida');
                     const finalBetStatus = isBetLost ? 'Perdida' : 'Ganha';
                     
+                    if (finalBetStatus === 'Perdida') {
+                        await grantAchievement(bet.userId, 'first_loss');
+                    }
+                    
                     let winnings = 0;
                     if (finalBetStatus === 'Ganha') {
                         const finalOdds = updatedSelections.reduce((acc, sel) => {
@@ -578,6 +583,9 @@ export async function resolveMatch(fixtureId: number, options: { revalidate: boo
                         if (user) {
                            await sendWinNotification(bet, user as any, winnings);
                         }
+
+                        // Grant first win achievement
+                        await grantAchievement(bet.userId, 'first_win');
                     }
                     
                     await betsCollection.updateOne(

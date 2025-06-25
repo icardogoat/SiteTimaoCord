@@ -196,3 +196,11 @@ export type ApiSettings = {
     maintenanceMode?: boolean;
     welcomeBonus?: number;
 };
+
+export type Achievement = {
+  id: string;
+  name: string;
+  description: string;
+  icon: React.ComponentType<{ className?: string }>;
+  hidden?: boolean;
+};
