@@ -22,7 +22,7 @@ import { Header } from '@/components/header';
 import { ChampionshipSidebarMenu } from '@/components/championship-sidebar-menu';
 import { BetSlipProvider } from '@/context/bet-slip-context';
 import { BetSlip } from '@/components/bet-slip';
-import { Store, Table } from 'lucide-react';
+import { Store, Table, Swords } from 'lucide-react';
 
 interface AppLayoutProps {
     children: ReactNode;
@@ -51,6 +51,11 @@ export function AppLayout({ children, availableLeagues }: AppLayoutProps) {
                             <SidebarGroupLabel>Navegação</SidebarGroupLabel>
                             <SidebarGroupContent>
                                 <SidebarMenu>
+                                    <SidebarMenuItem>
+                                        <SidebarMenuButton asChild isActive={pathname?.startsWith('/bolao')}>
+                                            <Link href="/bolao"><Swords /><span>Bolão</span></Link>
+                                        </SidebarMenuButton>
+                                    </SidebarMenuItem>
                                     <SidebarMenuItem>
                                         <SidebarMenuButton asChild isActive={pathname?.startsWith('/store')}>
                                             <Link href="/store"><Store /><span>Loja</span></Link>

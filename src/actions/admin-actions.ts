@@ -45,11 +45,11 @@ type MatchAdminView = {
     fixtureId: number;
     teamA: string;
     teamB: string;
-
     league: string;
     time: string;
     status: string;
     isProcessed: boolean;
+    hasBolao: boolean;
 };
 
 type UserAdminView = {
@@ -167,6 +167,10 @@ export async function getAdminMatches(): Promise<MatchAdminView[]> {
         const client = await clientPromise;
         const db = client.db('timaocord');
         const matchesCollection = db.collection<MatchFromDb>('matches');
+        const boloesCollection = db.collection('boloes');
+
+        const activeBoloes = await boloesCollection.find({ status: 'Aberto' }).project({ matchId: 1 }).toArray();
+        const bolaoMatchIds = new Set(activeBoloes.map(b => b.matchId));
         
         // Find all matches and sort by timestamp descending
         const matchesFromDb = await matchesCollection.find({}).sort({ 'timestamp': -1 }).limit(100).toArray();
@@ -214,6 +218,7 @@ export async function getAdminMatches(): Promise<MatchAdminView[]> {
                 time: new Date(match.timestamp * 1000).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' }),
                 status: statusLabel,
                 isProcessed: match.isProcessed ?? false,
+                hasBolao: bolaoMatchIds.has(match._id),
             };
         });
         
@@ -634,6 +639,7 @@ export async function resolveMatch(fixtureId: number, options: { revalidate: boo
             revalidatePath('/wallet');
             revalidatePath('/notifications');
             revalidatePath('/profile');
+            revalidatePath('/bolao');
         }
 
         return { success: true, message: `Partida ${fixtureId} resolvida. ${settledCount} apostas foram finalizadas.` };

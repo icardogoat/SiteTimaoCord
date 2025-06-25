@@ -43,6 +43,7 @@ export const config = {
     "/wallet",
     "/store",
     "/standings",
+    "/bolao",
     "/admin/:path*",
   ],
   runtime: "nodejs",

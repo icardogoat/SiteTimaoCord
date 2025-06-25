@@ -204,3 +204,33 @@ export type Achievement = {
   icon: React.ComponentType<{ className?: string }>;
   hidden?: boolean;
 };
+
+export type BolaoParticipant = {
+  userId: string;
+  name: string;
+  avatar: string;
+  guess: {
+    home: number;
+    away: number;
+  };
+  guessedAt: Date | string;
+};
+
+export type Bolao = {
+  _id: string | ObjectId;
+  matchId: number;
+  homeTeam: string;
+  awayTeam: string;
+  homeLogo: string;
+  awayLogo: string;
+  league: string;
+  leagueLogo: string;
+  matchTime: string;
+  entryFee: number;
+  prizePool: number;
+  status: 'Aberto' | 'Fechado' | 'Pago' | 'Cancelado';
+  participants: BolaoParticipant[];
+  winners?: { userId: string, prize: number }[];
+  createdAt: Date | string;
+  finalScore?: { home: number, away: number };
+};

@@ -25,10 +25,11 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Button } from "@/components/ui/button"
-import { MoreHorizontal, Loader2, RefreshCw, BellRing } from "lucide-react"
+import { MoreHorizontal, Loader2, RefreshCw, BellRing, Crown } from "lucide-react"
 import { getAdminMatches, processAllFinishedMatches, resolveMatch } from "@/actions/admin-actions";
 import { useToast } from "@/hooks/use-toast";
 import { sendUpcomingMatchNotifications } from "@/actions/match-notifications";
+import { createBolao } from "@/actions/bolao-actions";
 
 type MatchAdminView = {
     id: string;
@@ -39,6 +40,7 @@ type MatchAdminView = {
     time: string;
     status: string;
     isProcessed: boolean;
+    hasBolao: boolean;
 };
 
 interface AdminMatchesClientProps {
@@ -51,6 +53,7 @@ export function AdminMatchesClient({ initialMatches }: AdminMatchesClientProps) 
     const [isResolving, setIsResolving] = useState<number | null>(null);
     const [isProcessingAll, setIsProcessingAll] = useState(false);
     const [isNotifying, setIsNotifying] = useState(false);
+    const [isCreatingBolao, setIsCreatingBolao] = useState<number | null>(null);
     const { toast } = useToast();
 
     const handleResolve = async (fixtureId: number) => {
@@ -112,6 +115,19 @@ export function AdminMatchesClient({ initialMatches }: AdminMatchesClientProps) 
         setIsNotifying(false);
     }
 
+    const handleCreateBolao = async (fixtureId: number) => {
+        setIsCreatingBolao(fixtureId);
+        const result = await createBolao(fixtureId);
+        if (result.success) {
+            toast({ title: "Sucesso!", description: result.message });
+            const updatedMatches = await getAdminMatches();
+            setMatches(updatedMatches);
+        } else {
+            toast({ title: "Erro", description: result.message, variant: "destructive" });
+        }
+        setIsCreatingBolao(null);
+    }
+
     return (
         <Card>
             <CardHeader className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
@@ -148,7 +164,12 @@ export function AdminMatchesClient({ initialMatches }: AdminMatchesClientProps) 
                     <TableBody>
                         {matches.map((match) => (
                             <TableRow key={match.id}>
-                                <TableCell className="font-medium">{match.teamA} vs {match.teamB}</TableCell>
+                                <TableCell>
+                                    <div className="flex items-center gap-2 font-medium">
+                                        {match.hasBolao && <Crown className="h-4 w-4 text-yellow-400" title="Bolão Ativo" />}
+                                        {match.teamA} vs {match.teamB}
+                                    </div>
+                                </TableCell>
                                 <TableCell className="hidden md:table-cell">{match.league}</TableCell>
                                 <TableCell className="hidden lg:table-cell">{match.time}</TableCell>
                                 <TableCell className="text-center">
@@ -184,6 +205,13 @@ export function AdminMatchesClient({ initialMatches }: AdminMatchesClientProps) 
                                                 disabled={match.status !== 'Pendente Pagamento'}
                                             >
                                                 Resolver Partida
+                                            </DropdownMenuItem>
+                                             <DropdownMenuItem
+                                                onClick={() => handleCreateBolao(match.fixtureId)}
+                                                disabled={match.status !== 'Agendada' || match.hasBolao || isCreatingBolao === match.fixtureId}
+                                            >
+                                                {isCreatingBolao === match.fixtureId && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                                {match.hasBolao ? "Bolão Ativo" : "Criar Bolão"}
                                             </DropdownMenuItem>
                                         </DropdownMenuContent>
                                     </DropdownMenu>
