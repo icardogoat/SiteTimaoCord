@@ -4,7 +4,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { Trophy, DollarSign, TrendingUp, TrendingDown, Ticket, Medal, Wallet, Gem } from "lucide-react";
+import { Trophy, DollarSign, TrendingUp, TrendingDown, Ticket, Medal, Wallet, Gem, CheckCircle, XCircle } from "lucide-react";
 import Link from 'next/link';
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -57,7 +57,7 @@ export default async function ProfilePage() {
         getAvailableLeagues()
     ]);
 
-    const { totalWinnings, totalLosses, totalWagered, totalBets } = userStats;
+    const { totalWinnings, totalLosses, totalWagered, totalBets, betsWon, betsLost } = userStats;
 
     const userWinnerRank = topWinners.find(u => u.discordId === discordId)?.rank;
     const userRichestRank = richestUsers.find(u => u.discordId === discordId)?.rank;
@@ -140,6 +140,18 @@ export default async function ProfilePage() {
                                     icon={<Ticket className="h-8 w-8 text-gray-400" />}
                                     title="Total de Apostas"
                                     value={totalBets}
+                                />
+                                <StatCard
+                                    icon={<CheckCircle className="h-8 w-8 text-green-400" />}
+                                    title="Apostas Ganhas"
+                                    value={betsWon}
+                                    valueClassName="text-green-400"
+                                />
+                                <StatCard
+                                    icon={<XCircle className="h-8 w-8 text-red-400" />}
+                                    title="Apostas Perdidas"
+                                    value={betsLost}
+                                    valueClassName="text-red-400"
                                 />
                                 <StatCard
                                     icon={<Trophy className="h-8 w-8 text-yellow-400" />}

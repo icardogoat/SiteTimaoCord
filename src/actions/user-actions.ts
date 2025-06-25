@@ -10,6 +10,8 @@ export interface UserStats {
     totalBets: number;
     totalWinnings: number;
     totalLosses: number;
+    betsWon: number;
+    betsLost: number;
 }
 
 export async function getUserStats(userId: string): Promise<UserStats> {
@@ -21,24 +23,24 @@ export async function getUserStats(userId: string): Promise<UserStats> {
         const userBets = await betsCollection.find({ userId }).toArray();
 
         if (userBets.length === 0) {
-            return { totalWagered: 0, totalBets: 0, totalWinnings: 0, totalLosses: 0 };
+            return { totalWagered: 0, totalBets: 0, totalWinnings: 0, totalLosses: 0, betsWon: 0, betsLost: 0 };
         }
 
         const totalBets = userBets.length;
         const totalWagered = userBets.reduce((sum, bet) => sum + bet.stake, 0);
 
-        const totalWinnings = userBets
-            .filter(bet => bet.status === 'Ganha')
-            .reduce((sum, bet) => sum + bet.potentialWinnings, 0);
+        const wonBets = userBets.filter(bet => bet.status === 'Ganha');
+        const lostBets = userBets.filter(bet => bet.status === 'Perdida');
 
-        const totalLosses = userBets
-            .filter(bet => bet.status === 'Perdida')
-            .reduce((sum, bet) => sum + bet.stake, 0);
+        const totalWinnings = wonBets.reduce((sum, bet) => sum + bet.potentialWinnings, 0);
+        const totalLosses = lostBets.reduce((sum, bet) => sum + bet.stake, 0);
+        const betsWon = wonBets.length;
+        const betsLost = lostBets.length;
 
-        return { totalWagered, totalBets, totalWinnings, totalLosses };
+        return { totalWagered, totalBets, totalWinnings, totalLosses, betsWon, betsLost };
     } catch (error) {
         console.error('Error fetching user stats:', error);
-        return { totalWagered: 0, totalBets: 0, totalWinnings: 0, totalLosses: 0 };
+        return { totalWagered: 0, totalBets: 0, totalWinnings: 0, totalLosses: 0, betsWon: 0, betsLost: 0 };
     }
 }
 
