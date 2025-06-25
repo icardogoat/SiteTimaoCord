@@ -43,5 +43,3 @@ export function NotificationItem({ notification }: NotificationItemProps) {
 
     return content;
 }
-
-    

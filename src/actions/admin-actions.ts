@@ -566,7 +566,3 @@ export async function processAllFinishedMatches(): Promise<{ success: boolean; m
         details: results
     };
 }
-
-    
-
-    
