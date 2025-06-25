@@ -159,26 +159,26 @@ export const authOptions: AuthOptions = {
       return true;
     },
     async jwt({ token, user, trigger }) {
-      const client = await clientPromise;
-      const db = client.db("timaocord");
-      const usersCollection = db.collection("users");
-
-      if (user) {
-        token.discordId = user.discordId;
-        token.admin = user.admin ?? false;
-        token.isVip = user.isVip ?? false;
-      }
-      
-      // On initial sign-in or session update, refresh VIP status
-      if (trigger === 'signIn' || trigger === 'update') {
-         const isVip = await checkUserVipStatus(token.discordId as string);
-         if (token.isVip !== isVip) {
-            token.isVip = isVip;
-            await usersCollection.updateOne({ discordId: token.discordId as string }, { $set: { isVip } });
-         }
-      }
-      
       try {
+        if (user) {
+          token.discordId = user.discordId;
+          token.admin = user.admin ?? false;
+          token.isVip = user.isVip ?? false;
+        }
+
+        const client = await clientPromise;
+        const db = client.db("timaocord");
+        const usersCollection = db.collection("users");
+        
+        // On initial sign-in or session update, refresh VIP status
+        if (trigger === 'signIn' || trigger === 'update') {
+          const isVip = await checkUserVipStatus(token.discordId as string);
+          if (token.isVip !== isVip) {
+              token.isVip = isVip;
+              await usersCollection.updateOne({ discordId: token.discordId as string }, { $set: { isVip } });
+          }
+        }
+        
         const dbUser = await usersCollection.findOne({ discordId: token.discordId as string });
         if (dbUser) {
           token.admin = dbUser.admin ?? false;
@@ -188,7 +188,7 @@ export const authOptions: AuthOptions = {
           }
         }
       } catch (error) {
-        console.error("Failed to refresh user admin status in JWT:", error);
+        console.error("Error in JWT callback, returning original token:", error);
       }
 
       return token;
