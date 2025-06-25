@@ -3,7 +3,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -19,10 +19,20 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import type { BotConfig } from "@/types";
-import { updateBotConfig } from "@/actions/bot-config-actions";
-import { Loader2 } from "lucide-react";
+import { updateBotConfig, getDiscordServerDetails, type DiscordChannel, type DiscordRole } from "@/actions/bot-config-actions";
+import { Loader2, Terminal } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Alert, AlertDescription, AlertTitle } from "./ui/alert";
+
 
 const formSchema = z.object({
+  guildId: z.string().min(1, 'O ID do Servidor é obrigatório.'),
   welcomeChannelId: z.string().optional(),
   logChannelId: z.string().optional(),
   bettingChannelId: z.string().optional(),
@@ -38,10 +48,14 @@ interface AdminBotConfigClientProps {
 export default function AdminBotConfigClient({ initialConfig }: AdminBotConfigClientProps) {
     const { toast } = useToast();
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [isLoadingDetails, setIsLoadingDetails] = useState(false);
+    const [channels, setChannels] = useState<DiscordChannel[]>([]);
+    const [roles, setRoles] = useState<DiscordRole[]>([]);
 
     const form = useForm<FormValues>({
         resolver: zodResolver(formSchema),
         defaultValues: {
+            guildId: initialConfig.guildId || "",
             welcomeChannelId: initialConfig.welcomeChannelId || "",
             logChannelId: initialConfig.logChannelId || "",
             bettingChannelId: initialConfig.bettingChannelId || "",
@@ -49,9 +63,43 @@ export default function AdminBotConfigClient({ initialConfig }: AdminBotConfigCl
         },
     });
 
+    const guildId = form.watch('guildId');
+
+    const fetchDetails = async (id: string) => {
+        if (!id) return;
+        setIsLoadingDetails(true);
+        setChannels([]);
+        setRoles([]);
+        const result = await getDiscordServerDetails(id);
+        if (result.success && result.data) {
+            setChannels(result.data.channels);
+            setRoles(result.data.roles);
+            if (result.data.channels.length > 0 || result.data.roles.length > 0) {
+                 toast({
+                    title: 'Sucesso!',
+                    description: 'Canais e cargos carregados com sucesso.'
+                });
+            }
+        } else {
+            toast({
+                title: 'Erro ao carregar',
+                description: result.error,
+                variant: 'destructive',
+            });
+        }
+        setIsLoadingDetails(false);
+    };
+
+    useEffect(() => {
+        if (initialConfig.guildId) {
+            fetchDetails(initialConfig.guildId);
+        }
+    }, [initialConfig.guildId]);
+
     async function onSubmit(values: FormValues) {
         setIsSubmitting(true);
         const result = await updateBotConfig({
+            guildId: values.guildId,
             welcomeChannelId: values.welcomeChannelId || '',
             logChannelId: values.logChannelId || '',
             bettingChannelId: values.bettingChannelId || '',
@@ -78,7 +126,7 @@ export default function AdminBotConfigClient({ initialConfig }: AdminBotConfigCl
             <CardHeader>
                 <CardTitle>Configuração do Bot do Discord</CardTitle>
                 <CardDescription>
-                    Gerencie as configurações do seu bot do Discord. Insira os IDs dos canais e cargos.
+                    Gerencie as configurações do seu bot do Discord. Insira o ID do servidor para carregar canais e cargos.
                 </CardDescription>
             </CardHeader>
             <CardContent>
@@ -86,13 +134,61 @@ export default function AdminBotConfigClient({ initialConfig }: AdminBotConfigCl
                     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
                         <FormField
                             control={form.control}
+                            name="guildId"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>ID do Servidor (Guild ID)</FormLabel>
+                                    <div className="flex gap-2">
+                                        <FormControl>
+                                            <Input placeholder="Insira o ID do seu servidor Discord" {...field} />
+                                        </FormControl>
+                                        <Button 
+                                            type="button" 
+                                            onClick={() => fetchDetails(guildId)} 
+                                            disabled={!guildId || isLoadingDetails}
+                                        >
+                                            {isLoadingDetails ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                                            Carregar
+                                        </Button>
+                                    </div>
+                                    <FormDescription>
+                                        Após inserir o ID, clique em "Carregar" para buscar os canais e cargos.
+                                    </FormDescription>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                        
+                        {(guildId && !isLoadingDetails && channels.length === 0 && roles.length === 0) && (
+                            <Alert>
+                                <Terminal className="h-4 w-4" />
+                                <AlertTitle>Nenhum Canal ou Cargo Encontrado</AlertTitle>
+                                <AlertDescription>
+                                    Verifique se o ID do servidor está correto, se o bot foi adicionado ao servidor e se ele possui as permissões necessárias para visualizar canais e cargos.
+                                </AlertDescription>
+                            </Alert>
+                        )}
+
+                        <FormField
+                            control={form.control}
                             name="welcomeChannelId"
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>ID do Canal de Boas-Vindas</FormLabel>
-                                    <FormControl>
-                                        <Input placeholder="Insira o ID do canal" {...field} />
-                                    </FormControl>
+                                    <FormLabel>Canal de Boas-Vindas</FormLabel>
+                                    <Select onValueChange={field.onChange} value={field.value} disabled={channels.length === 0}>
+                                        <FormControl>
+                                            <SelectTrigger>
+                                                <SelectValue placeholder="Selecione um canal" />
+                                            </SelectTrigger>
+                                        </FormControl>
+                                        <SelectContent>
+                                            {channels.map(channel => (
+                                                <SelectItem key={channel.id} value={channel.id}>
+                                                    #{channel.name}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
                                     <FormDescription>
                                         O canal onde as mensagens de boas-vindas serão enviadas.
                                     </FormDescription>
@@ -105,10 +201,21 @@ export default function AdminBotConfigClient({ initialConfig }: AdminBotConfigCl
                             name="logChannelId"
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>ID do Canal de Logs</FormLabel>
-                                    <FormControl>
-                                        <Input placeholder="Insira o ID do canal" {...field} />
-                                    </FormControl>
+                                    <FormLabel>Canal de Logs</FormLabel>
+                                    <Select onValueChange={field.onChange} value={field.value} disabled={channels.length === 0}>
+                                        <FormControl>
+                                            <SelectTrigger>
+                                                <SelectValue placeholder="Selecione um canal" />
+                                            </SelectTrigger>
+                                        </FormControl>
+                                        <SelectContent>
+                                            {channels.map(channel => (
+                                                <SelectItem key={channel.id} value={channel.id}>
+                                                    #{channel.name}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
                                     <FormDescription>
                                         O canal para registrar logs de atividades importantes do bot.
                                     </FormDescription>
@@ -121,10 +228,21 @@ export default function AdminBotConfigClient({ initialConfig }: AdminBotConfigCl
                             name="bettingChannelId"
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>ID do Canal de Apostas</FormLabel>
-                                    <FormControl>
-                                        <Input placeholder="Insira o ID do canal" {...field} />
-                                    </FormControl>
+                                    <FormLabel>Canal de Apostas</FormLabel>
+                                    <Select onValueChange={field.onChange} value={field.value} disabled={channels.length === 0}>
+                                        <FormControl>
+                                            <SelectTrigger>
+                                                <SelectValue placeholder="Selecione um canal" />
+                                            </SelectTrigger>
+                                        </FormControl>
+                                        <SelectContent>
+                                            {channels.map(channel => (
+                                                <SelectItem key={channel.id} value={channel.id}>
+                                                    #{channel.name}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
                                     <FormDescription>
                                        O canal principal onde as apostas são anunciadas ou permitidas.
                                     </FormDescription>
@@ -137,10 +255,21 @@ export default function AdminBotConfigClient({ initialConfig }: AdminBotConfigCl
                             name="adminRoleId"
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>ID do Cargo de Administrador</FormLabel>
-                                    <FormControl>
-                                        <Input placeholder="Insira o ID do cargo" {...field} />
-                                    </FormControl>
+                                    <FormLabel>Cargo de Administrador</FormLabel>
+                                    <Select onValueChange={field.onChange} value={field.value} disabled={roles.length === 0}>
+                                        <FormControl>
+                                            <SelectTrigger>
+                                                <SelectValue placeholder="Selecione um cargo" />
+                                            </SelectTrigger>
+                                        </FormControl>
+                                        <SelectContent>
+                                            {roles.map(role => (
+                                                <SelectItem key={role.id} value={role.id}>
+                                                    {role.name}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
                                     <FormDescription>
                                         O cargo que tem permissão para usar comandos de admin do bot.
                                     </FormDescription>

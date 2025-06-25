@@ -139,6 +139,7 @@ export type StandingEntry = {
 };
 
 export type Standing = {
+  _id: string | ObjectId;
   league: {
     id: number;
     name: string;
@@ -149,6 +150,7 @@ export type Standing = {
 
 export type BotConfig = {
   _id: string | ObjectId;
+  guildId: string;
   welcomeChannelId: string;
   logChannelId: string;
   bettingChannelId: string;
