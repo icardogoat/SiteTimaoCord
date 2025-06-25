@@ -5,7 +5,8 @@ export default withAuth({
     authorized: ({ req, token }) => {
       const { pathname } = req.nextUrl;
 
-      // Allow cron job routes if the secret is correct, bypassing the token check.
+      // This check is now redundant for cron jobs as they are no longer in the matcher,
+      // but it's safe to keep. The route handlers perform the actual authorization.
       if (pathname.startsWith("/api/cron")) {
         const authHeader = req.headers.get('authorization');
         return authHeader === `Bearer ${process.env.CRON_SECRET}`;
@@ -31,8 +32,9 @@ export default withAuth({
 })
 
 export const config = {
+  // Cron routes were removed from this matcher.
+  // They are now public from the middleware's perspective and handle their own authorization.
   matcher: [
-    "/api/cron/:path*", // Add cron routes to be handled by the middleware
     "/bet",
     "/my-bets",
     "/notifications",
