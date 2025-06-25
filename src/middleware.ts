@@ -28,4 +28,5 @@ export const config = {
     "/standings",
     "/admin/:path*",
   ],
+  runtime: "nodejs",
 }
