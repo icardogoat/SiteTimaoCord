@@ -111,3 +111,38 @@ export type StoreItem = {
   price: number;
   icon: React.ComponentType<{ className?: string }>;
 };
+
+export type StandingTeam = {
+  id: number;
+  name: string;
+  logo: string;
+};
+
+export type StandingStats = {
+  played: number;
+  win: number;
+  draw: number;
+  lose: number;
+  goals: {
+    for: number;
+    against: number;
+  };
+};
+
+export type StandingEntry = {
+  rank: number;
+  team: StandingTeam;
+  points: number;
+  goalsDiff: number;
+  all: StandingStats;
+  description?: string | null;
+};
+
+export type Standing = {
+  league: {
+    id: number;
+    name: string;
+    logo: string;
+  };
+  standings: StandingEntry[][];
+};
