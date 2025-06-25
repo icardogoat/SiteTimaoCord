@@ -1,13 +1,11 @@
-import { AppLayout } from "@/components/app-layout";
-import { PlacedBetCard } from "@/components/placed-bet-card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import type { PlacedBet } from "@/types";
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import clientPromise from '@/lib/mongodb';
 import { redirect } from 'next/navigation';
 import type { WithId } from "mongodb";
 import { getAvailableLeagues } from "@/actions/bet-actions";
+import type { PlacedBet } from "@/types";
+import { MyBetsClient } from '@/components/my-bets-client';
 
 async function getMyBets(userId: string): Promise<PlacedBet[]> {
   if (!userId) {
@@ -55,42 +53,10 @@ export default async function MyBetsPage() {
         getAvailableLeagues(),
     ]);
 
-    const openBets = placedBets.filter(bet => bet.status === 'Em Aberto');
-    const settledBets = placedBets.filter(bet => bet.status !== 'Em Aberto');
-
     return (
-        <AppLayout availableLeagues={availableLeagues}>
-            <div className="flex-1 p-4 sm:p-6 lg:p-8">
-                <div className="mb-8">
-                    <h1 className="text-3xl font-bold font-headline tracking-tight">Minhas Apostas</h1>
-                    <p className="text-muted-foreground">Acompanhe suas apostas abertas e resolvidas.</p>
-                </div>
-
-                <Tabs defaultValue="open">
-                    <TabsList className="grid w-full grid-cols-2 max-w-md">
-                        <TabsTrigger value="open">Em Aberto</TabsTrigger>
-                        <TabsTrigger value="settled">Resolvidas</TabsTrigger>
-                    </TabsList>
-                    <TabsContent value="open">
-                        <div className="grid gap-4 mt-4 md:grid-cols-2 lg:grid-cols-3">
-                            {openBets.length > 0 ? (
-                                openBets.map(bet => <PlacedBetCard key={bet._id as string} bet={bet} />)
-                            ) : (
-                                <p className="text-muted-foreground col-span-full">Você não tem apostas em aberto.</p>
-                            )}
-                        </div>
-                    </TabsContent>
-                    <TabsContent value="settled">
-                        <div className="grid gap-4 mt-4 md:grid-cols-2 lg:grid-cols-3">
-                            {settledBets.length > 0 ? (
-                                settledBets.map(bet => <PlacedBetCard key={bet._id as string} bet={bet} />)
-                            ) : (
-                                <p className="text-muted-foreground col-span-full">Você não tem apostas resolvidas.</p>
-                            )}
-                        </div>
-                    </TabsContent>
-                </Tabs>
-            </div>
-        </AppLayout>
+       <MyBetsClient
+            placedBets={placedBets}
+            availableLeagues={availableLeagues}
+       />
     )
 }
