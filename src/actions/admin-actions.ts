@@ -388,7 +388,7 @@ function evaluateSelection(selection: PlacedBet['bets'][0], goals: { home: numbe
 }
 
 // Main action to resolve a match and settle bets
-export async function resolveMatch(fixtureId: number): Promise<{ success: boolean; message: string }> {
+export async function resolveMatch(fixtureId: number, options: { revalidate: boolean } = { revalidate: true }): Promise<{ success: boolean; message: string }> {
     const client = await clientPromise;
     const db = client.db('timaocord');
     const matchesCollection = db.collection<FullMatchInDb>('matches');
@@ -537,12 +537,14 @@ export async function resolveMatch(fixtureId: number): Promise<{ success: boolea
         
         await mongoSession.endSession();
 
-        revalidatePath('/admin/matches');
-        revalidatePath('/admin/bets');
-        revalidatePath('/my-bets');
-        revalidatePath('/wallet');
-        revalidatePath('/notifications');
-        revalidatePath('/profile');
+        if (options.revalidate) {
+            revalidatePath('/admin/matches');
+            revalidatePath('/admin/bets');
+            revalidatePath('/my-bets');
+            revalidatePath('/wallet');
+            revalidatePath('/notifications');
+            revalidatePath('/profile');
+        }
 
         return { success: true, message: `Partida ${fixtureId} resolvida. ${settledCount} apostas foram finalizadas.` };
 
@@ -578,7 +580,7 @@ export async function processAllFinishedMatches(): Promise<{ success: boolean; m
         const fixtureId = match._id; 
         console.log(`Processing match ${fixtureId}...`);
         try {
-            const result = await resolveMatch(fixtureId);
+            const result = await resolveMatch(fixtureId, { revalidate: false });
             if (result.success) {
                 successCount++;
                 results.push(`Successfully resolved match ${fixtureId}: ${result.message}`);
@@ -597,6 +599,16 @@ export async function processAllFinishedMatches(): Promise<{ success: boolean; m
     const summaryMessage = `Processed ${finishedMatchesToProcess.length} matches. Success: ${successCount}, Failure: ${failureCount}.`;
     console.log(summaryMessage);
     
+    if (successCount > 0) {
+        console.log('Revalidating paths...');
+        revalidatePath('/admin/matches');
+        revalidatePath('/admin/bets');
+        revalidatePath('/my-bets');
+        revalidatePath('/wallet');
+        revalidatePath('/notifications');
+        revalidatePath('/profile');
+    }
+
     return {
         success: failureCount === 0,
         message: summaryMessage,
@@ -780,3 +792,5 @@ export async function getRecentBets(): Promise<RecentBet[]> {
         return [];
     }
 }
+
+    
