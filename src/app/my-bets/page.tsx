@@ -7,6 +7,7 @@ import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import clientPromise from '@/lib/mongodb';
 import { redirect } from 'next/navigation';
 import type { WithId } from "mongodb";
+import { getAvailableLeagues } from "@/actions/bet-actions";
 
 async function getMyBets(userId: string): Promise<PlacedBet[]> {
   if (!userId) {
@@ -49,13 +50,16 @@ export default async function MyBetsPage() {
         redirect('/');
     }
 
-    const placedBets = await getMyBets(session.user.discordId);
+    const [placedBets, availableLeagues] = await Promise.all([
+        getMyBets(session.user.discordId),
+        getAvailableLeagues(),
+    ]);
 
     const openBets = placedBets.filter(bet => bet.status === 'Em Aberto');
     const settledBets = placedBets.filter(bet => bet.status !== 'Em Aberto');
 
     return (
-        <AppLayout>
+        <AppLayout availableLeagues={availableLeagues}>
             <main className="flex-1 p-4 sm:p-6 lg:p-8">
                 <div className="mb-8">
                     <h1 className="text-3xl font-bold font-headline tracking-tight">Minhas Apostas</h1>

@@ -8,6 +8,7 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import clientPromise from "@/lib/mongodb";
 import { redirect } from 'next/navigation';
+import { getAvailableLeagues } from "@/actions/bet-actions";
 
 const getStatusClass = (status: Transaction['status']) => {
     switch (status) {
@@ -31,6 +32,8 @@ export default async function WalletPage() {
     if (!session?.user?.id) {
         redirect('/');
     }
+    
+    const availableLeagues = await getAvailableLeagues();
 
     let currentBalance = 0;
     let transactions: Transaction[] = [];
@@ -49,7 +52,7 @@ export default async function WalletPage() {
     }
     
     return (
-        <AppLayout>
+        <AppLayout availableLeagues={availableLeagues}>
             <main className="flex-1 p-4 sm:p-6 lg:p-8">
                 <div className="mb-8">
                     <h1 className="text-3xl font-bold font-headline tracking-tight">Minha Carteira</h1>

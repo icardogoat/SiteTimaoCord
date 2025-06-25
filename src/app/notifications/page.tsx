@@ -7,6 +7,7 @@ import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { getNotificationsForUser } from "@/actions/notification-actions";
 import { redirect } from "next/navigation";
 import type { Notification } from "@/types";
+import { getAvailableLeagues } from "@/actions/bet-actions";
 
 export default async function NotificationsPage() {
     const session = await getServerSession(authOptions);
@@ -14,10 +15,13 @@ export default async function NotificationsPage() {
         redirect('/');
     }
 
-    const notifications: Notification[] = await getNotificationsForUser(session.user.discordId);
+    const [notifications, availableLeagues] = await Promise.all([
+        getNotificationsForUser(session.user.discordId),
+        getAvailableLeagues(),
+    ]);
 
     return (
-        <AppLayout>
+        <AppLayout availableLeagues={availableLeagues}>
             <main className="flex-1 p-4 sm:p-6 lg:p-8">
                 <div className="mb-8">
                     <h1 className="text-3xl font-bold font-headline tracking-tight">Notificações</h1>

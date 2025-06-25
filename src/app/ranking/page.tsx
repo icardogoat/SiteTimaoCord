@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import type { UserRanking } from "@/types";
 import { Trophy } from "lucide-react";
+import { getAvailableLeagues } from "@/actions/bet-actions";
 
 const rankings: UserRanking[] = [
   { rank: 1, avatar: "https://placehold.co/40x40.png", name: "Zico da Fiel", winnings: 15230.50 },
@@ -18,9 +19,11 @@ const rankings: UserRanking[] = [
   { rank: 10, avatar: "https://placehold.co/40x40.png", name: "Paulinho Guerreiro", winnings: 4500.00 },
 ];
 
-export default function RankingPage() {
+export default async function RankingPage() {
+  const availableLeagues = await getAvailableLeagues();
+
   return (
-    <AppLayout>
+    <AppLayout availableLeagues={availableLeagues}>
       <main className="flex-1 p-4 sm:p-6 lg:p-8">
         <div className="mb-8">
           <h1 className="text-3xl font-bold font-headline tracking-tight">Ranking de Ganhadores</h1>

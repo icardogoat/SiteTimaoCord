@@ -11,6 +11,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { getAvailableLeagues } from "@/actions/bet-actions";
 
 // In a real app, this data would come from an API
 const rankings: UserRanking[] = [
@@ -27,7 +28,10 @@ const rankings: UserRanking[] = [
 ];
 
 export default async function ProfilePage() {
-  const session = await getServerSession(authOptions);
+  const [session, availableLeagues] = await Promise.all([
+    getServerSession(authOptions),
+    getAvailableLeagues()
+  ]);
 
   const totalWinnings = 85.00;
   const totalLosses = 45.00;
@@ -46,7 +50,7 @@ export default async function ProfilePage() {
   const userRankData = rankings.find(user => user.name === userName);
 
   return (
-    <AppLayout>
+    <AppLayout availableLeagues={availableLeagues}>
       <main className="flex-1 p-4 sm:p-6 lg:p-8">
           <div className="mb-8">
               <h1 className="text-3xl font-bold font-headline tracking-tight">Perfil</h1>

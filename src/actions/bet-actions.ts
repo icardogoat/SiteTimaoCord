@@ -112,3 +112,18 @@ export async function placeBet(betsInSlip: BetInSlip[], stake: number): Promise<
     await mongoSession.endSession();
   }
 }
+
+export async function getAvailableLeagues(): Promise<string[]> {
+    try {
+        const client = await clientPromise;
+        const db = client.db("timaocord");
+        const matchesCollection = db.collection("matches");
+        
+        const leagues = await matchesCollection.distinct('league');
+        
+        return leagues.filter((league): league is string => typeof league === 'string' && league.length > 0);
+    } catch (error) {
+        console.error('Failed to fetch available leagues:', error);
+        return [];
+    }
+}
