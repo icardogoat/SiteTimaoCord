@@ -16,14 +16,14 @@ interface PlacedBetCardProps {
 export function PlacedBetCard({ bet }: PlacedBetCardProps) {
     const [isExpanded, setIsExpanded] = useState(false);
 
-    const statusVariant = {
+    const mainStatusVariant = {
         'Ganha': 'default',
         'Perdida': 'destructive',
         'Em Aberto': 'secondary',
         'Cancelada': 'secondary'
     } as const;
-
-    const getStatusClass = (status: PlacedBet['status']) => {
+    
+    const getMainStatusClass = (status: PlacedBet['status']) => {
         switch (status) {
             case 'Ganha':
                 return 'bg-green-500/20 text-green-400 border-green-500/30';
@@ -33,12 +33,17 @@ export function PlacedBetCard({ bet }: PlacedBetCardProps) {
                 return '';
         }
     };
-
+    
     const isSingleBet = bet.bets.length === 1;
     const single = isSingleBet ? bet.bets[0] : null;
 
-    const selectionsToShow = isExpanded ? bet.bets : bet.bets.slice(0, 2);
-    const hasMoreSelections = bet.bets.length > 2;
+    const selectionsToShow = isExpanded ? bet.bets : bet.bets.slice(0, 1);
+    const hasMoreSelections = !isSingleBet && bet.bets.length > 1;
+
+    // A safer way to format date on the client
+    const formattedDate = new Date(bet.createdAt).toLocaleDateString('pt-BR', {
+        day: '2-digit', month: '2-digit', year: 'numeric'
+    });
 
     return (
         <Card className="flex flex-col">
@@ -49,34 +54,31 @@ export function PlacedBetCard({ bet }: PlacedBetCardProps) {
                             {isSingleBet ? `${single!.teamA} vs ${single!.teamB}` : `Aposta Múltipla (${bet.bets.length} seleções)`}
                         </CardTitle>
                         <CardDescription>
-                            {isSingleBet ? `${single!.league} - ${single!.matchTime}` : `Realizada em: ${new Date(bet.createdAt).toLocaleString('pt-BR')}`}
+                            {isSingleBet ? `${single!.league} - ${single!.matchTime}` : `Realizada em: ${formattedDate}`}
                         </CardDescription>
                     </div>
-                    <Badge variant={statusVariant[bet.status]} className={cn(bet.status !== 'Perdida' && getStatusClass(bet.status))}>
+                    <Badge variant={mainStatusVariant[bet.status]} className={cn(bet.status !== 'Perdida' && getMainStatusClass(bet.status))}>
                         {bet.status}
                     </Badge>
                 </div>
             </CardHeader>
-            <CardContent className="space-y-4 flex-grow">
-                {isSingleBet ? (
-                     <div>
-                        <p className="text-sm font-medium text-muted-foreground">{single!.marketName}</p>
-                        <p className="text-base font-bold text-foreground">{single!.selection}</p>
+            <CardContent className="space-y-3 flex-grow pb-4">
+                {selectionsToShow.map((selection, index) => (
+                    <div key={index} className="text-sm">
+                        <div className="flex justify-between items-center">
+                            <p className="font-semibold text-foreground">{selection.selection}</p>
+                            <p className="font-semibold text-primary">{selection.oddValue}</p>
+                        </div>
+                        <p className="text-xs text-muted-foreground">{selection.marketName}</p>
+                        <p className="text-xs text-muted-foreground">{selection.teamA} vs {selection.teamB}</p>
                     </div>
-                ) : (
-                    <div className="space-y-2 text-sm">
-                        {selectionsToShow.map((selection, index) => (
-                            <div key={index} className="text-muted-foreground">
-                                <span className="font-semibold text-foreground">{selection.selection}</span> em {selection.teamA} vs {selection.teamB}
-                            </div>
-                        ))}
-                        {hasMoreSelections && (
-                             <Button variant="link" className="p-0 h-auto text-xs" onClick={() => setIsExpanded(!isExpanded)}>
-                                {isExpanded ? 'Ver menos' : `Ver mais ${bet.bets.length - 2} seleções`}
-                                {isExpanded ? <ChevronUp className="ml-1 h-3 w-3" /> : <ChevronDown className="ml-1 h-3 w-3" />}
-                            </Button>
-                        )}
-                    </div>
+                ))}
+
+                {hasMoreSelections && (
+                     <Button variant="link" className="p-0 h-auto text-xs" onClick={() => setIsExpanded(!isExpanded)}>
+                        {isExpanded ? 'Ver menos' : `Ver mais ${bet.bets.length - 1} seleções`}
+                        {isExpanded ? <ChevronUp className="ml-1 h-3 w-3" /> : <ChevronDown className="ml-1 h-3 w-3" />}
+                    </Button>
                 )}
             </CardContent>
             <Separator />
