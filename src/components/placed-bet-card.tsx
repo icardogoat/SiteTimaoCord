@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from "react";
@@ -42,7 +43,8 @@ export function PlacedBetCard({ bet }: PlacedBetCardProps) {
 
     // A safer way to format date on the client
     const formattedDate = new Date(bet.createdAt).toLocaleDateString('pt-BR', {
-        day: '2-digit', month: '2-digit', year: 'numeric'
+        day: '2-digit', month: '2-digit', year: 'numeric',
+        timeZone: 'UTC'
     });
 
     return (

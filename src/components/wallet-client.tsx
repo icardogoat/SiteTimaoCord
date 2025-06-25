@@ -113,4 +113,3 @@ export function WalletClient({ availableLeagues, initialBalance, initialTransact
         </AppLayout>
     );
 }
-

@@ -6,16 +6,23 @@ import type { Notification } from "@/types";
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import Link from 'next/link';
+import { useState, useEffect } from "react";
 
 interface NotificationItemProps {
     notification: Notification;
 }
 
 export function NotificationItem({ notification }: NotificationItemProps) {
-    const timeAgo = formatDistanceToNow(new Date(notification.date), {
-        addSuffix: true,
-        locale: ptBR,
-    });
+    const [timeAgo, setTimeAgo] = useState('');
+
+    useEffect(() => {
+        // This will only run on the client, after hydration
+        setTimeAgo(formatDistanceToNow(new Date(notification.date), {
+            addSuffix: true,
+            locale: ptBR,
+        }));
+    }, [notification.date]);
+
 
     const content = (
         <div className={cn(
@@ -28,7 +35,7 @@ export function NotificationItem({ notification }: NotificationItemProps) {
                     "text-sm font-medium",
                     !notification.read ? "text-foreground" : "text-muted-foreground"
                 )}>{notification.title}</p>
-                <p className="ml-auto text-xs text-muted-foreground">{timeAgo}</p>
+                {timeAgo && <p className="ml-auto text-xs text-muted-foreground">{timeAgo}</p>}
             </div>
             <p className={cn(
                 "text-xs w-full text-left",
