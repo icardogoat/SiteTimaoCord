@@ -65,7 +65,6 @@ function MvpCard({ voting, sessionUser, onVote }: MvpCardProps) {
                                         <Image src={player.photo} alt={player.name} width={40} height={40} className="rounded-full" data-ai-hint="player photo" />
                                         <div className="overflow-hidden">
                                             <p className="text-sm font-medium truncate">{player.name}</p>
-                                            <p className="text-xs text-muted-foreground">#{player.number}</p>
                                         </div>
                                     </div>
                                     {voting.status === 'Aberto' && !userVote && (

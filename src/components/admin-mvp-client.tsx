@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -99,7 +100,6 @@ export default function AdminMvpClient({ initialVotings }: AdminMvpClientProps) 
                                                 {player.name}
                                                 {mvpPlayer?.id === player.id && <Crown className="h-4 w-4 text-yellow-500 shrink-0" />}
                                             </p>
-                                            <p className="text-xs text-muted-foreground">#{player.number}</p>
                                         </div>
                                     </div>
                                     <span className="font-bold text-sm shrink-0">{player.voteCount} votos</span>
@@ -165,7 +165,7 @@ export default function AdminMvpClient({ initialVotings }: AdminMvpClientProps) 
                                         <Image src={player.photo} alt={player.name} width={40} height={40} className="rounded-full" data-ai-hint="player photo" />
                                         <div>
                                             <p className="font-semibold">{player.name}</p>
-                                            <p className="text-xs text-muted-foreground">#{player.number} • {player.voteCount} votos</p>
+                                            <p className="text-xs text-muted-foreground">{player.voteCount} votos</p>
                                         </div>
                                     </div>
                                     {dialogState.selectedPlayerId === player.id && <Crown className="h-5 w-5" />}
