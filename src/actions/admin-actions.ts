@@ -42,6 +42,7 @@ type MatchAdminView = {
     fixtureId: number;
     teamA: string;
     teamB: string;
+
     league: string;
     time: string;
     status: string;
@@ -801,5 +802,3 @@ export async function getRecentBets(): Promise<RecentBet[]> {
         return [];
     }
 }
-
-    
