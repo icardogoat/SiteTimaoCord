@@ -78,6 +78,7 @@ export type Notification = {
 
 export type UserRanking = {
   rank: number;
+  discordId: string;
   avatar: string;
   name: string;
   winnings: number;
@@ -86,6 +87,7 @@ export type UserRanking = {
 
 export type ActiveBettorRanking = {
   rank: number;
+  discordId: string;
   avatar: string;
   name: string;
   totalBets: number;
@@ -94,8 +96,8 @@ export type ActiveBettorRanking = {
 
 export type TopLevelUserRanking = {
   rank: number;
-  avatar: string;
   name: string;
+  avatar: string;
   level: number;
   xp: number;
   isVip?: boolean;
@@ -103,6 +105,7 @@ export type TopLevelUserRanking = {
 
 export type RichestUserRanking = {
   rank: number;
+  discordId: string;
   avatar: string;
   name: string;
   balance: number;

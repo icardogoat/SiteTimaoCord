@@ -70,6 +70,7 @@ export async function getTopWinners(): Promise<UserRanking[]> {
             {
                 $project: {
                     _id: 0,
+                    discordId: '$userDetails.discordId',
                     name: '$userDetails.name',
                     avatar: '$userDetails.image',
                     winnings: 1,
@@ -80,6 +81,7 @@ export async function getTopWinners(): Promise<UserRanking[]> {
         
         return rankingsData.map((user, index) => ({
             rank: index + 1,
+            discordId: user.discordId as string,
             name: user.name as string,
             avatar: user.avatar as string,
             winnings: user.winnings as number,
@@ -119,6 +121,7 @@ export async function getMostActiveBettors(): Promise<ActiveBettorRanking[]> {
             {
                 $project: {
                     _id: 0,
+                    discordId: '$userDetails.discordId',
                     name: '$userDetails.name',
                     avatar: '$userDetails.image',
                     totalBets: 1,
@@ -129,6 +132,7 @@ export async function getMostActiveBettors(): Promise<ActiveBettorRanking[]> {
         
         return rankingsData.map((user, index) => ({
             rank: index + 1,
+            discordId: user.discordId as string,
             name: user.name as string,
             avatar: user.avatar as string,
             totalBets: user.totalBets as number,
@@ -188,6 +192,7 @@ export async function getRichestUsers(): Promise<RichestUserRanking[]> {
             {
                 $project: {
                     _id: 0,
+                    discordId: '$userDetails.discordId',
                     name: '$userDetails.name',
                     avatar: '$userDetails.image',
                     balance: 1,
@@ -200,6 +205,7 @@ export async function getRichestUsers(): Promise<RichestUserRanking[]> {
             .filter(user => user.name)
             .map((user, index) => ({
                 rank: index + 1,
+                discordId: user.discordId as string,
                 name: user.name as string,
                 avatar: user.avatar as string,
                 balance: user.balance as number,
