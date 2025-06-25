@@ -33,12 +33,12 @@ interface WalletClientProps {
 }
 
 export function WalletClient({ availableLeagues, initialBalance, initialTransactions }: WalletClientProps) {
-    const [visibleCount, setVisibleCount] = useState(10);
+    const [visibleCount, setVisibleCount] = useState(5);
     const transactionsToShow = initialTransactions.slice(0, visibleCount);
     const hasMore = visibleCount < initialTransactions.length;
 
     const handleLoadMore = () => {
-        setVisibleCount(prevCount => prevCount + 10);
+        setVisibleCount(prevCount => prevCount + 5);
     };
 
     return (
