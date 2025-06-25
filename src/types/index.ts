@@ -101,6 +101,14 @@ export type TopLevelUserRanking = {
   isVip?: boolean;
 };
 
+export type RichestUserRanking = {
+  rank: number;
+  avatar: string;
+  name: string;
+  balance: number;
+  isVip?: boolean;
+};
+
 export type UserLevel = {
   level: number;
   xp: number;

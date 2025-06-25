@@ -6,11 +6,11 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Trophy, Medal, Zap } from "lucide-react";
+import { Trophy, Medal, Zap, Wallet } from "lucide-react";
 import { getAvailableLeagues } from "@/actions/bet-actions";
-import { getTopWinners, getMostActiveBettors, getTopLevelUsers } from "@/actions/user-actions";
+import { getTopWinners, getMostActiveBettors, getTopLevelUsers, getRichestUsers } from "@/actions/user-actions";
 import { cn } from "@/lib/utils";
-import type { UserRanking, ActiveBettorRanking, TopLevelUserRanking } from "@/types";
+import type { UserRanking, ActiveBettorRanking, TopLevelUserRanking, RichestUserRanking } from "@/types";
 
 
 const RankBadge = ({ rank }: { rank: number }) => {
@@ -53,6 +53,43 @@ const WinnersTable = ({ data }: { data: UserRanking[] }) => (
                     </TableCell>
                     <TableCell className="text-right font-semibold text-green-400">
                         R$ {user.winnings.toFixed(2)}
+                    </TableCell>
+                </TableRow>
+            )) : (
+                <TableRow>
+                    <TableCell colSpan={3} className="py-8 text-center text-muted-foreground">
+                        Ainda não há apostadores no ranking.
+                    </TableCell>
+                </TableRow>
+            )}
+        </TableBody>
+    </Table>
+);
+
+const RichestTable = ({ data }: { data: RichestUserRanking[] }) => (
+    <Table>
+        <TableHeader>
+            <TableRow>
+                <TableHead className="w-16 text-center">Rank</TableHead>
+                <TableHead>Usuário</TableHead>
+                <TableHead className="text-right">Saldo</TableHead>
+            </TableRow>
+        </TableHeader>
+        <TableBody>
+            {data.length > 0 ? data.map((user) => (
+                <TableRow key={user.rank}>
+                    <TableCell className="text-center"><RankBadge rank={user.rank} /></TableCell>
+                    <TableCell>
+                        <div className="flex items-center gap-3">
+                            <Avatar className={cn(user.isVip && "ring-2 ring-vip")}>
+                                <AvatarImage src={user.avatar ?? undefined} alt={user.name} data-ai-hint="user avatar" />
+                                <AvatarFallback>{user.name.substring(0, 2).toUpperCase()}</AvatarFallback>
+                            </Avatar>
+                            <span className="font-medium">{user.name}</span>
+                        </div>
+                    </TableCell>
+                    <TableCell className="text-right font-semibold text-primary">
+                        R$ {user.balance.toFixed(2)}
                     </TableCell>
                 </TableRow>
             )) : (
@@ -148,11 +185,13 @@ export default async function RankingPage() {
     topWinners,
     mostActiveBettors,
     topLevelUsers,
+    richestUsers,
   ] = await Promise.all([
       getAvailableLeagues(),
       getTopWinners(),
       getMostActiveBettors(),
       getTopLevelUsers(),
+      getRichestUsers(),
   ]);
 
   return (
@@ -164,9 +203,12 @@ export default async function RankingPage() {
         </div>
 
         <Tabs defaultValue="winners" className="w-full">
-            <TabsList className="grid w-full grid-cols-1 sm:grid-cols-3">
+            <TabsList className="grid w-full grid-cols-1 sm:grid-cols-4">
                 <TabsTrigger value="winners">
                     <Trophy className="mr-2 h-4 w-4" /> Maiores Ganhadores
+                </TabsTrigger>
+                <TabsTrigger value="richest">
+                    <Wallet className="mr-2 h-4 w-4" /> Mais Ricos
                 </TabsTrigger>
                 <TabsTrigger value="most_active">
                     <Medal className="mr-2 h-4 w-4" /> Mais Ativos
@@ -184,6 +226,18 @@ export default async function RankingPage() {
                     </CardHeader>
                     <CardContent>
                         <WinnersTable data={topWinners} />
+                    </CardContent>
+                </Card>
+            </TabsContent>
+
+            <TabsContent value="richest">
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Top 10 Mais Ricos</CardTitle>
+                        <CardDescription>Usuários com o maior saldo na carteira.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <RichestTable data={richestUsers} />
                     </CardContent>
                 </Card>
             </TabsContent>

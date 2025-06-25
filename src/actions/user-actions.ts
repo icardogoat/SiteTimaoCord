@@ -2,7 +2,7 @@
 'use server';
 
 import clientPromise from '@/lib/mongodb';
-import type { UserRanking, ActiveBettorRanking, TopLevelUserRanking, PlacedBet, UserLevel } from '@/types';
+import type { UserRanking, ActiveBettorRanking, TopLevelUserRanking, PlacedBet, UserLevel, RichestUserRanking } from '@/types';
 import type { WithId } from 'mongodb';
 
 export interface UserStats {
@@ -163,6 +163,51 @@ export async function getTopLevelUsers(): Promise<TopLevelUserRanking[]> {
 
     } catch (error) {
         console.error('Error fetching top level users:', error);
+        return [];
+    }
+}
+
+export async function getRichestUsers(): Promise<RichestUserRanking[]> {
+    try {
+        const client = await clientPromise;
+        const db = client.db('timaocord');
+        const walletsCollection = db.collection('wallets');
+
+        const rankingsData = await walletsCollection.aggregate([
+            { $sort: { balance: -1 } },
+            { $limit: 10 },
+            {
+                $lookup: {
+                    from: 'users',
+                    localField: 'userId',
+                    foreignField: 'discordId',
+                    as: 'userDetails'
+                }
+            },
+            { $unwind: { path: '$userDetails', preserveNullAndEmptyArrays: true } },
+            {
+                $project: {
+                    _id: 0,
+                    name: '$userDetails.name',
+                    avatar: '$userDetails.image',
+                    balance: 1,
+                    isVip: '$userDetails.isVip',
+                }
+            }
+        ]).toArray();
+        
+        return rankingsData
+            .filter(user => user.name)
+            .map((user, index) => ({
+                rank: index + 1,
+                name: user.name as string,
+                avatar: user.avatar as string,
+                balance: user.balance as number,
+                isVip: user.isVip as boolean ?? false,
+            }));
+
+    } catch (error) {
+        console.error('Error fetching richest users:', error);
         return [];
     }
 }
