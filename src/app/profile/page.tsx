@@ -46,7 +46,8 @@ export default async function ProfilePage() {
 
   const userRankData = rankings.find(rankedUser => rankedUser.name === userName);
 
-  const { level, progress, xp, xpForNextLevel } = user.level;
+  const userLevel = user.level ?? { level: 1, xp: 0, xpForNextLevel: 100, progress: 0 };
+  const { level, progress, xp, xpForNextLevel } = userLevel;
 
   return (
     <AppLayout availableLeagues={availableLeagues}>
