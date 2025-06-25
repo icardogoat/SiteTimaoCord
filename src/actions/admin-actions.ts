@@ -189,6 +189,15 @@ export async function getAdminMatches(): Promise<MatchAdminView[]> {
                     case 'NS':
                         statusLabel = 'Agendada';
                         break;
+                    case 'PST':
+                        statusLabel = 'Adiado';
+                        break;
+                    case 'HT':
+                        statusLabel = 'Intervalo';
+                        break;
+                    case 'SUSP':
+                        statusLabel = 'Paralizado';
+                        break;
                     default:
                         statusLabel = 'Ao Vivo';
                 }

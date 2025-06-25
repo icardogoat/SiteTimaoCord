@@ -153,13 +153,14 @@ export function AdminMatchesClient({ initialMatches }: AdminMatchesClientProps) 
                                 <TableCell className="hidden lg:table-cell">{match.time}</TableCell>
                                 <TableCell className="text-center">
                                     <Badge variant={
-                                        match.status === "Ao Vivo" ? "destructive" :
+                                        match.status === "Ao Vivo" || match.status === "Intervalo" || match.status === "Paralizado" ? "destructive" :
                                         match.status === "Pago" ? "default" :
                                         "secondary"
                                     } className={
-                                        match.status === "Ao Vivo" ? "bg-red-500/80 text-white" :
+                                        match.status === "Ao Vivo" || match.status === "Intervalo" || match.status === "Paralizado" ? "bg-red-500/80 text-white" :
                                         match.status === "Pago" ? "bg-green-600/90 text-white" :
-                                        match.status === "Pendente Pagamento" ? "bg-yellow-500/80 text-white" : ""
+                                        match.status === "Pendente Pagamento" ? "bg-yellow-500/80 text-white" :
+                                        match.status === "Adiado" ? "bg-gray-500/80 text-white" : ""
                                     }>
                                         {match.status}
                                     </Badge>

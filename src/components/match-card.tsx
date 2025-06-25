@@ -65,26 +65,53 @@ export function MatchCard({ match }: MatchCardProps) {
   };
   
   const showScore = match.status !== 'NS' && match.goals.home !== null && match.goals.away !== null;
-  const isLive = !match.isFinished && match.status !== 'NS';
-
+  
   // Betting is disabled if the start time has passed OR if the status from the DB is not 'Not Started'.
   const isBettingDisabled = isBettingClosedByTime || match.status !== 'NS';
 
-  // Determine the status text based on DB data, not the betting status
+  // Determine the status text and badge style based on DB data
   let statusText: string;
-  if (match.isFinished) {
-      statusText = 'Finalizado';
-  } else if (isLive) {
-      statusText = 'Ao Vivo';
-  } else {
+  let badgeVariant: 'destructive' | 'outline' | 'secondary' = 'outline';
+
+  switch (match.status) {
+    case 'NS':
       statusText = match.time;
+      break;
+    case 'FT':
+    case 'AET':
+    case 'PEN':
+      statusText = 'Finalizado';
+      break;
+    case 'HT':
+      statusText = 'Intervalo';
+      badgeVariant = 'destructive'; // It's a live-like state
+      break;
+    case 'PST': // Postponed
+      statusText = 'Adiado';
+      badgeVariant = 'secondary';
+      break;
+    case 'SUSP': // Suspended
+      statusText = 'Paralizado';
+      badgeVariant = 'destructive';
+      break;
+    default: // Covers other live statuses like 1H, 2H, ET, etc.
+      statusText = 'Ao Vivo';
+      badgeVariant = 'destructive';
+      break;
   }
+  
+  // Override if the isFinished flag is definitively true
+  if (match.isFinished) {
+    statusText = 'Finalizado';
+    badgeVariant = 'outline';
+  }
+
 
   return (
     <Card className={cn("flex flex-col", isCorinthiansMatch && "border-primary/50 shadow-lg shadow-primary/10")}>
       <CardHeader className="flex-row items-center justify-between pb-2">
         <CardTitle className="text-sm font-medium text-muted-foreground">{match.league}</CardTitle>
-        <Badge variant={isLive ? 'destructive' : 'outline'}>
+        <Badge variant={badgeVariant}>
           {statusText}
         </Badge>
       </CardHeader>
