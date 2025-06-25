@@ -223,15 +223,15 @@ export async function getRichestUsers(): Promise<RichestUserRanking[]> {
 
 const LEVEL_THRESHOLDS = [
     { level: 1, xp: 0 },
-    { level: 2, xp: 100 },
-    { level: 3, xp: 500 },
-    { level: 4, xp: 1000 },
-    { level: 5, xp: 2500 },
-    { level: 6, xp: 5000 },
-    { level: 7, xp: 10000 },
-    { level: 8, xp: 20000 },
-    { level: 9, xp: 50000 },
-    { level: 10, xp: 100000 },
+    { level: 2, xp: 500 },
+    { level: 3, xp: 1500 },
+    { level: 4, xp: 3000 },
+    { level: 5, xp: 5000 },
+    { level: 6, xp: 10000 },
+    { level: 7, xp: 20000 },
+    { level: 8, xp: 40000 },
+    { level: 9, xp: 75000 },
+    { level: 10, xp: 150000 },
 ];
 
 export async function getUserLevel(userId: string): Promise<UserLevel> {
