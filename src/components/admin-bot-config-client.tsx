@@ -3,7 +3,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -43,14 +43,16 @@ type FormValues = z.infer<typeof formSchema>;
 
 interface AdminBotConfigClientProps {
     initialConfig: Partial<BotConfig>;
+    initialChannels: DiscordChannel[];
+    initialRoles: DiscordRole[];
 }
 
-export default function AdminBotConfigClient({ initialConfig }: AdminBotConfigClientProps) {
+export default function AdminBotConfigClient({ initialConfig, initialChannels, initialRoles }: AdminBotConfigClientProps) {
     const { toast } = useToast();
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isLoadingDetails, setIsLoadingDetails] = useState(false);
-    const [channels, setChannels] = useState<DiscordChannel[]>([]);
-    const [roles, setRoles] = useState<DiscordRole[]>([]);
+    const [channels, setChannels] = useState<DiscordChannel[]>(initialChannels);
+    const [roles, setRoles] = useState<DiscordRole[]>(initialRoles);
 
     const form = useForm<FormValues>({
         resolver: zodResolver(formSchema),
@@ -70,6 +72,17 @@ export default function AdminBotConfigClient({ initialConfig }: AdminBotConfigCl
         setIsLoadingDetails(true);
         setChannels([]);
         setRoles([]);
+
+        // When fetching for a new ID, clear old selections
+        form.reset({
+            ...form.getValues(),
+            guildId: id, // keep the new id
+            welcomeChannelId: '',
+            logChannelId: '',
+            bettingChannelId: '',
+            adminRoleId: '',
+        });
+
         const result = await getDiscordServerDetails(id);
         if (result.success && result.data) {
             setChannels(result.data.channels);
@@ -89,12 +102,6 @@ export default function AdminBotConfigClient({ initialConfig }: AdminBotConfigCl
         }
         setIsLoadingDetails(false);
     };
-
-    useEffect(() => {
-        if (initialConfig.guildId) {
-            fetchDetails(initialConfig.guildId);
-        }
-    }, [initialConfig.guildId]);
 
     async function onSubmit(values: FormValues) {
         setIsSubmitting(true);
