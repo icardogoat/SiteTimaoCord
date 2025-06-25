@@ -14,8 +14,11 @@ export const authOptions: AuthOptions = {
       clientSecret: process.env.DISCORD_CLIENT_SECRET!,
       profile(profile) {
         if (!profile.discriminator || profile.discriminator === "0") {
-            const defaultAvatarNumber = Math.floor(Math.random() * 6);
+            // Use a deterministic way to generate the avatar number from the user's ID
+            const numericId = BigInt(profile.id);
+            const defaultAvatarNumber = Number(numericId % 6n);
             const image_url = `https://cdn.discordapp.com/embed/avatars/${defaultAvatarNumber}.png`;
+
             return {
                 id: profile.id,
                 name: profile.global_name || profile.username,
@@ -51,15 +54,18 @@ export const authOptions: AuthOptions = {
   },
   secret: process.env.NEXTAUTH_SECRET,
   callbacks: {
-    async signIn({ profile }) {
-      if (!profile) return false;
+    async signIn({ user, profile }) {
+      if (!profile && !user) return false;
+      
+      const userId = profile?.id ?? user.id;
+      if(!userId) return false;
 
       try {
         const client = await clientPromise;
         const db = client.db("timaocord");
         const walletsCollection = db.collection("wallets");
 
-        const existingWallet = await walletsCollection.findOne({ userId: profile.id });
+        const existingWallet = await walletsCollection.findOne({ userId: userId });
 
         if (!existingWallet) {
           const initialTransaction: Transaction = {
@@ -72,14 +78,14 @@ export const authOptions: AuthOptions = {
           };
           
           await walletsCollection.insertOne({
-            userId: profile.id,
+            userId: userId,
             balance: 1000,
             transactions: [initialTransaction]
           });
 
           const notificationsCollection = db.collection("notifications");
           const welcomeNotification: Omit<Notification, '_id'> = {
-              userId: profile.id,
+              userId: userId,
               title: 'Bem-vindo ao Timaocord!',
               description: 'Você recebeu R$ 1.000,00 de bônus para começar a apostar. Boa sorte!',
               date: new Date(),
