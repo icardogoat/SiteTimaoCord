@@ -2,6 +2,7 @@
 
 import type { ReactNode } from 'react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import {
   SidebarProvider,
   Sidebar,
@@ -11,6 +12,8 @@ import {
   SidebarGroupLabel,
   SidebarGroupContent,
   SidebarMenu,
+  SidebarMenuItem,
+  SidebarMenuButton,
   SidebarTrigger,
   SidebarInset,
 } from '@/components/ui/sidebar';
@@ -19,6 +22,7 @@ import { Header } from '@/components/header';
 import { ChampionshipSidebarMenu } from '@/components/championship-sidebar-menu';
 import { BetSlipProvider } from '@/context/bet-slip-context';
 import { BetSlip } from '@/components/bet-slip';
+import { Store, Table } from 'lucide-react';
 
 interface AppLayoutProps {
     children: ReactNode;
@@ -26,6 +30,8 @@ interface AppLayoutProps {
 }
 
 export function AppLayout({ children, availableLeagues }: AppLayoutProps) {
+    const pathname = usePathname();
+
     return (
         <SidebarProvider>
             <BetSlipProvider>
@@ -41,6 +47,23 @@ export function AppLayout({ children, availableLeagues }: AppLayoutProps) {
                         </div>
                     </SidebarHeader>
                     <SidebarContent>
+                        <SidebarGroup>
+                            <SidebarGroupLabel>Navegação</SidebarGroupLabel>
+                            <SidebarGroupContent>
+                                <SidebarMenu>
+                                    <SidebarMenuItem>
+                                        <SidebarMenuButton asChild isActive={pathname?.startsWith('/store')}>
+                                            <Link href="/store"><Store /><span>Loja</span></Link>
+                                        </SidebarMenuButton>
+                                    </SidebarMenuItem>
+                                    <SidebarMenuItem>
+                                        <SidebarMenuButton asChild isActive={pathname?.startsWith('/standings')}>
+                                            <Link href="/standings"><Table /><span>Tabela</span></Link>
+                                        </SidebarMenuButton>
+                                    </SidebarMenuItem>
+                                </SidebarMenu>
+                            </SidebarGroupContent>
+                        </SidebarGroup>
                         {availableLeagues && (
                             <SidebarGroup>
                                 <SidebarGroupLabel>Campeonatos</SidebarGroupLabel>

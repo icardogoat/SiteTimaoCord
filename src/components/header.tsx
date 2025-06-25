@@ -3,6 +3,7 @@
 
 import * as React from 'react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { SidebarTrigger, useSidebar } from '@/components/ui/sidebar';
 import { FielBetLogo } from '@/components/icons';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -14,7 +15,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { LogOut, User, Wallet, Ticket, Bell, Trophy, LayoutGrid } from 'lucide-react';
+import { LogOut, User, Wallet, Ticket, Bell, Trophy, LayoutGrid, Store, Table } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useSession, signOut } from 'next-auth/react';
@@ -26,6 +27,7 @@ import { ptBR } from 'date-fns/locale';
 export function Header() {
   const { data: session } = useSession();
   const { isMobile } = useSidebar();
+  const pathname = usePathname();
   const [notifications, setNotifications] = React.useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = React.useState(0);
 
@@ -72,6 +74,26 @@ export function Header() {
           <FielBetLogo className="size-7 text-primary" />
           <h1 className="text-lg font-semibold font-headline text-primary">FielBet</h1>
         </div>
+        <nav className="hidden md:flex items-center gap-6 text-sm font-medium ml-6">
+            <Link 
+                href="/store" 
+                className={cn(
+                    "transition-colors hover:text-foreground",
+                    pathname === "/store" ? "text-foreground font-semibold" : "text-muted-foreground"
+                )}
+            >
+                Loja
+            </Link>
+            <Link 
+                href="/standings"
+                className={cn(
+                    "transition-colors hover:text-foreground",
+                    pathname === "/standings" ? "text-foreground font-semibold" : "text-muted-foreground"
+                )}
+            >
+                Tabela
+            </Link>
+        </nav>
       </div>
       <div className="flex items-center gap-4">
         <div className="flex items-center gap-2 rounded-md border bg-card px-3 py-1.5 text-sm">
@@ -172,6 +194,18 @@ export function Header() {
               <Link href="/ranking">
                 <Trophy className="mr-2 h-4 w-4" />
                 <span>Ranking</span>
+              </Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem asChild>
+              <Link href="/store">
+                <Store className="mr-2 h-4 w-4" />
+                <span>Loja</span>
+              </Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem asChild>
+              <Link href="/standings">
+                <Table className="mr-2 h-4 w-4" />
+                <span>Tabela</span>
               </Link>
             </DropdownMenuItem>
             {user?.admin && (
