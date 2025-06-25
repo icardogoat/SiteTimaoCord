@@ -438,6 +438,7 @@ export async function resolveMatch(fixtureId: number): Promise<{ success: boolea
             const betsCollection = db.collection<WithId<PlacedBet>>('bets');
             const walletsCollection = db.collection('wallets');
             const notificationsCollection = db.collection('notifications');
+            const usersCollection = db.collection('users');
 
             // Mark as processed inside the transaction
             await matchesCollection.updateOne(
@@ -493,6 +494,13 @@ export async function resolveMatch(fixtureId: number): Promise<{ success: boolea
                             },
                             { session: mongoSession }
                         );
+
+                        // Add user XP for won bet
+                        await usersCollection.updateOne(
+                            { discordId: bet.userId },
+                            { $inc: { xp: bet.stake } },
+                            { session: mongoSession }
+                        );
                     }
                     
                     await betsCollection.updateOne(
@@ -534,6 +542,7 @@ export async function resolveMatch(fixtureId: number): Promise<{ success: boolea
         revalidatePath('/my-bets');
         revalidatePath('/wallet');
         revalidatePath('/notifications');
+        revalidatePath('/profile');
 
         return { success: true, message: `Partida ${fixtureId} resolvida. ${settledCount} apostas foram finalizadas.` };
 
