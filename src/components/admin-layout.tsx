@@ -39,6 +39,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
   const user = session?.user;
   const userName = user?.name ?? 'Admin';
   const userImage = user?.image ?? 'https://placehold.co/40x40.png';
+  const isVip = user?.isVip ?? false;
   const userFallback =
     userName
       .split(' ')
@@ -121,7 +122,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
           <div className="w-full flex-1" />
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-                <Avatar className="h-9 w-9 cursor-pointer">
+                <Avatar className={cn("h-9 w-9 cursor-pointer", isVip && "ring-2 ring-offset-2 ring-vip ring-offset-muted")}>
                     <AvatarImage src={userImage} alt="Admin Avatar" data-ai-hint="user avatar" />
                     <AvatarFallback>{userFallback}</AvatarFallback>
                 </Avatar>

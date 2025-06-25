@@ -59,6 +59,7 @@ type UserAdminView = {
     balance: number;
     status: "Ativo" | "Suspenso";
     avatar: string;
+    isVip?: boolean;
 };
 
 type BetAdminView = {
@@ -90,6 +91,7 @@ export type TopBettor = {
     email: string;
     avatar: string;
     totalWagered: number;
+    isVip?: boolean;
 };
 
 export type RecentBet = {
@@ -256,6 +258,7 @@ export async function getAdminUsers(): Promise<UserAdminView[]> {
             balance: user.balance,
             status: "Ativo", // Assuming status logic would be more complex
             avatar: user.image || `https://placehold.co/40x40.png`,
+            isVip: user.isVip ?? false,
         }));
     } catch (error) {
         console.error("Error fetching admin users:", error);
@@ -742,6 +745,7 @@ export async function getTopBettors(): Promise<TopBettor[]> {
                     email: '$userDetails.email',
                     avatar: '$userDetails.image',
                     totalWagered: 1,
+                    isVip: '$userDetails.isVip',
                 }
             }
         ]).toArray();
@@ -751,6 +755,7 @@ export async function getTopBettors(): Promise<TopBettor[]> {
             email: user.email as string,
             avatar: user.avatar as string,
             totalWagered: user.totalWagered as number,
+            isVip: user.isVip as boolean ?? false,
         }));
 
     } catch (error) {

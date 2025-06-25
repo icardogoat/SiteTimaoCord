@@ -37,6 +37,7 @@ export default async function ProfilePage() {
   const userName = user.name ?? "Usuário";
   const userEmail = user.email ?? "email@example.com";
   const userImage = user.image;
+  const isVip = user.isVip;
   const userFallback = userName
     .split(' ')
     .map((word) => word[0])
@@ -64,7 +65,7 @@ export default async function ProfilePage() {
                 </CardHeader>
                 <CardContent className="space-y-6">
                     <div className="flex items-center gap-4">
-                        <Avatar className="h-20 w-20">
+                        <Avatar className={cn("h-20 w-20", isVip && "ring-2 ring-offset-4 ring-vip ring-offset-card")}>
                             <AvatarImage src={userImage ?? undefined} alt="User Avatar" />
                             <AvatarFallback>{userFallback}</AvatarFallback>
                         </Avatar>

@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/chart"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import type { DashboardStats, TopBettor, RecentBet, WeeklyBetVolume } from "@/actions/admin-actions"
+import { cn } from "@/lib/utils"
 
 const chartConfig = {
   total: {
@@ -138,7 +139,7 @@ export function AdminDashboardClient({ stats, weeklyVolume, topBettors, recentBe
             <CardContent className="grid gap-8">
               {topBettors.map(user => (
                   <div className="flex items-center gap-4" key={user.email}>
-                    <Avatar className="hidden h-9 w-9 sm:flex">
+                    <Avatar className={cn("hidden h-9 w-9 sm:flex", user.isVip && "ring-2 ring-vip")}>
                       <AvatarImage src={user.avatar} alt="Avatar" data-ai-hint="user avatar" />
                       <AvatarFallback>{user.name.substring(0, 2).toUpperCase()}</AvatarFallback>
                     </Avatar>

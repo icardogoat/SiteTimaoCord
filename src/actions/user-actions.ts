@@ -73,6 +73,7 @@ export async function getRankings(): Promise<UserRanking[]> {
                     name: '$userDetails.name',
                     avatar: '$userDetails.image',
                     winnings: 1,
+                    isVip: '$userDetails.isVip',
                 }
             }
         ]).toArray();
@@ -82,6 +83,7 @@ export async function getRankings(): Promise<UserRanking[]> {
             name: user.name as string,
             avatar: user.avatar as string,
             winnings: user.winnings as number,
+            isVip: user.isVip as boolean ?? false,
         }));
 
     } catch (error) {

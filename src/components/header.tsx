@@ -59,6 +59,7 @@ export function Header() {
   const userImage = user?.image;
   const userBalance = user?.balance ?? 0;
   const userLevel = user?.level?.level ?? 1;
+  const isVip = user?.isVip ?? false;
   const userFallback = userName
     .split(' ')
     .map((word) => word[0])
@@ -160,7 +161,7 @@ export function Header() {
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="relative h-9 w-9 rounded-full p-0">
-                <Avatar className="h-9 w-9">
+                <Avatar className={cn("h-9 w-9", isVip && "ring-2 ring-offset-2 ring-vip ring-offset-background")}>
                     <AvatarImage src={userImage ?? undefined} alt={userName} />
                     <AvatarFallback>{userFallback}</AvatarFallback>
                 </Avatar>

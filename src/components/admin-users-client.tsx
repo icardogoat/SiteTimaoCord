@@ -34,6 +34,7 @@ import {
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { cn } from "@/lib/utils";
 
 type User = {
     id: string;
@@ -46,6 +47,7 @@ type User = {
     balance: number;
     status: "Ativo" | "Suspenso";
     avatar: string;
+    isVip?: boolean;
 };
 
 interface AdminUsersClientProps {
@@ -102,7 +104,7 @@ export default function AdminUsersClient({ initialUsers }: AdminUsersClientProps
                                 <TableRow key={user.id}>
                                     <TableCell>
                                         <div className="flex items-center gap-3">
-                                            <Avatar className="hidden h-9 w-9 sm:flex">
+                                            <Avatar className={cn("hidden h-9 w-9 sm:flex", user.isVip && "ring-2 ring-vip")}>
                                                 <AvatarImage src={user.avatar} alt={user.name} data-ai-hint="user avatar"/>
                                                 <AvatarFallback>{user.name.substring(0,2).toUpperCase()}</AvatarFallback>
                                             </Avatar>

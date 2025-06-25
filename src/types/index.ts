@@ -80,6 +80,7 @@ export type UserRanking = {
   avatar: string;
   name: string;
   winnings: number;
+  isVip?: boolean;
 };
 
 export type UserLevel = {

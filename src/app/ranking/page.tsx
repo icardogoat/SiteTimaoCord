@@ -6,6 +6,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Trophy } from "lucide-react";
 import { getAvailableLeagues } from "@/actions/bet-actions";
 import { getRankings } from "@/actions/user-actions";
+import { cn } from "@/lib/utils";
 
 export default async function RankingPage() {
   const [availableLeagues, rankings] = await Promise.all([
@@ -55,7 +56,7 @@ export default async function RankingPage() {
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center gap-3">
-                            <Avatar>
+                            <Avatar className={cn(user.isVip && "ring-2 ring-vip")}>
                               <AvatarImage src={user.avatar ?? undefined} alt={user.name} data-ai-hint="user avatar" />
                               <AvatarFallback>{user.name.substring(0, 2).toUpperCase()}</AvatarFallback>
                             </Avatar>
