@@ -72,6 +72,34 @@ type BetAdminView = {
     status: 'Em Aberto' | 'Ganha' | 'Perdida' | 'Cancelada';
 };
 
+// Types for dashboard data
+export type DashboardStats = {
+    totalWagered: number;
+    activeUsers: number;
+    totalBets: number;
+    grossProfit: number;
+};
+
+export type WeeklyBetVolume = {
+    date: string;
+    total: number;
+}[];
+
+export type TopBettor = {
+    name: string;
+    email: string;
+    avatar: string;
+    totalWagered: number;
+};
+
+export type RecentBet = {
+    userName: string;
+    userEmail: string;
+    matchDescription: string;
+    status: 'Em Aberto' | 'Ganha' | 'Perdida' | 'Cancelada';
+    stake: number;
+};
+
 
 // Fetch matches for admin page
 export async function getAdminMatches(): Promise<MatchAdminView[]> {
@@ -565,4 +593,181 @@ export async function processAllFinishedMatches(): Promise<{ success: boolean; m
         message: summaryMessage,
         details: results
     };
+}
+
+// Function to fetch dashboard stats
+export async function getDashboardStats(): Promise<DashboardStats> {
+    try {
+        const client = await clientPromise;
+        const db = client.db('timaocord');
+        const betsCollection = db.collection('bets');
+        const usersCollection = db.collection('users');
+
+        const totalUsers = await usersCollection.countDocuments();
+
+        const betsStats = await betsCollection.aggregate([
+            {
+                $group: {
+                    _id: null,
+                    totalWagered: { $sum: '$stake' },
+                    totalBets: { $sum: 1 },
+                    totalWinnings: {
+                        $sum: {
+                            $cond: [{ $eq: ['$status', 'Ganha'] }, '$potentialWinnings', 0]
+                        }
+                    }
+                }
+            }
+        ]).toArray();
+
+        const stats = betsStats[0] || { totalWagered: 0, totalBets: 0, totalWinnings: 0 };
+        const grossProfit = stats.totalWagered - stats.totalWinnings;
+
+        return {
+            totalWagered: stats.totalWagered,
+            activeUsers: totalUsers,
+            totalBets: stats.totalBets,
+            grossProfit: grossProfit,
+        };
+    } catch (error) {
+        console.error("Error fetching dashboard stats:", error);
+        return { totalWagered: 0, activeUsers: 0, totalBets: 0, grossProfit: 0 };
+    }
+}
+
+// Function to fetch weekly bet volume
+export async function getWeeklyBetVolume(): Promise<WeeklyBetVolume> {
+    try {
+        const client = await clientPromise;
+        const db = client.db('timaocord');
+        const betsCollection = db.collection('bets');
+        
+        const weekDayMap = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+        const volumeMap = new Map<string, number>();
+        const sevenDaysAgo = new Date();
+        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6);
+        sevenDaysAgo.setHours(0, 0, 0, 0);
+
+        // Initialize map for the last 7 days
+        for (let i = 6; i >= 0; i--) {
+            const d = new Date();
+            d.setDate(d.getDate() - i);
+            const key = d.toISOString().split('T')[0];
+            volumeMap.set(key, 0);
+        }
+
+        const aggregationResult = await betsCollection.aggregate([
+            { $match: { createdAt: { $gte: sevenDaysAgo } } },
+            {
+                $group: {
+                    _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt", timezone: "America/Sao_Paulo" } },
+                    total: { $sum: "$stake" }
+                }
+            },
+        ]).toArray();
+
+        aggregationResult.forEach(item => {
+            if (volumeMap.has(item._id)) {
+                volumeMap.set(item._id, item.total);
+            }
+        });
+        
+        return Array.from(volumeMap.entries()).map(([dateStr, total]) => {
+            const dateParts = dateStr.split('-').map(Number);
+            // new Date('YYYY-MM-DD') can have timezone issues. Use UTC to be safe.
+            const date = new Date(Date.UTC(dateParts[0], dateParts[1] - 1, dateParts[2]));
+            return { date: weekDayMap[date.getUTCDay()], total };
+        });
+
+    } catch (error) {
+        console.error("Error fetching weekly bet volume:", error);
+        return ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'].map(d => ({ date: d, total: 0}));
+    }
+}
+
+// Function to fetch top bettors by amount wagered
+export async function getTopBettors(): Promise<TopBettor[]> {
+     try {
+        const client = await clientPromise;
+        const db = client.db('timaocord');
+        const betsCollection = db.collection('bets');
+
+        const topBettorsData = await betsCollection.aggregate([
+            {
+                $group: {
+                    _id: '$userId',
+                    totalWagered: { $sum: '$stake' }
+                }
+            },
+            { $sort: { totalWagered: -1 } },
+            { $limit: 5 },
+            {
+                $lookup: {
+                    from: 'users',
+                    localField: '_id',
+                    foreignField: 'discordId',
+                    as: 'userDetails'
+                }
+            },
+            { $unwind: '$userDetails' },
+            {
+                $project: {
+                    _id: 0,
+                    name: '$userDetails.name',
+                    email: '$userDetails.email',
+                    avatar: '$userDetails.image',
+                    totalWagered: 1,
+                }
+            }
+        ]).toArray();
+
+        return topBettorsData.map(user => ({
+            name: user.name as string,
+            email: user.email as string,
+            avatar: user.avatar as string,
+            totalWagered: user.totalWagered as number,
+        }));
+
+    } catch (error) {
+        console.error('Error fetching top bettors:', error);
+        return [];
+    }
+}
+
+// Function to fetch recent bets for dashboard
+export async function getRecentBets(): Promise<RecentBet[]> {
+    try {
+        const client = await clientPromise;
+        const db = client.db('timaocord');
+        
+        const bets = await db.collection('bets').aggregate([
+            { $sort: { createdAt: -1 } },
+            { $limit: 5 },
+            {
+                $lookup: {
+                    from: 'users',
+                    localField: 'userId',
+                    foreignField: 'discordId',
+                    as: 'userDetails'
+                }
+            },
+            {
+                $unwind: '$userDetails'
+            }
+        ]).toArray();
+
+        return bets.map((bet: any) => ({
+            userName: bet.userDetails.name,
+            userEmail: bet.userDetails.email,
+            matchDescription: bet.bets.length > 1 
+                ? `Múltipla (${bet.bets.length} seleções)` 
+                : `${bet.bets[0].teamA} vs ${bet.bets[0].teamB}`,
+            stake: bet.stake,
+            status: bet.status
+        }));
+
+    } catch (error) {
+        console.error("Error fetching recent bets for dashboard:", error);
+        return [];
+    }
 }
