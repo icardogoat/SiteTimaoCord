@@ -68,11 +68,13 @@ export type PlacedBet = {
 
 
 export type Notification = {
-    id: string;
-    title: string;
-    description: string;
-    time: string;
-    read: boolean;
+  _id: string | ObjectId;
+  userId: string;
+  title: string;
+  description: string;
+  date: Date | string;
+  read: boolean;
+  link?: string;
 };
 
 export type UserRanking = {
@@ -97,3 +99,5 @@ export type Wallet = {
     balance: number;
     transactions: Transaction[];
 };
+
+    

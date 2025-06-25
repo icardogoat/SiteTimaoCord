@@ -409,6 +409,7 @@ export async function resolveMatch(fixtureId: number): Promise<{ success: boolea
         await mongoSession.withTransaction(async () => {
             const betsCollection = db.collection<WithId<PlacedBet>>('bets');
             const walletsCollection = db.collection('wallets');
+            const notificationsCollection = db.collection('notifications');
 
             // Mark as processed inside the transaction
             await matchesCollection.updateOne(
@@ -471,6 +472,22 @@ export async function resolveMatch(fixtureId: number): Promise<{ success: boolea
                         { $set: { bets: updatedSelections, status: finalBetStatus, potentialWinnings: winnings, settledAt: new Date() } },
                         { session: mongoSession }
                     );
+
+                    const notificationTitle = finalBetStatus === 'Ganha' ? 'Aposta Ganha!' : 'Aposta Perdida';
+                    const betDescription = bet.bets.length > 1 
+                        ? `Múltipla (${bet.bets.length} seleções)` 
+                        : `${bet.bets[0].teamA} vs ${bet.bets[0].teamB}`;
+                    const notificationDesc = `Sua aposta em "${betDescription}" foi resolvida. Clique para ver.`;
+
+                    await notificationsCollection.insertOne({
+                        userId: bet.userId,
+                        title: notificationTitle,
+                        description: notificationDesc,
+                        date: new Date(),
+                        read: false,
+                        link: `/my-bets`
+                    }, { session: mongoSession });
+                    
                     settledCount++;
                 } else {
                      await betsCollection.updateOne(
@@ -488,6 +505,7 @@ export async function resolveMatch(fixtureId: number): Promise<{ success: boolea
         revalidatePath('/admin/bets');
         revalidatePath('/my-bets');
         revalidatePath('/wallet');
+        revalidatePath('/notifications');
 
         return { success: true, message: `Partida ${fixtureId} resolvida. ${settledCount} apostas foram finalizadas.` };
 
@@ -548,5 +566,7 @@ export async function processAllFinishedMatches(): Promise<{ success: boolean; m
         details: results
     };
 }
+
+    
 
     

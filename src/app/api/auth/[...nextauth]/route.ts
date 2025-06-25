@@ -4,7 +4,7 @@ import type { AuthOptions } from 'next-auth';
 import DiscordProvider from 'next-auth/providers/discord';
 import { MongoDBAdapter } from "@next-auth/mongodb-adapter";
 import clientPromise from "@/lib/mongodb";
-import type { Transaction } from '@/types';
+import type { Notification, Transaction } from '@/types';
 
 export const authOptions: AuthOptions = {
   adapter: MongoDBAdapter(clientPromise, { databaseName: "timaocord" }),
@@ -74,6 +74,17 @@ export const authOptions: AuthOptions = {
             balance: 1000,
             transactions: [initialTransaction]
           });
+
+          const notificationsCollection = db.collection("notifications");
+          const welcomeNotification: Omit<Notification, '_id'> = {
+              userId: user.id,
+              title: 'Bem-vindo ao Timaocord!',
+              description: 'Você recebeu R$ 1.000,00 de bônus para começar a apostar. Boa sorte!',
+              date: new Date(),
+              read: false,
+              link: '/wallet'
+          };
+          await notificationsCollection.insertOne(welcomeNotification as any);
         }
       } catch (error) {
         console.error("Failed to create or check wallet for user:", error);
@@ -128,3 +139,5 @@ export const authOptions: AuthOptions = {
 const handler = NextAuth(authOptions);
 
 export { handler as GET, handler as POST };
+
+    
