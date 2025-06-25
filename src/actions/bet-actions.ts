@@ -191,27 +191,42 @@ export async function getMatches({ league, page = 1 }: { league?: string; page?:
         { $match: displayQuery },
         {
             $addFields: {
+                // This field will determine the primary sort order
                 sortOrder: {
                     $switch: {
                         branches: [
                             {
-                                case: { $in: ['$status', finishedOrPostponedStatuses] },
-                                then: 2 // Finished or Postponed
+                                // Upcoming games are second
+                                case: { $eq: ['$status', 'NS'] },
+                                then: 2 
                             },
                             {
-                                case: { $eq: ['$status', 'NS'] },
-                                then: 3 // Not Started (upcoming)
+                                // Finished or Postponed are last
+                                case: { $in: ['$status', finishedOrPostponedStatuses] },
+                                then: 3
                             }
                         ],
-                        default: 1 // Live games
+                        // Live games are first
+                        default: 1
+                    }
+                },
+                // This field will handle the secondary sort direction.
+                // For finished games, we want newest first (descending timestamp).
+                // For all others, we want oldest/soonest first (ascending timestamp).
+                // By negating the timestamp for finished games, we can use a single ascending sort.
+                timeSort: {
+                    $cond: {
+                        if: { $in: ['$status', finishedOrPostponedStatuses] },
+                        then: { $multiply: ['$timestamp', -1] }, // This makes recent (higher) timestamps smaller negatives
+                        else: '$timestamp'
                     }
                 }
             }
         },
         {
             $sort: {
-                sortOrder: 1, // 1 (Live), 2 (Finished/Postponed), 3 (Upcoming)
-                timestamp: 1 // Then sort by time
+                sortOrder: 1, // 1 (Live), 2 (Upcoming), 3 (Finished)
+                timeSort: 1  // Ascending on our conditional time field
             }
         },
         { $skip: skip },
