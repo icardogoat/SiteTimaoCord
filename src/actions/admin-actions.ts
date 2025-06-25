@@ -15,10 +15,12 @@ type MatchFromDb = {
   timestamp: number;
   status: string;
   isProcessed?: boolean;
+  homeLogo?: string;
+  awayLogo?: string;
 };
 
 // Types for data structure inside a full match document from DB
-// Assumed to be saved by an external script, mirroring API structure
+// These are expected from the external script that saves API data
 interface TeamDataInDB {
     home: { id: number; name: string; winner: boolean | null };
     away: { id: number; name: string; winner: boolean | null };
@@ -29,11 +31,10 @@ interface StatsInDB {
     statistics: { type: string; value: number | string | null; }[];
 }
 
-// Type for the full match document in MongoDB
+// Type for the full match document in MongoDB, acknowledging some fields might be missing
 type FullMatchInDb = MatchFromDb & {
     goals: { home: number | null; away: number | null; };
-    teams: TeamDataInDB;
-    statistics: StatsInDB[];
+    statistics?: StatsInDB[];
 };
 
 type MatchAdminView = {
@@ -235,28 +236,43 @@ export async function getAdminUsers(): Promise<UserAdminView[]> {
 }
 
 // Function to evaluate one selection
-function evaluateSelection(selection: PlacedBet['bets'][0], goals: { home: number, away: number }, stats: StatsInDB[], teams: TeamDataInDB): 'Ganha' | 'Perdida' | 'Anulada' {
+function evaluateSelection(selection: PlacedBet['bets'][0], goals: { home: number, away: number }, stats: StatsInDB[] | undefined, teams: TeamDataInDB): 'Ganha' | 'Perdida' | 'Anulada' {
     const { home, away } = goals;
     const totalGoals = home + away;
     
-    const homeStats = stats.find(s => s.team.id === teams.home.id)?.statistics || [];
-    const awayStats = stats.find(s => s.team.id === teams.away.id)?.statistics || [];
-    
-    const getStat = (teamStats: { type: string; value: any }[], type: string): number => {
-        const stat = teamStats.find(s => s.type === type);
-        const value = stat ? stat.value : 0;
-        return Number(value) || 0;
+    const marketsNeedingStats = [
+        'Escanteios Acima/Abaixo', 'Cartões Acima/Abaixo', 'Escanteios 1x2',
+        'Escanteios da Casa Acima/Abaixo', 'Escanteios do Visitante Acima/Abaixo',
+    ];
+
+    if (marketsNeedingStats.includes(selection.marketName) && (!stats || !teams)) {
+        console.warn(`Market "${selection.marketName}" for match ${selection.matchId} will be voided due to missing statistics data.`);
+        return 'Anulada';
     }
     
-    const homeCorners = getStat(homeStats, 'Corner Kicks');
-    const awayCorners = getStat(awayStats, 'Corner Kicks');
-    const totalCorners = homeCorners + awayCorners;
+    let homeCorners = 0, awayCorners = 0, totalCorners = 0, totalCards = 0;
 
-    const homeYellow = getStat(homeStats, 'Yellow Cards');
-    const homeRed = getStat(homeStats, 'Red Cards');
-    const awayYellow = getStat(awayStats, 'Yellow Cards');
-    const awayRed = getStat(awayStats, 'Red Cards');
-    const totalCards = homeYellow + homeRed + awayYellow + awayRed;
+    if (stats && teams) {
+        const homeStats = stats.find(s => s.team.id === teams.home.id)?.statistics || [];
+        const awayStats = stats.find(s => s.team.id === teams.away.id)?.statistics || [];
+        
+        const getStat = (teamStats: { type: string; value: any }[], type: string): number => {
+            const stat = teamStats.find(s => s.type === type);
+            if (!stat || stat.value === null) return 0;
+            const value = typeof stat.value === 'string' ? parseInt(stat.value, 10) : stat.value;
+            return isNaN(value) ? 0 : Number(value);
+        }
+        
+        homeCorners = getStat(homeStats, 'Corner Kicks');
+        awayCorners = getStat(awayStats, 'Corner Kicks');
+        totalCorners = homeCorners + awayCorners;
+
+        const homeYellow = getStat(homeStats, 'Yellow Cards');
+        const homeRed = getStat(homeStats, 'Red Cards');
+        const awayYellow = getStat(awayStats, 'Yellow Cards');
+        const awayRed = getStat(awayStats, 'Red Cards');
+        totalCards = homeYellow + homeRed + awayYellow + awayRed;
+    }
     
     switch (selection.marketName) {
         case 'Vencedor da Partida':
@@ -364,14 +380,27 @@ export async function resolveMatch(fixtureId: number): Promise<{ success: boolea
             return { success: false, message: `A partida ${fixtureId} ainda não foi finalizada (Status: ${matchData.status}).` };
         }
 
-        const { goals, statistics: finalStats, teams } = matchData;
+        const { goals, statistics: finalStats } = matchData;
 
         if (goals.home === null || goals.away === null) {
             return { success: false, message: 'Dados de gols ausentes no documento da partida.' };
         }
 
-        if (!finalStats || !teams) {
-            return { success: false, message: 'Dados de estatísticas ou de times estão ausentes no documento da partida.' };
+        const getTeamIdFromLogo = (url: string | undefined): number | null => {
+            if (!url) return null;
+            const match = url.match(/\/teams\/(\d+)\.png$/);
+            return match ? parseInt(match[1], 10) : null;
+        };
+
+        const homeTeamId = getTeamIdFromLogo(matchData.homeLogo);
+        const awayTeamId = getTeamIdFromLogo(matchData.awayLogo);
+        
+        let teamsForEval: TeamDataInDB | undefined = undefined;
+        if(homeTeamId && awayTeamId) {
+             teamsForEval = {
+                home: { id: homeTeamId, name: matchData.homeTeam, winner: null },
+                away: { id: awayTeamId, name: matchData.awayTeam, winner: null },
+            };
         }
 
         const mongoSession = client.startSession();
@@ -396,7 +425,10 @@ export async function resolveMatch(fixtureId: number): Promise<{ success: boolea
             for (const bet of openBets) {
                 const updatedSelections = bet.bets.map(selection => {
                     if (selection.matchId === fixtureId) {
-                        return { ...selection, status: evaluateSelection(selection, goals, finalStats, teams) };
+                        if (!teamsForEval) {
+                           return { ...selection, status: 'Anulada' as const };
+                        }
+                        return { ...selection, status: evaluateSelection(selection, goals, finalStats, teamsForEval) };
                     }
                     return selection;
                 });
