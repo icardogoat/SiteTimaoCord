@@ -146,3 +146,11 @@ export type Standing = {
   };
   standings: StandingEntry[][];
 };
+
+export type BotConfig = {
+  _id: string | ObjectId;
+  welcomeChannelId: string;
+  logChannelId: string;
+  bettingChannelId: string;
+  adminRoleId: string;
+};
