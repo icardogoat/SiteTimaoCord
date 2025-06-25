@@ -136,3 +136,59 @@ export async function getDiscordServerDetails(guildId: string): Promise<{ succes
         return { success: false, error: (error instanceof Error) ? error.message : 'Ocorreu um erro desconhecido.' };
     }
 }
+
+export type GuildDetails = {
+    id: string;
+    name: string;
+    iconUrl: string | null;
+    memberCount: number;
+    onlineCount: number;
+    boostTier: number;
+    boostCount: number;
+    createdAt: string;
+};
+
+export async function getGuildDetails(guildId: string): Promise<{ success: boolean, data?: GuildDetails, error?: string }> {
+    const botToken = process.env.DISCORD_BOT_TOKEN;
+
+    if (!botToken || botToken === 'YOUR_BOT_TOKEN_HERE') {
+        const errorMessage = 'Token do bot do Discord não configurado no servidor.';
+        console.error(errorMessage);
+        return { success: false, error: errorMessage };
+    }
+    if (!guildId) {
+        return { success: false, error: 'ID do Servidor não fornecido.' };
+    }
+
+    try {
+        const guildRes = await fetch(`https://discord.com/api/v10/guilds/${guildId}?with_counts=true`, {
+            headers: { 'Authorization': `Bot ${botToken}` },
+            cache: 'no-store'
+        });
+
+        if (!guildRes.ok) {
+            const errorData = await guildRes.json();
+            console.error(`Falha ao buscar detalhes do servidor: ${guildRes.statusText}`, errorData);
+            return { success: false, error: `Falha ao buscar detalhes do servidor: ${errorData.message || guildRes.statusText}. Verifique o ID do Servidor e as permissões do bot.` };
+        }
+        
+        const guildData = await guildRes.json();
+        
+        const details: GuildDetails = {
+            id: guildData.id,
+            name: guildData.name,
+            iconUrl: guildData.icon ? `https://cdn.discordapp.com/icons/${guildData.id}/${guildData.icon}.png` : null,
+            memberCount: guildData.approximate_member_count || 0,
+            onlineCount: guildData.approximate_presence_count || 0,
+            boostTier: guildData.premium_tier,
+            boostCount: guildData.premium_subscription_count || 0,
+            createdAt: new Date(parseInt((BigInt(guildData.id) >> 22n).toString()) + 1420070400000).toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' }),
+        };
+
+        return { success: true, data: details };
+
+    } catch (error) {
+        console.error("Erro ao buscar detalhes do servidor Discord:", error);
+        return { success: false, error: (error instanceof Error) ? error.message : 'Ocorreu um erro desconhecido.' };
+    }
+}

@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { type ReactNode } from "react"
-import { Home, Users, Trophy, Ticket, Menu, Bot } from "lucide-react"
+import { Home, Users, Trophy, Ticket, Menu, Bot, Server } from "lucide-react"
 import { useSession, signOut } from "next-auth/react"
 
 import { Button } from "@/components/ui/button"
@@ -27,6 +27,7 @@ const navLinks = [
     { href: "/admin/bets", label: "Apostas", icon: Ticket },
     { href: "/admin/matches", label: "Partidas", icon: Trophy },
     { href: "/admin/users", label: "Usuários", icon: Users },
+    { href: "/admin/server", label: "Servidor", icon: Server },
     { href: "/admin/bot", label: "Bot", icon: Bot },
 ];
 
