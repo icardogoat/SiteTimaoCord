@@ -40,8 +40,9 @@ async function getMatches(): Promise<{ matches: Match[]; availableLeagues: strin
     const start = new Date(nowInBrasilia);
     start.setHours(0, 0, 0, 0);
 
-    // Get the end of today in Brasília time.
+    // Get the end of tomorrow in Brasília time.
     const end = new Date(nowInBrasilia);
+    end.setDate(end.getDate() + 1);
     end.setHours(23, 59, 59, 999);
 
     // .getTime() is always UTC-based, so this gives us the correct timestamp range for the query.
