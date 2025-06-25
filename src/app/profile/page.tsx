@@ -4,7 +4,6 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import type { UserRanking } from "@/types";
 import { Trophy } from "lucide-react";
 import Link from 'next/link';
 import { buttonVariants } from "@/components/ui/button";
@@ -12,34 +11,31 @@ import { cn } from "@/lib/utils";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { getAvailableLeagues } from "@/actions/bet-actions";
-
-// In a real app, this data would come from an API
-const rankings: UserRanking[] = [
-  { rank: 1, avatar: "https://placehold.co/40x40.png", name: "Zico da Fiel", winnings: 15230.50 },
-  { rank: 2, avatar: "https://placehold.co/40x40.png", name: "Craque Neto 10", winnings: 12876.00 },
-  { rank: 3, avatar: "https://placehold.co/40x40.png", name: "Marcelinho Carioca", winnings: 11050.25 },
-  { rank: 4, avatar: "https://placehold.co/40x40.png", name: "Vampeta Monstro", winnings: 9876.50 },
-  { rank: 5, avatar: "https://placehold.co/40x40.png", name: "Doutor Sócrates", winnings: 8543.00 },
-  { rank: 6, avatar: "https://placehold.co/40x40.png", name: "Ronaldo Fenômeno", winnings: 7321.75 },
-  { rank: 7, avatar: "https://placehold.co/40x40.png", name: "Cássio Gigante", winnings: 6987.20 },
-  { rank: 8, avatar: "https://placehold.co/40x40.png", name: "Rivelino Reizinho", winnings: 5432.10 },
-  { rank: 9, avatar: "https://placehold.co/40x40.png", name: "Biro-Biro Timao", winnings: 4999.99 },
-  { rank: 10, avatar: "https://placehold.co/40x40.png", name: "Paulinho Guerreiro", winnings: 4500.00 },
-];
+import { getUserStats, getRankings } from "@/actions/user-actions";
+import { redirect } from "next/navigation";
 
 export default async function ProfilePage() {
-  const [session, availableLeagues] = await Promise.all([
-    getServerSession(authOptions),
+  const session = await getServerSession(authOptions);
+  if (!session?.user) {
+    redirect('/');
+  }
+
+  const [
+    userStats,
+    rankings,
+    availableLeagues
+  ] = await Promise.all([
+    getUserStats(session.user.discordId),
+    getRankings(),
     getAvailableLeagues()
   ]);
 
-  const totalWinnings = 85.00;
-  const totalLosses = 45.00;
+  const { totalWinnings, totalLosses } = userStats;
   
-  const user = session?.user;
-  const userName = user?.name ?? "Usuário";
-  const userEmail = user?.email ?? "email@example.com";
-  const userImage = user?.image;
+  const user = session.user;
+  const userName = user.name ?? "Usuário";
+  const userEmail = user.email ?? "email@example.com";
+  const userImage = user.image;
   const userFallback = userName
     .split(' ')
     .map((word) => word[0])
@@ -47,16 +43,16 @@ export default async function ProfilePage() {
     .substring(0, 2)
     .toUpperCase();
 
-  const userRankData = rankings.find(user => user.name === userName);
+  const userRankData = rankings.find(rankedUser => rankedUser.name === userName);
 
   return (
     <AppLayout availableLeagues={availableLeagues}>
-      <div className="flex-1 p-4 sm:p-6 lg:p-8">
+      <div className="flex-1 space-y-8 p-4 sm:p-6 lg:p-8">
           <div className="mb-8">
               <h1 className="text-3xl font-bold font-headline tracking-tight">Perfil</h1>
               <p className="text-muted-foreground">Veja suas informações de perfil e estatísticas.</p>
           </div>
-          <div className="max-w-2xl mx-auto space-y-8">
+          <div className="mx-auto max-w-2xl space-y-8">
             <Card>
                 <CardHeader>
                     <CardTitle>Informações Pessoais</CardTitle>
