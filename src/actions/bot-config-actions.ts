@@ -192,3 +192,87 @@ export async function getGuildDetails(guildId: string): Promise<{ success: boole
         return { success: false, error: (error instanceof Error) ? error.message : 'Ocorreu um erro desconhecido.' };
     }
 }
+
+export type RoleWithMemberCount = {
+    id: string;
+    name: string;
+    memberCount: number;
+    color: number;
+};
+
+export async function getRoleMemberCounts(guildId: string): Promise<{ success: boolean, data?: RoleWithMemberCount[], error?: string }> {
+    const botToken = process.env.DISCORD_BOT_TOKEN;
+
+    if (!botToken || botToken === 'YOUR_BOT_TOKEN_HERE') {
+        const errorMessage = 'Token do bot do Discord não configurado no servidor.';
+        console.error(errorMessage);
+        return { success: false, error: errorMessage };
+    }
+     if (!guildId) {
+        return { success: false, error: 'ID do Servidor não fornecido.' };
+    }
+
+    const headers = { 'Authorization': `Bot ${botToken}` };
+
+    try {
+        // 1. Fetch all roles
+        const rolesRes = await fetch(`https://discord.com/api/v10/guilds/${guildId}/roles`, { headers, cache: 'no-store' });
+        if (!rolesRes.ok) {
+            const errorData = await rolesRes.json();
+            return { success: false, error: `Falha ao buscar cargos: ${errorData.message || rolesRes.statusText}.` };
+        }
+        const roles: { id: string; name: string; color: number; position: number }[] = await rolesRes.json();
+
+        // Initialize member counts
+        const roleCounts = new Map<string, number>(roles.map(r => [r.id, 0]));
+
+        // 2. Fetch all members (paginated)
+        let lastMemberId = '0';
+        let hasMoreMembers = true;
+        while (hasMoreMembers) {
+            const membersRes = await fetch(`https://discord.com/api/v10/guilds/${guildId}/members?limit=1000&after=${lastMemberId}`, { headers, cache: 'no-store' });
+            
+            if (!membersRes.ok) {
+                const errorData = await membersRes.json();
+                if (errorData.code === 50001) {
+                     return { success: false, error: "Acesso Negado: O bot precisa da 'Server Members Intent' ativada no Portal de Desenvolvedores do Discord para ler os dados dos membros." };
+                }
+                return { success: false, error: `Falha ao buscar membros: ${errorData.message || membersRes.statusText}.` };
+            }
+            const members: { user: { id: string }; roles: string[] }[] = await membersRes.json();
+            
+            if (members.length === 0) {
+                hasMoreMembers = false;
+            } else {
+                lastMemberId = members[members.length - 1].user.id;
+                for (const member of members) {
+                    for (const roleId of member.roles) {
+                        if (roleCounts.has(roleId)) {
+                            roleCounts.set(roleId, roleCounts.get(roleId)! + 1);
+                        }
+                    }
+                }
+            }
+        }
+        
+        // 3. Combine roles with member counts
+        const rolesWithCounts = roles
+            .filter(role => role.name !== '@everyone') // Filter out @everyone role
+            .map(role => ({
+                id: role.id,
+                name: role.name,
+                color: role.color,
+                memberCount: roleCounts.get(role.id) || 0,
+                position: role.position,
+            }))
+            .sort((a, b) => b.position - a.position);
+
+        const finalRoles: RoleWithMemberCount[] = rolesWithCounts.map(({ position, ...rest }) => rest);
+
+        return { success: true, data: finalRoles };
+
+    } catch (error) {
+        console.error("Erro ao buscar contagem de membros por cargo:", error);
+        return { success: false, error: (error instanceof Error) ? error.message : 'Ocorreu um erro desconhecido.' };
+    }
+}
