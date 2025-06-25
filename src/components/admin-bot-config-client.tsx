@@ -21,8 +21,8 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import type { BotConfig } from "@/types";
-import { updateBotConfig, getDiscordServerDetails, type DiscordChannel, type DiscordRole } from "@/actions/bot-config-actions";
-import { Loader2, Terminal, Check, ChevronsUpDown, X } from "lucide-react";
+import { updateBotConfig, getDiscordServerDetails, sendTestDiscordMessage, type DiscordChannel, type DiscordRole } from "@/actions/bot-config-actions";
+import { Loader2, Terminal, Check, ChevronsUpDown } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -65,6 +65,7 @@ export default function AdminBotConfigClient({ initialConfig, initialChannels, i
     const { toast } = useToast();
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isLoadingDetails, setIsLoadingDetails] = useState(false);
+    const [isTesting, setIsTesting] = useState<string | null>(null);
     const [channels, setChannels] = useState<DiscordChannel[]>(initialChannels);
     const [roles, setRoles] = useState<DiscordRole[]>(initialRoles);
 
@@ -119,6 +120,47 @@ export default function AdminBotConfigClient({ initialConfig, initialChannels, i
             });
         }
         setIsLoadingDetails(false);
+    };
+
+    const handleTest = async (channelType: 'welcome' | 'log' | 'betting' | 'winners') => {
+        const channelId = form.getValues(`${channelType}ChannelId` as keyof FormValues);
+        if (!channelId) {
+            toast({ title: "Nenhum canal selecionado", variant: "destructive" });
+            return;
+        }
+
+        let payload: { content?: string, embeds?: any[] } = {};
+        switch(channelType) {
+            case 'welcome': 
+                payload = { content: 'Olá! 👋 Esta é uma mensagem de teste do canal de boas-vindas.' }; 
+                break;
+            case 'log': 
+                payload = { content: '```ini\n[LOG TEST] Esta é uma mensagem de teste do canal de logs.\n```' }; 
+                break;
+            case 'betting': 
+                payload = { content: '⚽ Esta é uma mensagem de teste do canal de apostas.' }; 
+                break;
+            case 'winners':
+                payload = {
+                    embeds: [{
+                        color: 0x22c55e, // green-500
+                        title: '✅ Teste do Canal de Vencedores ✅',
+                        description: 'Se você pode ver esta mensagem, as notificações de vencedores funcionarão corretamente!',
+                        footer: { text: 'Teste enviado pelo Painel Admin' },
+                        timestamp: new Date().toISOString(),
+                    }]
+                };
+                break;
+        }
+        
+        setIsTesting(channelType);
+        const result = await sendTestDiscordMessage(channelId, payload);
+        if (result.success) {
+            toast({ title: 'Sucesso!', description: result.message });
+        } else {
+            toast({ title: 'Erro', description: result.message, variant: 'destructive' });
+        }
+        setIsTesting(null);
     };
 
     async function onSubmit(values: FormValues) {
@@ -202,20 +244,32 @@ export default function AdminBotConfigClient({ initialConfig, initialChannels, i
                             render={({ field }) => (
                                 <FormItem>
                                     <FormLabel>Canal de Boas-Vindas</FormLabel>
-                                    <Select onValueChange={field.onChange} value={field.value} disabled={channels.length === 0}>
-                                        <FormControl>
-                                            <SelectTrigger>
-                                                <SelectValue placeholder="Selecione um canal" />
-                                            </SelectTrigger>
-                                        </FormControl>
-                                        <SelectContent>
-                                            {channels.map(channel => (
-                                                <SelectItem key={channel.id} value={channel.id}>
-                                                    #{channel.name}
-                                                </SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
+                                    <div className="flex items-center gap-2">
+                                        <Select onValueChange={field.onChange} value={field.value} disabled={channels.length === 0}>
+                                            <FormControl>
+                                                <SelectTrigger>
+                                                    <SelectValue placeholder="Selecione um canal" />
+                                                </SelectTrigger>
+                                            </FormControl>
+                                            <SelectContent>
+                                                {channels.map(channel => (
+                                                    <SelectItem key={channel.id} value={channel.id}>
+                                                        #{channel.name}
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                         <Button 
+                                            type="button" 
+                                            variant="outline" 
+                                            size="icon"
+                                            onClick={() => handleTest('welcome')}
+                                            disabled={!field.value || isTesting !== null}
+                                            aria-label="Testar canal de boas-vindas"
+                                        >
+                                            {isTesting === 'welcome' ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Testar'}
+                                        </Button>
+                                    </div>
                                     <FormDescription>
                                         O canal onde as mensagens de boas-vindas serão enviadas.
                                     </FormDescription>
@@ -229,20 +283,32 @@ export default function AdminBotConfigClient({ initialConfig, initialChannels, i
                             render={({ field }) => (
                                 <FormItem>
                                     <FormLabel>Canal de Logs</FormLabel>
-                                    <Select onValueChange={field.onChange} value={field.value} disabled={channels.length === 0}>
-                                        <FormControl>
-                                            <SelectTrigger>
-                                                <SelectValue placeholder="Selecione um canal" />
-                                            </SelectTrigger>
-                                        </FormControl>
-                                        <SelectContent>
-                                            {channels.map(channel => (
-                                                <SelectItem key={channel.id} value={channel.id}>
-                                                    #{channel.name}
-                                                </SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
+                                     <div className="flex items-center gap-2">
+                                        <Select onValueChange={field.onChange} value={field.value} disabled={channels.length === 0}>
+                                            <FormControl>
+                                                <SelectTrigger>
+                                                    <SelectValue placeholder="Selecione um canal" />
+                                                </SelectTrigger>
+                                            </FormControl>
+                                            <SelectContent>
+                                                {channels.map(channel => (
+                                                    <SelectItem key={channel.id} value={channel.id}>
+                                                        #{channel.name}
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                        <Button 
+                                            type="button" 
+                                            variant="outline" 
+                                            size="icon"
+                                            onClick={() => handleTest('log')}
+                                            disabled={!field.value || isTesting !== null}
+                                            aria-label="Testar canal de logs"
+                                        >
+                                            {isTesting === 'log' ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Testar'}
+                                        </Button>
+                                    </div>
                                     <FormDescription>
                                         O canal para registrar logs de atividades importantes do bot.
                                     </FormDescription>
@@ -256,20 +322,32 @@ export default function AdminBotConfigClient({ initialConfig, initialChannels, i
                             render={({ field }) => (
                                 <FormItem>
                                     <FormLabel>Canal de Apostas</FormLabel>
-                                    <Select onValueChange={field.onChange} value={field.value} disabled={channels.length === 0}>
-                                        <FormControl>
-                                            <SelectTrigger>
-                                                <SelectValue placeholder="Selecione um canal" />
-                                            </SelectTrigger>
-                                        </FormControl>
-                                        <SelectContent>
-                                            {channels.map(channel => (
-                                                <SelectItem key={channel.id} value={channel.id}>
-                                                    #{channel.name}
-                                                </SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
+                                    <div className="flex items-center gap-2">
+                                        <Select onValueChange={field.onChange} value={field.value} disabled={channels.length === 0}>
+                                            <FormControl>
+                                                <SelectTrigger>
+                                                    <SelectValue placeholder="Selecione um canal" />
+                                                </SelectTrigger>
+                                            </FormControl>
+                                            <SelectContent>
+                                                {channels.map(channel => (
+                                                    <SelectItem key={channel.id} value={channel.id}>
+                                                        #{channel.name}
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                        <Button 
+                                            type="button" 
+                                            variant="outline" 
+                                            size="icon"
+                                            onClick={() => handleTest('betting')}
+                                            disabled={!field.value || isTesting !== null}
+                                            aria-label="Testar canal de apostas"
+                                        >
+                                            {isTesting === 'betting' ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Testar'}
+                                        </Button>
+                                    </div>
                                     <FormDescription>
                                        O canal principal onde as apostas são anunciadas ou permitidas.
                                     </FormDescription>
@@ -283,20 +361,32 @@ export default function AdminBotConfigClient({ initialConfig, initialChannels, i
                             render={({ field }) => (
                                 <FormItem>
                                     <FormLabel>Canal de Vencedores</FormLabel>
-                                    <Select onValueChange={field.onChange} value={field.value} disabled={channels.length === 0}>
-                                        <FormControl>
-                                            <SelectTrigger>
-                                                <SelectValue placeholder="Selecione um canal" />
-                                            </SelectTrigger>
-                                        </FormControl>
-                                        <SelectContent>
-                                            {channels.map(channel => (
-                                                <SelectItem key={channel.id} value={channel.id}>
-                                                    #{channel.name}
-                                                </SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
+                                    <div className="flex items-center gap-2">
+                                        <Select onValueChange={field.onChange} value={field.value} disabled={channels.length === 0}>
+                                            <FormControl>
+                                                <SelectTrigger>
+                                                    <SelectValue placeholder="Selecione um canal" />
+                                                </SelectTrigger>
+                                            </FormControl>
+                                            <SelectContent>
+                                                {channels.map(channel => (
+                                                    <SelectItem key={channel.id} value={channel.id}>
+                                                        #{channel.name}
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                         <Button 
+                                            type="button" 
+                                            variant="outline" 
+                                            size="icon"
+                                            onClick={() => handleTest('winners')}
+                                            disabled={!field.value || isTesting !== null}
+                                            aria-label="Testar canal de vencedores"
+                                        >
+                                            {isTesting === 'winners' ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Testar'}
+                                        </Button>
+                                    </div>
                                     <FormDescription>
                                        Canal para anunciar os grandes vencedores de apostas.
                                     </FormDescription>

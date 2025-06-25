@@ -285,3 +285,38 @@ export async function getRoleMemberCounts(guildId: string): Promise<{ success: b
         return { success: false, error: (error instanceof Error) ? error.message : 'Ocorreu um erro desconhecido.' };
     }
 }
+
+export async function sendTestDiscordMessage(channelId: string, payload: { content?: string, embeds?: any[] }): Promise<{ success: boolean; message: string }> {
+    const botToken = process.env.DISCORD_BOT_TOKEN;
+
+    if (!botToken || botToken === 'YOUR_BOT_TOKEN_HERE') {
+        return { success: false, message: 'Token do bot do Discord não configurado.' };
+    }
+    if (!channelId) {
+        return { success: false, message: 'Nenhum canal selecionado.' };
+    }
+
+    try {
+        const response = await fetch(`https://discord.com/api/v10/channels/${channelId}/messages`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bot ${botToken}`,
+            },
+            body: JSON.stringify(payload),
+            cache: 'no-store'
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            console.error('Failed to send test message to Discord:', JSON.stringify(errorData, null, 2));
+            return { success: false, message: `Falha ao enviar mensagem de teste: ${errorData.message || response.statusText}` };
+        }
+
+        return { success: true, message: 'Mensagem de teste enviada com sucesso!' };
+
+    } catch (error) {
+        console.error('Error sending test message to Discord:', error);
+        return { success: false, message: 'Ocorreu um erro ao enviar a mensagem de teste.' };
+    }
+}
