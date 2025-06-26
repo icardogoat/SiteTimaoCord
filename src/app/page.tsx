@@ -1,4 +1,3 @@
-
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { DiscordLogo } from '@/components/icons';
@@ -22,7 +21,7 @@ export default async function TimaocordHome() {
       {/* Background Grid */}
       <div className="absolute inset-0 z-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px]"></div>
 
-      <main className="flex-1 flex flex-col items-center justify-center text-center p-4 -mt-16 z-10">
+      <main className="flex-1 flex flex-col items-center justify-center text-center p-4 z-10">
         <div className="mb-8">
           <Image
             src="https://i.imgur.com/xD76hcl.png"
@@ -39,7 +38,7 @@ export default async function TimaocordHome() {
           Bem-vindo ao Timaocord
         </h1>
         <p className="max-w-[600px] text-muted-foreground md:text-xl mb-8">
-          Sua comunidade para os verdadeiros fiéis. Divirta-se em nossa plataforma de apostas com moeda virtual.
+          nossa comunidade para os verdadeiros fiéis. Divirta-se em nossa plataforma de apostas com moeda virtual.
         </p>
         <div className="flex flex-col sm:flex-row gap-4">
           <Button size="lg" asChild disabled={!guildInviteUrl}>
