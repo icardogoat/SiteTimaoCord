@@ -8,11 +8,13 @@ import { revalidatePath } from 'next/cache';
 import type { Bolao, Notification, Transaction } from '@/types';
 import { ObjectId } from 'mongodb';
 import { getBotConfig } from './bot-config-actions';
+import { getApiSettings } from './settings-actions';
 
 const ENTRY_FEE = 5;
 
 async function sendNewBolaoNotification(bolao: Omit<Bolao, '_id'>) {
     const config = await getBotConfig();
+    const { siteUrl } = await getApiSettings();
     const botToken = process.env.DISCORD_BOT_TOKEN;
     const channelId = config.bolaoChannelId;
 
@@ -28,13 +30,34 @@ async function sendNewBolaoNotification(bolao: Omit<Bolao, '_id'>) {
         fields: [
             { name: 'Entrada', value: `R$ ${bolao.entryFee.toFixed(2)}`, inline: true },
             { name: 'Prêmio Inicial', value: `R$ ${bolao.prizePool.toFixed(2)}`, inline: true },
-            { name: 'Como participar?', value: `Acesse a aba **Bolão** no nosso site para dar seu palpite!`, inline: false },
         ],
         footer: {
             text: `Campeonato: ${bolao.league}`,
         },
         timestamp: new Date().toISOString(),
     };
+
+    const payload: { embeds: any[], components?: any[] } = {
+        embeds: [embed],
+    };
+
+    if (siteUrl) {
+        payload.components = [
+            {
+                type: 1, // Action Row
+                components: [
+                    {
+                        type: 2, // Button
+                        style: 5, // Link
+                        label: 'Participar do Bolão',
+                        url: `${siteUrl}/bolao`
+                    }
+                ]
+            }
+        ];
+    } else {
+        embed.fields.push({ name: 'Como participar?', value: `Acesse a aba **Bolão** no nosso site para dar seu palpite!`, inline: false });
+    }
 
     try {
         const response = await fetch(`https://discord.com/api/v10/channels/${channelId}/messages`, {
@@ -43,7 +66,7 @@ async function sendNewBolaoNotification(bolao: Omit<Bolao, '_id'>) {
                 'Content-Type': 'application/json',
                 'Authorization': `Bot ${botToken}`,
             },
-            body: JSON.stringify({ embeds: [embed] }),
+            body: JSON.stringify(payload),
             cache: 'no-store'
         });
 

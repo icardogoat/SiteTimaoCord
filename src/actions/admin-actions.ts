@@ -991,6 +991,7 @@ async function getMatchLineups(fixtureId: number): Promise<{ success: boolean; d
 
 async function sendNewMvpNotification(voting: Omit<MvpVoting, '_id'>) {
     const config = await getBotConfig();
+    const { siteUrl } = await getApiSettings();
     const botToken = process.env.DISCORD_BOT_TOKEN;
     const channelId = config.mvpChannelId;
 
@@ -1005,13 +1006,35 @@ async function sendNewMvpNotification(voting: Omit<MvpVoting, '_id'>) {
         description: `**${voting.homeTeam} vs ${voting.awayTeam}**\n\nQuem foi o melhor em campo? Vote agora e ganhe uma recompensa!`,
         fields: [
             { name: 'Recompensa por Voto', value: `**R$ 100,00**`, inline: true },
-            { name: 'Como participar?', value: `Acesse a aba **MVP** no nosso site para registrar seu voto!`, inline: false },
         ],
         footer: {
             text: `Campeonato: ${voting.league}`,
         },
         timestamp: new Date().toISOString(),
     };
+
+    const payload: { embeds: any[], components?: any[] } = {
+        embeds: [embed],
+    };
+
+    if (siteUrl) {
+        payload.components = [
+            {
+                type: 1, // Action Row
+                components: [
+                    {
+                        type: 2, // Button
+                        style: 5, // Link
+                        label: 'Votar no MVP',
+                        url: `${siteUrl}/mvp`
+                    }
+                ]
+            }
+        ];
+    } else {
+        embed.fields.push({ name: 'Como participar?', value: `Acesse a aba **MVP** no nosso site para registrar seu voto!`, inline: false });
+    }
+
 
      try {
         const response = await fetch(`https://discord.com/api/v10/channels/${channelId}/messages`, {
@@ -1020,7 +1043,7 @@ async function sendNewMvpNotification(voting: Omit<MvpVoting, '_id'>) {
                 'Content-Type': 'application/json',
                 'Authorization': `Bot ${botToken}`,
             },
-            body: JSON.stringify({ embeds: [embed] }),
+            body: JSON.stringify(payload),
             cache: 'no-store'
         });
 

@@ -24,6 +24,7 @@ import { Loader2 } from "lucide-react";
 
 const formSchema = z.object({
   apiFootballKey: z.string().optional(),
+  siteUrl: z.string().url({ message: "Por favor, insira uma URL válida." }).optional().or(z.literal('')),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -40,6 +41,7 @@ export default function AdminSettingsClient({ initialSettings }: AdminSettingsCl
         resolver: zodResolver(formSchema),
         defaultValues: {
             apiFootballKey: initialSettings.apiFootballKey || "",
+            siteUrl: initialSettings.siteUrl || "",
         },
     });
 
@@ -47,6 +49,7 @@ export default function AdminSettingsClient({ initialSettings }: AdminSettingsCl
         setIsSubmitting(true);
         const result = await updateApiSettings({
             apiFootballKey: values.apiFootballKey || '',
+            siteUrl: values.siteUrl || '',
         });
 
         if (result.success) {
@@ -67,14 +70,30 @@ export default function AdminSettingsClient({ initialSettings }: AdminSettingsCl
     return (
         <Card>
             <CardHeader>
-                <CardTitle>Configurações de API</CardTitle>
+                <CardTitle>Configurações Gerais</CardTitle>
                 <CardDescription>
-                    Gerencie as chaves de API para os serviços de dados de futebol.
+                    Gerencie configurações globais do site e chaves de API.
                 </CardDescription>
             </CardHeader>
             <CardContent>
                 <Form {...form}>
                     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+                        <FormField
+                            control={form.control}
+                            name="siteUrl"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>URL do Site</FormLabel>
+                                    <FormControl>
+                                        <Input placeholder="https://seudominio.com" {...field} />
+                                    </FormControl>
+                                    <FormDescription>
+                                        A URL base do seu site, usada para gerar links em notificações.
+                                    </FormDescription>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
                         <FormField
                             control={form.control}
                             name="apiFootballKey"

@@ -17,21 +17,26 @@ export async function getApiSettings(): Promise<Partial<ApiSettings>> {
 
         // If there's a key in the database, use it. Otherwise, fallback to the .env variable.
         const apiKey = settings?.apiFootballKey || process.env.API_FOOTBALL_KEY || '';
+        const siteUrl = settings?.siteUrl || process.env.NEXT_PUBLIC_SITE_URL || '';
+
 
         return {
             _id: settings?._id.toString() || SETTINGS_ID,
             apiFootballKey: apiKey,
+            siteUrl: siteUrl,
         };
     } catch (error) {
         console.error("Error fetching API settings:", error);
         return {
             apiFootballKey: process.env.API_FOOTBALL_KEY || '',
+            siteUrl: process.env.NEXT_PUBLIC_SITE_URL || '',
         };
     }
 }
 
 type UpdateSettingsData = {
     apiFootballKey: string;
+    siteUrl: string;
 };
 
 export async function updateApiSettings(data: UpdateSettingsData): Promise<{ success: boolean; message: string }> {
@@ -47,9 +52,9 @@ export async function updateApiSettings(data: UpdateSettingsData): Promise<{ suc
         );
 
         revalidatePath('/admin/settings');
-        return { success: true, message: 'Configurações de API salvas com sucesso!' };
+        return { success: true, message: 'Configurações salvas com sucesso!' };
     } catch (error) {
         console.error("Error updating API settings:", error);
-        return { success: false, message: 'Falha ao salvar as configurações de API.' };
+        return { success: false, message: 'Falha ao salvar as configurações.' };
     }
 }

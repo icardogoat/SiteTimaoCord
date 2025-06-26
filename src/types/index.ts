@@ -198,6 +198,7 @@ export type ApiSettings = {
     apiFootballKey?: string;
     maintenanceMode?: boolean;
     welcomeBonus?: number;
+    siteUrl?: string;
 };
 
 export type Achievement = {
