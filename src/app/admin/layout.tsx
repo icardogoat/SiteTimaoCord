@@ -1,9 +1,10 @@
+
 'use client';
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { type ReactNode } from "react"
-import { Home, Users, Trophy, Ticket, Menu, Bot, Server, Settings, Star } from "lucide-react"
+import { Home, Users, Trophy, Ticket, Menu, Bot, Server, Settings, Star, ShoppingBag } from "lucide-react"
 import { useSession, signOut } from "next-auth/react"
 
 import { Button } from "@/components/ui/button"
@@ -28,6 +29,7 @@ const navLinks = [
     { href: "/admin/matches", label: "Partidas", icon: Trophy },
     { href: "/admin/users", label: "Usuários", icon: Users },
     { href: "/admin/mvp", label: "MVP Votação", icon: Star },
+    { href: "/admin/store", label: "Loja", icon: ShoppingBag },
     { href: "/admin/server", label: "Servidor", icon: Server },
     { href: "/admin/bot", label: "Bot", icon: Bot },
     { href: "/admin/settings", label: "Configurações", icon: Settings },

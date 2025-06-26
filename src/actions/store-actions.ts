@@ -4,43 +4,51 @@
 import { getServerSession } from 'next-auth/next';
 import clientPromise from '@/lib/mongodb';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
-import type { Transaction } from '@/types';
+import type { Transaction, StoreItem, UserInventoryItem } from '@/types';
 import { revalidatePath } from 'next/cache';
 import { ObjectId } from 'mongodb';
+import { randomBytes } from 'crypto';
 
-// In a real application, these would be stored in the database.
-const storeItems = [
-    {
-        id: 'chat-tag',
-        name: 'Tag de Chat Exclusiva',
-        description: 'Destaque-se no chat do Discord com uma tag exclusiva ao lado do seu nome.',
-        price: 5000,
-    },
-    {
-        id: 'xp-boost',
-        name: '1000 de XP Bônus',
-        description: 'Receba 1000 de XP para subir de nível mais rápido e desbloquear recompensas.',
-        price: 2500,
-    },
-    {
-        id: 'vip-status',
-        name: 'Status VIP (1 Mês)',
-        description: 'Acesso a canais exclusivos, sorteios especiais e outras vantagens no Discord.',
-        price: 10000,
+// This function returns serializable store item data for the public store page.
+export async function getStoreItems(): Promise<Omit<StoreItem, '_id' | 'createdAt'> & { id: string }[]> {
+    try {
+        const client = await clientPromise;
+        const db = client.db('timaocord');
+        const items = await db.collection<StoreItem>('store_items')
+            .find({ isActive: true })
+            .sort({ price: 1 })
+            .toArray();
+
+        // Convert to serializable format
+        return items.map(item => ({
+            id: item._id.toString(),
+            name: item.name,
+            description: item.description,
+            price: item.price,
+            type: item.type,
+            roleId: item.roleId,
+            xpAmount: item.xpAmount,
+            isActive: item.isActive,
+        }));
+    } catch (error) {
+        console.error("Error fetching store items:", error);
+        return [];
     }
-];
-
-// This function returns serializable store item data.
-export async function getStoreItems() {
-    return storeItems;
 };
 
 interface PurchaseResult {
     success: boolean;
     message: string;
+    redemptionCode?: string;
 }
 
 const VIP_DISCOUNT_MULTIPLIER = 0.9; // 10% discount
+
+function generateRedemptionCode(): string {
+  // Generates a random 8-character uppercase alphanumeric string
+  return randomBytes(4).toString('hex').toUpperCase();
+}
+
 
 export async function purchaseItem(itemId: string): Promise<PurchaseResult> {
     const session = await getServerSession(authOptions);
@@ -50,16 +58,18 @@ export async function purchaseItem(itemId: string): Promise<PurchaseResult> {
 
     const userId = session.user.discordId;
     const isVip = session.user.isVip;
-    const item = storeItems.find(i => i.id === itemId);
-
-    if (!item) {
-        return { success: false, message: 'Item não encontrado.' };
-    }
-
-    const finalPrice = isVip ? item.price * VIP_DISCOUNT_MULTIPLIER : item.price;
 
     const client = await clientPromise;
     const db = client.db('timaocord');
+    
+    const item = await db.collection<StoreItem>('store_items').findOne({ _id: new ObjectId(itemId) });
+
+    if (!item || !item.isActive) {
+        return { success: false, message: 'Item não encontrado ou indisponível.' };
+    }
+
+    const finalPrice = isVip && item.type !== 'ROLE' ? item.price * VIP_DISCOUNT_MULTIPLIER : item.price; // Example: VIP discount doesn't apply to role purchases
+
     const mongoSession = client.startSession();
 
     try {
@@ -67,6 +77,7 @@ export async function purchaseItem(itemId: string): Promise<PurchaseResult> {
 
         await mongoSession.withTransaction(async () => {
             const walletsCollection = db.collection('wallets');
+            const inventoryCollection = db.collection('user_inventory');
             const usersCollection = db.collection('users');
 
             const userWallet = await walletsCollection.findOne({ userId }, { session: mongoSession });
@@ -74,16 +85,43 @@ export async function purchaseItem(itemId: string): Promise<PurchaseResult> {
             if (!userWallet || userWallet.balance < finalPrice) {
                 throw new Error('Saldo insuficiente.');
             }
-
-            // Specific logic for XP boost
-            if (item.id === 'xp-boost') {
-                await usersCollection.updateOne(
+            
+            // If item is XP boost, apply it directly without a code
+            if (item.type === 'XP_BOOST' && item.xpAmount) {
+                 await usersCollection.updateOne(
                     { discordId: userId },
-                    { $inc: { xp: 1000 } },
+                    { $inc: { xp: item.xpAmount } },
                     { session: mongoSession }
                 );
+                
+                result = { success: true, message: `Bônus de ${item.xpAmount} XP aplicado com sucesso!` };
+
+            } else { // For roles or other redeemable items, generate a code
+                 // Generate a unique code
+                let redemptionCode = '';
+                let isCodeUnique = false;
+                while (!isCodeUnique) {
+                    redemptionCode = generateRedemptionCode();
+                    const existingCode = await inventoryCollection.findOne({ redemptionCode }, { session: mongoSession });
+                    if (!existingCode) {
+                        isCodeUnique = true;
+                    }
+                }
+                
+                const newInventoryItem: Omit<UserInventoryItem, '_id'> = {
+                    userId: userId,
+                    itemId: item._id,
+                    itemName: item.name,
+                    itemType: item.type,
+                    redemptionCode: redemptionCode,
+                    isRedeemed: false,
+                    purchasedAt: new Date(),
+                };
+
+                await inventoryCollection.insertOne(newInventoryItem as any, { session: mongoSession });
+                
+                result = { success: true, message: `"${item.name}" comprado com sucesso!`, redemptionCode };
             }
-            // In a real app, logic for other items (like applying a Discord role) would go here.
 
             const newTransaction: Transaction = {
                 id: new ObjectId().toString(),
@@ -103,8 +141,6 @@ export async function purchaseItem(itemId: string): Promise<PurchaseResult> {
                 },
                 { session: mongoSession }
             );
-
-            result = { success: true, message: `"${item.name}" comprado com sucesso!` };
         });
         
         await mongoSession.endSession();

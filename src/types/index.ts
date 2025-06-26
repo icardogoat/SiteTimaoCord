@@ -137,11 +137,27 @@ export type Wallet = {
 };
 
 export type StoreItem = {
-  id: string;
+  _id: string | ObjectId;
   name: string;
   description: string;
   price: number;
-  icon: React.ComponentType<{ className?: string }>;
+  type: 'ROLE' | 'XP_BOOST'; // More types can be added later
+  roleId?: string; // Discord role ID if type is ROLE
+  xpAmount?: number; // Amount of XP if type is XP_BOOST
+  isActive: boolean;
+  createdAt: Date | string;
+};
+
+export type UserInventoryItem = {
+    _id: string | ObjectId;
+    userId: string;
+    itemId: string | ObjectId;
+    itemName: string;
+    itemType: StoreItem['type'];
+    redemptionCode: string;
+    isRedeemed: boolean;
+    purchasedAt: Date | string;
+    redeemedAt?: Date | string;
 };
 
 export type StandingTeam = {

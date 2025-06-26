@@ -2,7 +2,7 @@
 'use server';
 
 import clientPromise from '@/lib/mongodb';
-import type { PlacedBet, Transaction, UserRanking, MvpVoting, MvpPlayer, MvpTeamLineup, Notification } from '@/types';
+import type { PlacedBet, Transaction, UserRanking, MvpVoting, MvpPlayer, MvpTeamLineup, Notification, StoreItem } from '@/types';
 import { ObjectId, WithId } from 'mongodb';
 import { revalidatePath } from 'next/cache';
 import { getBotConfig } from './bot-config-actions';
@@ -1232,8 +1232,88 @@ export async function cancelMvpVoting(votingId: string): Promise<{ success: bool
         return { success: false, message: 'A transação falhou.' };
 
     } catch (error: any) {
-        console.error('Error canceling MVP voting:', error);
         await mongoSession.endSession();
         return { success: false, message: error.message || 'Ocorreu um erro ao cancelar a votação.' };
+    }
+}
+
+// ---- ADMIN STORE ACTIONS ----
+
+type StoreItemAdminData = Omit<StoreItem, '_id' | 'createdAt'> & { id: string };
+
+export async function getAdminStoreItems(): Promise<StoreItemAdminData[]> {
+    try {
+        const client = await clientPromise;
+        const db = client.db('timaocord');
+        const items = await db.collection<StoreItem>('store_items')
+            .find({})
+            .sort({ createdAt: -1 })
+            .toArray();
+
+        return items.map(item => ({
+            id: item._id.toString(),
+            name: item.name,
+            description: item.description,
+            price: item.price,
+            type: item.type,
+            roleId: item.roleId,
+            xpAmount: item.xpAmount,
+            isActive: item.isActive,
+        }));
+    } catch (error) {
+        console.error("Error fetching admin store items:", error);
+        return [];
+    }
+}
+
+export async function upsertStoreItem(data: Omit<StoreItemAdminData, 'id'> & {id?: string}): Promise<{ success: boolean; message: string }> {
+    const { id, ...itemData } = data;
+    const itemToSave = {
+        ...itemData,
+        xpAmount: itemData.type === 'XP_BOOST' ? itemData.xpAmount : undefined,
+        roleId: itemData.type === 'ROLE' ? itemData.roleId : undefined,
+    };
+    
+    try {
+        const client = await clientPromise;
+        const db = client.db('timaocord');
+        const collection = db.collection<StoreItem>('store_items');
+
+        if (id) {
+            // Update
+            await collection.updateOne(
+                { _id: new ObjectId(id) },
+                { $set: itemToSave }
+            );
+        } else {
+            // Insert
+            await collection.insertOne({
+                ...itemToSave,
+                createdAt: new Date(),
+            } as StoreItem);
+        }
+        revalidatePath('/admin/store');
+        revalidatePath('/store');
+        return { success: true, message: `Item ${id ? 'atualizado' : 'criado'} com sucesso!` };
+    } catch (error) {
+        console.error("Error upserting store item:", error);
+        return { success: false, message: "Ocorreu um erro ao salvar o item." };
+    }
+}
+
+export async function deleteStoreItem(itemId: string): Promise<{ success: boolean; message: string }> {
+     try {
+        const client = await clientPromise;
+        const db = client.db('timaocord');
+        const collection = db.collection<StoreItem>('store_items');
+
+        await collection.deleteOne({ _id: new ObjectId(itemId) });
+
+        revalidatePath('/admin/store');
+        revalidatePath('/store');
+        return { success: true, message: "Item excluído com sucesso." };
+    } catch (error) {
+        console.error("Error deleting store item:", error);
+        return { success: false, message: "Ocorreu um erro ao excluir o item." };
     }
 }
