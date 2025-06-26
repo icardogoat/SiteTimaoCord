@@ -9,6 +9,42 @@ import { getUserLevel } from '@/actions/user-actions';
 import { getBotConfig } from '@/actions/bot-config-actions';
 import { grantAchievement } from '@/actions/achievement-actions';
 
+async function checkUserInGuild(discordId: string): Promise<boolean> {
+    try {
+        const config = await getBotConfig();
+        if (!config.guildId) {
+            console.warn('Discord Guild ID not configured. Cannot verify user membership, allowing login.');
+            return true;
+        }
+
+        const botToken = process.env.DISCORD_BOT_TOKEN;
+        if (!botToken || botToken === 'YOUR_BOT_TOKEN_HERE') {
+            console.error('Discord bot token not configured. Denying login.');
+            return false;
+        }
+
+        const response = await fetch(`https://discord.com/api/v10/guilds/${config.guildId}/members/${discordId}`, {
+            headers: { 'Authorization': `Bot ${botToken}` },
+            cache: 'no-store'
+        });
+
+        if (!response.ok) {
+            if (response.status === 404) {
+                 console.log(`User ${discordId} is not in guild ${config.guildId}. Denying login.`);
+            } else {
+                 console.error(`Error checking guild membership for ${discordId}. Status: ${response.status}. Denying login.`);
+            }
+            return false;
+        }
+        
+        return true;
+
+    } catch (error) {
+        console.error(`Failed to check guild membership for user ${discordId}:`, error);
+        return false;
+    }
+}
+
 async function checkUserVipStatus(discordId: string): Promise<boolean> {
     try {
         const config = await getBotConfig();
@@ -98,6 +134,17 @@ export const authOptions: AuthOptions = {
       const userId = profile?.id ?? user.id;
       if(!userId) return false;
 
+      const isMember = await checkUserInGuild(userId);
+      if (!isMember) {
+        // If the guild is configured but the user is not a member, redirect them.
+        const { guildId } = await getBotConfig();
+        if (guildId) {
+            return '/join-server';
+        }
+        // Deny sign-in if check fails for other reasons (e.g. no bot token)
+        return false;
+      }
+      
       try {
         const client = await clientPromise;
         const db = client.db("timaocord");

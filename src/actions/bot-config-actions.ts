@@ -19,6 +19,7 @@ export async function getBotConfig(): Promise<Partial<BotConfig>> {
         if (!config) {
             return {
                 guildId: '',
+                guildInviteUrl: '',
                 welcomeChannelId: '',
                 logChannelId: '',
                 bettingChannelId: '',
@@ -33,6 +34,7 @@ export async function getBotConfig(): Promise<Partial<BotConfig>> {
         return {
             _id: config._id.toString(),
             guildId: config.guildId || '',
+            guildInviteUrl: config.guildInviteUrl || '',
             welcomeChannelId: config.welcomeChannelId || '',
             logChannelId: config.logChannelId || '',
             bettingChannelId: config.bettingChannelId || '',
@@ -46,6 +48,7 @@ export async function getBotConfig(): Promise<Partial<BotConfig>> {
         console.error("Error fetching bot config:", error);
         return {
             guildId: '',
+            guildInviteUrl: '',
             welcomeChannelId: '',
             logChannelId: '',
             bettingChannelId: '',
@@ -60,6 +63,7 @@ export async function getBotConfig(): Promise<Partial<BotConfig>> {
 
 type UpdateConfigData = {
     guildId: string;
+    guildInviteUrl: string;
     welcomeChannelId: string;
     logChannelId: string;
     bettingChannelId: string;

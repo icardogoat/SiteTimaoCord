@@ -45,6 +45,7 @@ import { Alert, AlertDescription, AlertTitle } from "./ui/alert";
 
 const formSchema = z.object({
   guildId: z.string().min(1, 'O ID do Servidor é obrigatório.'),
+  guildInviteUrl: z.string().url({ message: "Por favor, insira um link de convite válido (ex: https://discord.gg/xxxx)" }).optional().or(z.literal('')),
   welcomeChannelId: z.string().optional(),
   logChannelId: z.string().optional(),
   bettingChannelId: z.string().optional(),
@@ -75,6 +76,7 @@ export default function AdminBotConfigClient({ initialConfig, initialChannels, i
         resolver: zodResolver(formSchema),
         defaultValues: {
             guildId: initialConfig.guildId || "",
+            guildInviteUrl: initialConfig.guildInviteUrl || "",
             welcomeChannelId: initialConfig.welcomeChannelId || "",
             logChannelId: initialConfig.logChannelId || "",
             bettingChannelId: initialConfig.bettingChannelId || "",
@@ -195,6 +197,7 @@ export default function AdminBotConfigClient({ initialConfig, initialChannels, i
         setIsSubmitting(true);
         const result = await updateBotConfig({
             guildId: values.guildId,
+            guildInviteUrl: values.guildInviteUrl || '',
             welcomeChannelId: values.welcomeChannelId || '',
             logChannelId: values.logChannelId || '',
             bettingChannelId: values.bettingChannelId || '',
@@ -252,6 +255,23 @@ export default function AdminBotConfigClient({ initialConfig, initialChannels, i
                                     </div>
                                     <FormDescription>
                                         Após inserir o ID, clique em "Carregar" para buscar os canais e cargos.
+                                    </FormDescription>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                        
+                        <FormField
+                            control={form.control}
+                            name="guildInviteUrl"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Link de Convite do Servidor</FormLabel>
+                                    <FormControl>
+                                        <Input placeholder="https://discord.gg/seu-convite" {...field} />
+                                    </FormControl>
+                                    <FormDescription>
+                                        O link de convite permanente para o seu servidor Discord. Essencial para novos usuários.
                                     </FormDescription>
                                     <FormMessage />
                                 </FormItem>

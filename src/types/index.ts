@@ -183,6 +183,7 @@ export type Standing = {
 export type BotConfig = {
   _id: string | ObjectId;
   guildId: string;
+  guildInviteUrl: string;
   welcomeChannelId: string;
   logChannelId: string;
   bettingChannelId: string;
