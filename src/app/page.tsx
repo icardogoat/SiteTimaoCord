@@ -21,7 +21,7 @@ export default async function TimaocordHome() {
       {/* Background Grid */}
       <div className="absolute inset-0 z-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px]"></div>
 
-      <main className="flex flex-1 flex-col items-center justify-center text-center p-4 z-10">
+      <main className="flex flex-1 flex-col items-center justify-end pb-24 text-center p-4 z-10">
         <div className="mb-8">
           <Image
             src="https://i.imgur.com/xD76hcl.png"
