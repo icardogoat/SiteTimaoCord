@@ -9,6 +9,7 @@ import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import Image from 'next/image';
 import { ScrollArea, ScrollBar } from './ui/scroll-area';
 import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from './ui/tooltip';
+import { cn } from '@/lib/utils';
 
 interface StandingsClientProps {
   standings: Standing[];
@@ -79,7 +80,7 @@ function StandingsTable({ group }: { group: StandingEntry[] }) {
       </TableHeader>
       <TableBody>
         {group.map((entry) => (
-          <TableRow key={entry.team.id} className={getRankClass(entry.description)}>
+          <TableRow key={entry.team.id} className={cn(getRankClass(entry.description), entry.team.name === 'Corinthians' && 'bg-primary/10')}>
             <TableCell className="text-center font-medium">{entry.rank}</TableCell>
             <TableCell>
               <div className="flex items-center gap-3">
@@ -87,7 +88,7 @@ function StandingsTable({ group }: { group: StandingEntry[] }) {
                   <AvatarImage src={entry.team.logo} alt={entry.team.name} data-ai-hint="team logo"/>
                   <AvatarFallback>{entry.team.name.substring(0, 2).toUpperCase()}</AvatarFallback>
                 </Avatar>
-                <span className="font-medium truncate">{entry.team.name}</span>
+                <span className={cn("font-medium truncate", entry.team.name === 'Corinthians' && 'font-bold text-primary')}>{entry.team.name}</span>
               </div>
             </TableCell>
             <TableCell className="text-center font-bold">{entry.points}</TableCell>
