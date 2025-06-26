@@ -1,3 +1,4 @@
+
 'use client';
 
 import type { Standing, StandingEntry } from '@/types';
@@ -6,24 +7,59 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import Image from 'next/image';
+import { ScrollArea, ScrollBar } from './ui/scroll-area';
+import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from './ui/tooltip';
 
 interface StandingsClientProps {
   standings: Standing[];
 }
 
-const getRankColor = (description: string | null | undefined) => {
+const getRankClass = (description: string | null | undefined) => {
     if (!description) return '';
     if (description.toLowerCase().includes('libertadores')) {
-        return 'border-l-4 border-blue-500';
+        return 'border-l-4 border-blue-500 bg-blue-500/10';
     }
     if (description.toLowerCase().includes('sul-americana')) {
-        return 'border-l-4 border-sky-500';
+        return 'border-l-4 border-sky-500 bg-sky-500/10';
     }
     if (description.toLowerCase().includes('relegation')) {
-        return 'border-l-4 border-red-500';
+        return 'border-l-4 border-red-500 bg-red-500/10';
     }
     return '';
 };
+
+const FormIcons = ({ form }: { form: string | null | undefined }) => {
+    if (!form) return <div className="h-4 w-12" />; // Placeholder for alignment
+    const formResults = form.split('').slice(-5);
+
+    const resultMapping: { [key: string]: { class: string; title: string; } } = {
+        'W': { class: 'bg-green-500', title: 'Vitória' },
+        'D': { class: 'bg-gray-500', title: 'Empate' },
+        'L': { class: 'bg-red-500', title: 'Derrota' },
+    };
+
+    return (
+      <TooltipProvider delayDuration={100}>
+        <div className="flex justify-center items-center gap-1.5">
+            {formResults.map((result, index) => {
+                const mapping = resultMapping[result];
+                if (!mapping) return null;
+                return (
+                    <Tooltip key={index}>
+                        <TooltipTrigger asChild>
+                            <span className={`h-2.5 w-2.5 block rounded-full ${mapping.class}`}></span>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>{mapping.title}</p>
+                        </TooltipContent>
+                    </Tooltip>
+                );
+            })}
+        </div>
+      </TooltipProvider>
+    );
+};
+
 
 function StandingsTable({ group }: { group: StandingEntry[] }) {
   return (
@@ -38,11 +74,12 @@ function StandingsTable({ group }: { group: StandingEntry[] }) {
           <TableHead className="text-center hidden sm:table-cell">E</TableHead>
           <TableHead className="text-center hidden sm:table-cell">D</TableHead>
           <TableHead className="text-center hidden md:table-cell">SG</TableHead>
+          <TableHead className="text-center hidden md:table-cell">Forma</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
         {group.map((entry) => (
-          <TableRow key={entry.team.id} className={getRankColor(entry.description)}>
+          <TableRow key={entry.team.id} className={getRankClass(entry.description)}>
             <TableCell className="text-center font-medium">{entry.rank}</TableCell>
             <TableCell>
               <div className="flex items-center gap-3">
@@ -59,6 +96,9 @@ function StandingsTable({ group }: { group: StandingEntry[] }) {
             <TableCell className="text-center hidden sm:table-cell">{entry.all.draw}</TableCell>
             <TableCell className="text-center hidden sm:table-cell">{entry.all.lose}</TableCell>
             <TableCell className="text-center hidden md:table-cell">{entry.goalsDiff}</TableCell>
+            <TableCell className="hidden md:table-cell">
+                <FormIcons form={entry.form} />
+            </TableCell>
           </TableRow>
         ))}
       </TableBody>
@@ -93,10 +133,21 @@ export function StandingsClient({ standings }: StandingsClientProps) {
         </div>
 
         <Tabs defaultValue={defaultTab}>
-            <TabsList className="grid w-full grid-cols-1 sm:grid-cols-3">
-                {standings.map(s => (
-                    <TabsTrigger key={s.league.id} value={s.league.name}>{s.league.name}</TabsTrigger>
-                ))}
+            <TabsList className="relative w-full h-auto justify-start bg-transparent p-0">
+                <ScrollArea className="w-full whitespace-nowrap">
+                    <div className="flex items-center gap-2 pb-2">
+                        {standings.map(s => (
+                            <TabsTrigger 
+                                key={s.league.id} 
+                                value={s.league.name}
+                                className="rounded-full px-4 py-1.5 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md"
+                            >
+                                {s.league.name}
+                            </TabsTrigger>
+                        ))}
+                    </div>
+                     <ScrollBar orientation="horizontal" className="invisible" />
+                </ScrollArea>
             </TabsList>
             {standings.map(s => (
                 <TabsContent key={s.league.id} value={s.league.name}>
@@ -112,7 +163,7 @@ export function StandingsClient({ standings }: StandingsClientProps) {
                             {s.standings.map((group, index) => (
                                 <div key={index}>
                                     {s.standings.length > 1 && (
-                                        <h3 className="text-lg font-semibold p-4 pt-0">Grupo {String.fromCharCode(65 + index)}</h3>
+                                        <h3 className="text-lg font-semibold p-4 pt-0 border-b">Grupo {group[0]?.group.replace('Group ', '')}</h3>
                                     )}
                                     <StandingsTable group={group} />
                                 </div>

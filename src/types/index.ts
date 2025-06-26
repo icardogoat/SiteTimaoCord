@@ -187,8 +187,10 @@ export type StandingEntry = {
   team: StandingTeam;
   points: number;
   goalsDiff: number;
+  group: string;
+  form: string | null;
   all: StandingStats;
-  description?: string | null;
+  description: string | null;
 };
 
 export type Standing = {
@@ -197,6 +199,9 @@ export type Standing = {
     id: number;
     name: string;
     logo: string;
+    country: string;
+    flag: string;
+    season: number;
   };
   standings: StandingEntry[][];
   lastUpdated?: Date | string;
