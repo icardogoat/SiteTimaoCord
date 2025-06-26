@@ -7,8 +7,56 @@ import { getServerSession } from 'next-auth/next';
 import { revalidatePath } from 'next/cache';
 import type { Bolao, Notification, Transaction } from '@/types';
 import { ObjectId } from 'mongodb';
+import { getBotConfig } from './bot-config-actions';
 
 const ENTRY_FEE = 5;
+
+async function sendNewBolaoNotification(bolao: Omit<Bolao, '_id'>) {
+    const config = await getBotConfig();
+    const botToken = process.env.DISCORD_BOT_TOKEN;
+    const channelId = config.bettingChannelId;
+
+    if (!channelId || !botToken || botToken === 'YOUR_BOT_TOKEN_HERE') {
+        console.log('Discord betting channel or bot token not configured. Skipping Bolão notification.');
+        return;
+    }
+
+    const embed = {
+        color: 0x2563eb, // blue-600
+        title: '👑 NOVO BOLÃO NA ÁREA! 👑',
+        description: `**${bolao.homeTeam} vs ${bolao.awayTeam}**\n\nAdivinhe o placar e concorra a prêmios!`,
+        fields: [
+            { name: 'Entrada', value: `R$ ${bolao.entryFee.toFixed(2)}`, inline: true },
+            { name: 'Prêmio Inicial', value: `R$ ${bolao.prizePool.toFixed(2)}`, inline: true },
+            { name: 'Como participar?', value: `Acesse a aba **Bolão** no nosso site para dar seu palpite!`, inline: false },
+        ],
+        footer: {
+            text: `Campeonato: ${bolao.league}`,
+        },
+        timestamp: new Date().toISOString(),
+    };
+
+    try {
+        const response = await fetch(`https://discord.com/api/v10/channels/${channelId}/messages`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bot ${botToken}`,
+            },
+            body: JSON.stringify({ embeds: [embed] }),
+            cache: 'no-store'
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            console.error('Failed to send new Bolão notification to Discord:', JSON.stringify(errorData, null, 2));
+        } else {
+            console.log(`Successfully sent new Bolão notification for match ${bolao.matchId}`);
+        }
+    } catch (error) {
+        console.error('Error sending new Bolão notification to Discord:', error);
+    }
+}
 
 export async function createBolao(matchId: number): Promise<{ success: boolean, message: string }> {
     const session = await getServerSession(authOptions);
@@ -48,6 +96,8 @@ export async function createBolao(matchId: number): Promise<{ success: boolean, 
         };
 
         await boloesCollection.insertOne(newBolao as any);
+        await sendNewBolaoNotification(newBolao);
+
         revalidatePath('/admin/matches');
         revalidatePath('/bolao');
 

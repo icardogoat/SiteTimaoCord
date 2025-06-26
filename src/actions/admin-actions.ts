@@ -966,7 +966,6 @@ async function getMatchLineups(fixtureId: number): Promise<{ success: boolean; d
                 .map((p: any) => ({
                     id: p.player.id,
                     name: p.player.name,
-                    number: p.statistics[0]?.games?.number ?? 0,
                     photo: p.player.photo || 'https://placehold.co/40x40.png',
                 }));
 
@@ -987,6 +986,52 @@ async function getMatchLineups(fixtureId: number): Promise<{ success: boolean; d
     } catch (error) {
         console.error(`Failed to fetch players for fixture ${fixtureId}:`, error);
         return { success: false, message: 'Falha crítica ao se comunicar com a API de jogadores.' };
+    }
+}
+
+async function sendNewMvpNotification(voting: Omit<MvpVoting, '_id'>) {
+    const config = await getBotConfig();
+    const botToken = process.env.DISCORD_BOT_TOKEN;
+    const channelId = config.bettingChannelId;
+
+    if (!channelId || !botToken || botToken === 'YOUR_BOT_TOKEN_HERE') {
+        console.log('Discord betting channel or bot token not configured. Skipping MVP notification.');
+        return;
+    }
+
+    const embed = {
+        color: 0xf97316, // orange-500
+        title: '⭐ VOTAÇÃO MVP ABERTA! ⭐',
+        description: `**${voting.homeTeam} vs ${voting.awayTeam}**\n\nQuem foi o melhor em campo? Vote agora e ganhe uma recompensa!`,
+        fields: [
+            { name: 'Recompensa por Voto', value: `**R$ 100,00**`, inline: true },
+            { name: 'Como participar?', value: `Acesse a aba **MVP** no nosso site para registrar seu voto!`, inline: false },
+        ],
+        footer: {
+            text: `Campeonato: ${voting.league}`,
+        },
+        timestamp: new Date().toISOString(),
+    };
+
+     try {
+        const response = await fetch(`https://discord.com/api/v10/channels/${channelId}/messages`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bot ${botToken}`,
+            },
+            body: JSON.stringify({ embeds: [embed] }),
+            cache: 'no-store'
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            console.error('Failed to send new MVP notification to Discord:', JSON.stringify(errorData, null, 2));
+        } else {
+            console.log(`Successfully sent new MVP notification for match ${voting.matchId}`);
+        }
+    } catch (error) {
+        console.error('Error sending new MVP notification to Discord:', error);
     }
 }
 
@@ -1033,6 +1078,7 @@ export async function createMvpVoting(matchId: number): Promise<{ success: boole
         };
 
         await mvpVotingsCollection.insertOne(newVoting as any);
+        await sendNewMvpNotification(newVoting);
 
         revalidatePath('/admin/matches');
         revalidatePath('/admin/mvp');
