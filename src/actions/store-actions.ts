@@ -1,9 +1,10 @@
+
 'use server';
 
 import { getServerSession } from 'next-auth/next';
 import clientPromise from '@/lib/mongodb';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
-import type { Transaction, StoreItem, UserInventoryItem } from '@/types';
+import type { Transaction, StoreItem, UserInventoryItem, Notification } from '@/types';
 import { revalidatePath } from 'next/cache';
 import { ObjectId } from 'mongodb';
 import { randomBytes } from 'crypto';
@@ -235,5 +236,90 @@ export async function purchaseItem(itemId: string): Promise<PurchaseResult> {
     } catch (error: any) {
         await mongoSession.endSession();
         return { success: false, message: error.message || 'Ocorreu um erro ao processar sua compra.' };
+    }
+}
+
+export async function redeemItemByCode(userId: string, redemptionCode: string): Promise<{ success: boolean; message: string; itemName?: string; roleId?: string; itemType?: StoreItem['type'], duration?: StoreItem['duration'] }> {
+    if (!userId || !redemptionCode) {
+        return { success: false, message: 'Dados insuficientes para o resgate.' };
+    }
+
+    const client = await clientPromise;
+    const db = client.db('timaocord');
+    const mongoSession = client.startSession();
+
+    try {
+        let result: { success: boolean; message: string; itemName?: string; roleId?: string; itemType?: StoreItem['type'], duration?: StoreItem['duration'] } | undefined;
+
+        await mongoSession.withTransaction(async () => {
+            const inventoryCollection = db.collection<UserInventoryItem>('user_inventory');
+            const storeItemsCollection = db.collection<StoreItem>('store_items');
+            const notificationsCollection = db.collection('notifications');
+
+            const code = redemptionCode.toUpperCase();
+            const inventoryItem = await inventoryCollection.findOne({ redemptionCode: code }, { session: mongoSession });
+
+            if (!inventoryItem) {
+                throw new Error('Código de resgate inválido.');
+            }
+            if (inventoryItem.userId !== userId) {
+                throw new Error('Este código de resgate pertence a outro usuário.');
+            }
+            if (inventoryItem.isRedeemed) {
+                throw new Error('Este código de resgate já foi utilizado.');
+            }
+
+            // Mark as redeemed
+            const updateResult = await inventoryCollection.updateOne(
+                { _id: inventoryItem._id },
+                { $set: { isRedeemed: true, redeemedAt: new Date() } },
+                { session: mongoSession }
+            );
+
+            if (updateResult.modifiedCount === 0) {
+                throw new Error('Falha ao atualizar o item no inventário.');
+            }
+            
+            const storeItem = await storeItemsCollection.findOne({ _id: inventoryItem.itemId }, { session: mongoSession });
+            if (!storeItem) {
+                // This would be an data integrity issue, but we should handle it.
+                throw new Error('Item da loja associado não encontrado. Contate um administrador.');
+            }
+
+            // Create in-app notification
+            const newNotification: Omit<Notification, '_id'> = {
+                userId: userId,
+                title: '✅ Item Resgatado!',
+                description: `Você resgatou com sucesso o item: "${storeItem.name}".`,
+                date: new Date(),
+                read: false,
+                link: '/profile' // Link to profile where they can see their inventory
+            };
+            await notificationsCollection.insertOne(newNotification as any, { session: mongoSession });
+            
+            result = { 
+                success: true, 
+                message: 'Item resgatado com sucesso!',
+                itemName: storeItem.name,
+                roleId: storeItem.roleId,
+                itemType: storeItem.type,
+                duration: storeItem.duration,
+            };
+        });
+        
+        await mongoSession.endSession();
+        
+        if (result?.success) {
+            revalidatePath('/profile');
+            revalidatePath('/notifications');
+            revalidatePath('/admin/purchases');
+            return result;
+        }
+
+        return { success: false, message: 'A transação falhou.' };
+
+    } catch (error: any) {
+        await mongoSession.endSession();
+        return { success: false, message: error.message || 'Ocorreu um erro desconhecido durante o resgate.' };
     }
 }
