@@ -51,16 +51,16 @@ export default async function TimaocordHome() {
           <LoginButton />
         </div>
       </main>
-      <footer className="flex flex-col items-center justify-center p-6 text-sm text-muted-foreground z-10">
-        <p className="max-w-lg text-center text-xs mb-4">
-            Esta é uma plataforma de apostas fictícias, criada exclusivamente para fins de entretenimento, utilizando apenas moedas virtuais sem valor real.
-        </p>
+      <footer className="flex flex-col items-center justify-center p-6 text-muted-foreground z-10">
         <p>© 2025 Timaocord. Todos os direitos reservados.</p>
-        <div className="flex gap-4 mt-2">
+        <div className="flex gap-4 mt-2 mb-4 text-sm">
             <Link href="/terms" className="hover:text-primary transition-colors">Termos e Condições</Link>
             <span className="text-muted-foreground/50">|</span>
             <Link href="/privacy" className="hover:text-primary transition-colors">Política de Privacidade</Link>
         </div>
+        <p className="max-w-lg text-center text-xs text-muted-foreground/70">
+            Esta é uma plataforma de apostas fictícias, criada exclusivamente para fins de entretenimento, utilizando apenas moedas virtuais sem valor real.
+        </p>
       </footer>
     </div>
   );
