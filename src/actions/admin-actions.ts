@@ -1,8 +1,9 @@
 
+
 'use server';
 
 import clientPromise from '@/lib/mongodb';
-import type { PlacedBet, Transaction, UserRanking, MvpVoting, MvpPlayer, MvpTeamLineup, Notification, StoreItem } from '@/types';
+import type { PlacedBet, Transaction, UserRanking, MvpVoting, MvpPlayer, MvpTeamLineup, Notification, StoreItem, Bolao } from '@/types';
 import { ObjectId, WithId } from 'mongodb';
 import { revalidatePath } from 'next/cache';
 import { getBotConfig } from './bot-config-actions';
@@ -584,6 +585,7 @@ export async function resolveMatch(fixtureId: number, options: { revalidate: boo
             const walletsCollection = db.collection('wallets');
             const notificationsCollection = db.collection('notifications');
             const usersCollection = db.collection('users');
+            const boloesCollection = db.collection<Bolao>('boloes');
 
             // Mark as processed inside the transaction, and update with fresh API data
             await matchesCollection.updateOne(
@@ -605,7 +607,7 @@ export async function resolveMatch(fixtureId: number, options: { revalidate: boo
             for (const bet of openBets) {
                 const updatedSelections = bet.bets.map(selection => {
                     if (selection.matchId === fixtureId) {
-                        return { ...selection, status: evaluateSelection(selection, goals, finalStats, teamsForEval) };
+                        return { ...selection, status: evaluateSelection(selection, goals as { home: number; away: number; }, finalStats, teamsForEval) };
                     }
                     return selection;
                 });
@@ -696,6 +698,109 @@ export async function resolveMatch(fixtureId: number, options: { revalidate: boo
                      await betsCollection.updateOne(
                         { _id: bet._id },
                         { $set: { bets: updatedSelections } },
+                        { session: mongoSession }
+                    );
+                }
+            }
+
+            // Resolve Bolão if it exists for this match
+            const activeBolao = await boloesCollection.findOne({ 
+                matchId: fixtureId,
+                status: 'Aberto' 
+            }, { session: mongoSession });
+
+            if (activeBolao) {
+                const finalScore = { home: goals.home as number, away: goals.away as number };
+                const winners = activeBolao.participants.filter(p => 
+                    p.guess.home === finalScore.home && p.guess.away === finalScore.away
+                );
+
+                if (winners.length > 0) {
+                    const prizePerWinner = activeBolao.prizePool / winners.length;
+
+                    for (const winner of winners) {
+                        const prizeTransaction: Transaction = {
+                            id: new ObjectId().toString(),
+                            type: 'Prêmio',
+                            description: `Ganhos do Bolão: ${activeBolao.homeTeam} vs ${activeBolao.awayTeam}`,
+                            amount: prizePerWinner,
+                            date: new Date().toISOString(),
+                            status: 'Concluído',
+                        };
+
+                        await walletsCollection.updateOne(
+                            { userId: winner.userId },
+                            {
+                                $inc: { balance: prizePerWinner },
+                                $push: { transactions: { $each: [prizeTransaction], $sort: { date: -1 } } },
+                            },
+                            { session: mongoSession }
+                        );
+
+                        const winNotification: Omit<Notification, '_id'> = {
+                            userId: winner.userId,
+                            title: '🏆 Você ganhou no Bolão!',
+                            description: `Parabéns! Você acertou o placar de ${activeBolao.homeTeam} vs ${activeBolao.awayTeam} e ganhou R$ ${prizePerWinner.toFixed(2)}.`,
+                            date: new Date(),
+                            read: false,
+                            link: '/bolao'
+                        };
+                        await notificationsCollection.insertOne(winNotification as any, { session: mongoSession });
+                    }
+                    
+                    await boloesCollection.updateOne(
+                        { _id: activeBolao._id },
+                        { 
+                            $set: { 
+                                status: 'Pago',
+                                finalScore: finalScore,
+                                winners: winners.map(w => ({ userId: w.userId, prize: prizePerWinner }))
+                            } 
+                        },
+                        { session: mongoSession }
+                    );
+
+                } else {
+                    // No winners, refund everyone
+                    for (const participant of activeBolao.participants) {
+                        const refundTransaction: Transaction = {
+                            id: new ObjectId().toString(),
+                            type: 'Bônus',
+                            description: `Reembolso do Bolão (sem vencedores): ${activeBolao.homeTeam} vs ${activeBolao.awayTeam}`,
+                            amount: activeBolao.entryFee,
+                            date: new Date().toISOString(),
+                            status: 'Concluído',
+                        };
+
+                        await walletsCollection.updateOne(
+                            { userId: participant.userId },
+                            {
+                                $inc: { balance: activeBolao.entryFee },
+                                $push: { transactions: { $each: [refundTransaction], $sort: { date: -1 } } },
+                            },
+                            { session: mongoSession }
+                        );
+                        
+                        const refundNotification: Omit<Notification, '_id'> = {
+                            userId: participant.userId,
+                            title: 'Bolão Reembolsado',
+                            description: `Ninguém acertou o placar de ${activeBolao.homeTeam} vs ${activeBolao.awayTeam}. Sua entrada de R$ ${activeBolao.entryFee.toFixed(2)} foi devolvida.`,
+                            date: new Date(),
+                            read: false,
+                            link: '/wallet'
+                        };
+                        await notificationsCollection.insertOne(refundNotification as any, { session: mongoSession });
+                    }
+
+                    await boloesCollection.updateOne(
+                        { _id: activeBolao._id },
+                        { 
+                            $set: { 
+                                status: 'Pago',
+                                finalScore: finalScore,
+                                winners: [] 
+                            }
+                        },
                         { session: mongoSession }
                     );
                 }
