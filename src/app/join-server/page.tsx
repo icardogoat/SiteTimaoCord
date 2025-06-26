@@ -77,7 +77,7 @@ export default async function JoinServerPage({ searchParams }: { searchParams?: 
                         </p>
                     )}
                     <Button asChild variant="link" className="w-full">
-                        <Link href="/">
+                        <Link href="/login">
                             Voltar e Tentar Novamente
                         </Link>
                     </Button>

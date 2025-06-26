@@ -26,7 +26,7 @@ export default withAuth({
     },
   },
   pages: {
-    signIn: "/", // Redirect to home page on auth failure
+    signIn: "/login",
     error: "/join-server", // Redirect to join server page on certain errors
   },
 })
@@ -47,6 +47,5 @@ export const config = {
     "/mvp",
     "/advertise",
     "/admin/:path*",
-    "/join-server",
   ],
 }
