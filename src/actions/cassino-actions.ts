@@ -1,3 +1,4 @@
+
 'use server';
 
 import { getServerSession } from 'next-auth/next';
@@ -157,8 +158,8 @@ export async function cashOutCassino(betId: string, cashOutMultiplier: number): 
                 throw new Error('Este jogo já foi finalizado.');
             }
             
-            // Check if the user tried to cash out after the crash
-            if (cashOutMultiplier > bet.crashPoint) {
+            // Check if the user tried to cash out after or at the crash point
+            if (cashOutMultiplier >= bet.crashPoint) {
                  await cassinoBetsCollection.updateOne(
                     { _id: new ObjectId(betId) },
                     { $set: { status: 'crashed', settledAt: new Date() } },

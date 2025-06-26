@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
@@ -115,7 +116,7 @@ export function CassinoGameClient() {
     };
 
     useEffect(() => {
-        if (gameState === 'playing' && crashPoint) {
+        if (gameState === 'playing' && crashPoint && activeBetId) {
             const startTime = Date.now();
             
             intervalRef.current = setInterval(() => {
@@ -125,8 +126,10 @@ export function CassinoGameClient() {
                 
                 if (newMultiplier >= crashPoint) {
                     stopGame();
-                    setGameState('crashed');
                     setMultiplier(crashPoint);
+                    setGameState('crashed');
+                    // Notify the server about the crash to update the bet status
+                    cashOutCassino(activeBetId, crashPoint);
                 } else {
                     setMultiplier(newMultiplier);
                 }
@@ -137,12 +140,17 @@ export function CassinoGameClient() {
         }
 
         return () => stopGame();
-    }, [gameState, crashPoint]);
+    }, [gameState, crashPoint, activeBetId]);
 
     const handleStartGame = async () => {
         const amount = parseFloat(betAmount);
         if (isNaN(amount) || amount <= 0) {
             toast({ title: "Valor inválido", variant: "destructive" });
+            return;
+        }
+        
+        if (session?.user && amount > session.user.balance) {
+             toast({ title: "Saldo insuficiente", variant: "destructive" });
             return;
         }
 
