@@ -5,14 +5,13 @@ export default withAuth({
     authorized: ({ req, token }) => {
       const { pathname } = req.nextUrl;
 
-      // This check is now redundant for cron jobs as they are no longer in the matcher,
-      // but it's safe to keep. The route handlers perform the actual authorization.
+      // Cron job routes handle their own authorization via bearer token.
+      // They are not included in the matcher below.
       if (pathname.startsWith("/api/cron")) {
-        const authHeader = req.headers.get('authorization');
-        return authHeader === `Bearer ${process.env.CRON_SECRET}`;
+        return true; 
       }
 
-      // For all other routes in the matcher, a token is required.
+      // For all other matched routes, a token is required.
       if (!token) {
         return false;
       }
@@ -28,12 +27,13 @@ export default withAuth({
   },
   pages: {
     signIn: "/", // Redirect to home page on auth failure
+    error: "/join-server", // Redirect to join server page on certain errors
   },
 })
 
 export const config = {
-  // Cron routes were removed from this matcher.
-  // They are now public from the middleware's perspective and handle their own authorization.
+  // Note: Cron routes are not in this matcher. 
+  // They are public from the middleware's perspective and handle their own authorization.
   matcher: [
     "/bet",
     "/my-bets",
@@ -46,6 +46,6 @@ export const config = {
     "/bolao",
     "/mvp",
     "/admin/:path*",
+    "/join-server",
   ],
-  runtime: "nodejs",
 }
