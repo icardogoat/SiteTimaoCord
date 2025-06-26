@@ -2,7 +2,7 @@
 'use server';
 
 import clientPromise from '@/lib/mongodb';
-import type { PlacedBet, Transaction, UserRanking, MvpVoting, MvpPlayer, MvpTeamLineup, Notification, StoreItem, Bolao, Advertisement, UserInventoryItem, PurchaseAdminView } from '@/types';
+import type { PlacedBet, Transaction, UserRanking, MvpVoting, MvpPlayer, MvpTeamLineup, Notification, StoreItem, Bolao, Advertisement, UserInventoryItem, PurchaseAdminView, Standing } from '@/types';
 import { ObjectId, WithId } from 'mongodb';
 import { revalidatePath } from 'next/cache';
 import { getBotConfig } from './bot-config-actions';
@@ -1972,4 +1972,124 @@ export async function deletePurchase(inventoryId: string): Promise<{ success: bo
         console.error("Error deleting purchase:", error);
         return { success: false, message: "Ocorreu um erro ao excluir o registro." };
     }
+}
+
+// ---- ADMIN STANDINGS ACTIONS ----
+
+const LEAGUE_ID_MAP: { [key: string]: number } = {
+    'Brasileirão Série A': 71,
+    'Brasileirão Série B': 72,
+    'Copa do Brasil': 73,
+    'CONMEBOL Libertadores': 13,
+    'CONMEBOL Sul-Americana': 11,
+    'Premier League': 39,
+    'La Liga': 140,
+    'Serie A': 135,
+    'Bundesliga': 78,
+    'Ligue 1': 61,
+    'UEFA Champions League': 2,
+    'UEFA Europa League': 3,
+    'MLS': 253,
+    'FIFA Club World Cup': 15,
+    'Mundial de Clubes da FIFA': 15
+};
+
+const relevantLeaguesForUpdate = [...new Set(Object.keys(LEAGUE_ID_MAP))];
+
+export async function getAdminStandings(): Promise<Standing[]> {
+    try {
+        const client = await clientPromise;
+        const db = client.db('timaocord');
+        const standingsCollection = db.collection<Standing>('standings');
+        const standings = await standingsCollection.find({}).toArray();
+
+        return JSON.parse(JSON.stringify(standings));
+    } catch (error) {
+        console.error("Error fetching admin standings:", error);
+        return [];
+    }
+}
+
+export async function updateAllStandings(): Promise<{ success: boolean; message: string; details: string[] }> {
+    const season = new Date().getFullYear();
+    const results: string[] = [];
+    let successCount = 0;
+    let failureCount = 0;
+
+    const client = await clientPromise;
+    const db = client.db('timaocord');
+    const standingsCollection = db.collection('standings');
+
+    for (const leagueName of relevantLeaguesForUpdate) {
+        const leagueId = LEAGUE_ID_MAP[leagueName];
+        if (!leagueId) {
+            results.push(`Skipping '${leagueName}': No ID found.`);
+            continue;
+        }
+
+        let apiKey;
+        try {
+            apiKey = await getAvailableApiKey();
+        } catch (error: any) {
+            return { success: false, message: 'Failed to get API key.', details: [error.message] };
+        }
+        
+        const url = `https://api-football-v1.p.rapidapi.com/v3/standings?league=${leagueId}&season=${season}`;
+        const options = {
+            method: 'GET',
+            headers: {
+                'X-RapidAPI-Key': apiKey,
+                'X-RapidAPI-Host': 'api-football-v1.p.rapidapi.com'
+            },
+            cache: 'no-store' as RequestCache
+        };
+
+        try {
+            const response = await fetch(url, options);
+            if (!response.ok) {
+                const errorData = await response.text();
+                throw new Error(`API error for ${leagueName}: ${response.status} ${errorData}`);
+            }
+
+            const data = await response.json();
+            if (!data.response || data.response.length === 0 || !data.response[0].league) {
+                throw new Error(`No standings data returned from API for ${leagueName}.`);
+            }
+            
+            const apiResponseLeague = data.response[0].league;
+
+            const documentToUpsert = {
+                league: {
+                    id: apiResponseLeague.id,
+                    name: apiResponseLeague.name,
+                    country: apiResponseLeague.country,
+                    logo: apiResponseLeague.logo,
+                    flag: apiResponseLeague.flag,
+                    season: apiResponseLeague.season,
+                },
+                standings: apiResponseLeague.standings,
+                lastUpdated: new Date()
+            };
+
+            await standingsCollection.updateOne(
+                { 'league.id': leagueId },
+                { $set: documentToUpsert },
+                { upsert: true }
+            );
+
+            results.push(`Successfully updated ${leagueName}.`);
+            successCount++;
+
+        } catch (error: any) {
+            results.push(`Failed to update ${leagueName}: ${error.message}`);
+            failureCount++;
+            console.error(`Error updating standings for ${leagueName} (ID: ${leagueId}):`, error);
+        }
+    }
+    
+    const summaryMessage = `Standings update complete. Success: ${successCount}, Failed: ${failureCount}.`;
+    revalidatePath('/admin/standings');
+    revalidatePath('/standings');
+    
+    return { success: failureCount === 0, message: summaryMessage, details: results };
 }

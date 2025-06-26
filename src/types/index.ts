@@ -199,6 +199,7 @@ export type Standing = {
     logo: string;
   };
   standings: StandingEntry[][];
+  lastUpdated?: Date | string;
 };
 
 export type BotConfig = {
