@@ -166,6 +166,7 @@ export async function purchaseItem(itemId: string): Promise<PurchaseResult> {
                     userId: userId,
                     itemId: item._id,
                     itemName: item.name,
+                    pricePaid: finalPrice,
                     itemType: item.type,
                     itemDuration: item.duration,
                     redemptionCode: redemptionCode,

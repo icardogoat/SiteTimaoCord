@@ -1,7 +1,7 @@
 'use server';
 
 import clientPromise from '@/lib/mongodb';
-import type { PlacedBet, Transaction, UserRanking, MvpVoting, MvpPlayer, MvpTeamLineup, Notification, StoreItem, Bolao, Advertisement } from '@/types';
+import type { PlacedBet, Transaction, UserRanking, MvpVoting, MvpPlayer, MvpTeamLineup, Notification, StoreItem, Bolao, Advertisement, UserInventoryItem, PurchaseAdminView } from '@/types';
 import { ObjectId, WithId } from 'mongodb';
 import { revalidatePath } from 'next/cache';
 import { getBotConfig } from './bot-config-actions';
@@ -1564,5 +1564,147 @@ export async function deleteAdvertisement(adId: string): Promise<{ success: bool
     } catch (error) {
         console.error("Error deleting advertisement:", error);
         return { success: false, message: "Ocorreu um erro ao excluir o anúncio." };
+    }
+}
+
+// ---- ADMIN PURCHASE ACTIONS ----
+
+export async function getAdminPurchases(): Promise<PurchaseAdminView[]> {
+    try {
+        const client = await clientPromise;
+        const db = client.db('timaocord');
+        
+        const purchases = await db.collection('user_inventory').aggregate([
+            { $sort: { purchasedAt: -1 } },
+            {
+                $lookup: {
+                    from: 'users',
+                    localField: 'userId',
+                    foreignField: 'discordId',
+                    as: 'userDetails'
+                }
+            },
+            {
+                $unwind: '$userDetails'
+            },
+            {
+                $project: {
+                    id: '$_id',
+                    userName: '$userDetails.name',
+                    userAvatar: '$userDetails.image',
+                    itemName: '$itemName',
+                    itemType: '$itemType',
+                    pricePaid: '$pricePaid',
+                    isRedeemed: '$isRedeemed',
+                    purchasedAt: '$purchasedAt',
+                    redemptionCode: '$redemptionCode',
+                    userId: '$userId',
+                }
+            }
+        ]).toArray();
+
+        return JSON.parse(JSON.stringify(purchases));
+
+    } catch (error) {
+        console.error("Error fetching admin purchases:", error);
+        return [];
+    }
+}
+
+export async function refundPurchase(inventoryId: string): Promise<{ success: boolean; message: string }> {
+    const client = await clientPromise;
+    const db = client.db('timaocord');
+    const mongoSession = client.startSession();
+
+    try {
+        let result: { success: boolean, message: string } | undefined;
+
+        await mongoSession.withTransaction(async () => {
+            const inventoryCollection = db.collection<UserInventoryItem>('user_inventory');
+            const walletsCollection = db.collection('wallets');
+            const notificationsCollection = db.collection('notifications');
+
+            const purchase = await inventoryCollection.findOne({ _id: new ObjectId(inventoryId) }, { session: mongoSession });
+
+            if (!purchase) {
+                throw new Error('Compra não encontrada.');
+            }
+
+            // Refund the user
+            await walletsCollection.updateOne(
+                { userId: purchase.userId },
+                { $inc: { balance: purchase.pricePaid } },
+                { session: mongoSession }
+            );
+
+            // Add a transaction for the refund
+            const refundTransaction: Transaction = {
+                id: new ObjectId().toString(),
+                type: 'Ajuste',
+                description: `Reembolso da compra: ${purchase.itemName}`,
+                amount: purchase.pricePaid,
+                date: new Date().toISOString(),
+                status: 'Concluído',
+            };
+            await walletsCollection.updateOne(
+                { userId: purchase.userId },
+                { $push: { transactions: { $each: [refundTransaction], $sort: { date: -1 } } } },
+                { session: mongoSession }
+            );
+
+            // Add notification for the user
+             const newNotification: Omit<Notification, '_id'> = {
+                userId: purchase.userId,
+                title: 'Compra Reembolsada',
+                description: `Sua compra de "${purchase.itemName}" foi reembolsada. R$ ${purchase.pricePaid.toFixed(2)} foram adicionados à sua carteira.`,
+                date: new Date(),
+                read: false,
+                link: '/wallet'
+            };
+            await notificationsCollection.insertOne(newNotification as any, { session: mongoSession });
+
+            // Delete the purchase record
+            await inventoryCollection.deleteOne({ _id: new ObjectId(inventoryId) }, { session: mongoSession });
+
+            result = { success: true, message: `Compra de ${purchase.itemName} reembolsada para o usuário.` };
+        });
+        
+        await mongoSession.endSession();
+
+        if (result?.success) {
+            revalidatePath('/admin/purchases');
+            revalidatePath('/wallet');
+            revalidatePath('/notifications');
+            revalidatePath('/profile');
+            return result;
+        }
+
+        return { success: false, message: 'A transação falhou.' };
+
+    } catch (error: any) {
+        await mongoSession.endSession();
+        console.error("Error refunding purchase:", error);
+        return { success: false, message: error.message || 'Ocorreu um erro ao reembolsar a compra.' };
+    }
+}
+
+export async function deletePurchase(inventoryId: string): Promise<{ success: boolean; message: string }> {
+     try {
+        const client = await clientPromise;
+        const db = client.db('timaocord');
+        const collection = db.collection<UserInventoryItem>('user_inventory');
+
+        const result = await collection.deleteOne({ _id: new ObjectId(inventoryId) });
+
+        if(result.deletedCount === 0) {
+            return { success: false, message: "Registro da compra não encontrado." };
+        }
+
+        revalidatePath('/admin/purchases');
+        revalidatePath('/profile');
+        return { success: true, message: "Registro da compra excluído com sucesso." };
+    } catch (error) {
+        console.error("Error deleting purchase:", error);
+        return { success: false, message: "Ocorreu um erro ao excluir o registro." };
     }
 }

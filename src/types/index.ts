@@ -155,6 +155,7 @@ export type UserInventoryItem = {
     userId: string;
     itemId: string | ObjectId;
     itemName: string;
+    pricePaid: number;
     itemType: StoreItem['type'];
     itemDuration?: StoreItem['duration'];
     redemptionCode: string;
@@ -224,9 +225,8 @@ export type ApiKeyEntry = {
 export type ApiSettings = {
     _id: string | ObjectId;
     apiKeys?: ApiKeyEntry[];
-    maintenanceMode?: boolean;
-    welcomeBonus?: number;
     siteUrl?: string;
+    adNetworkScript?: string;
 };
 
 export type Achievement = {
@@ -311,4 +311,17 @@ export type Advertisement = {
   owner: 'system' | 'user';
   userId?: string;
   createdAt: Date | string;
+};
+
+export type PurchaseAdminView = {
+  id: string; // inventory item id
+  userName: string;
+  userAvatar: string;
+  itemName: string;
+  itemType: StoreItem['type'];
+  pricePaid: number;
+  isRedeemed: boolean;
+  purchasedAt: string;
+  redemptionCode?: string;
+  userId: string;
 };
