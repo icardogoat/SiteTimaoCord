@@ -1,6 +1,7 @@
+
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Button } from './ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from './ui/card';
 import { Input } from './ui/input';
@@ -9,16 +10,15 @@ import { Separator } from './ui/separator';
 import { Badge } from './ui/badge';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
-import { placeCassinoBet, cashOutCassino } from '@/actions/cassino-actions';
+import { getGameState, placeCassinoBet, cashOutCassino, startGameRound, getBetsForRound } from '@/actions/cassino-actions';
 import { Loader2 } from 'lucide-react';
 import { useSession } from 'next-auth/react';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
+import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
+import { AvatarFallbackText } from './avatar-fallback-text';
+import type { CassinoGameRound, CassinoBet } from '@/types';
 
 
-type GameState = 'idle' | 'betting' | 'playing' | 'crashed';
-
-const PRE_GAME_DELAY = 3000; // 3 seconds before game starts
-const POST_CRASH_DELAY = 3000; // 3 seconds after crash before going idle
+const POST_CRASH_DELAY_MS = 4000;
 
 const RocketSvg = () => (
     <svg
@@ -55,7 +55,6 @@ const RocketSvg = () => (
     </svg>
 );
 
-
 const Explosion = ({ position }: { position: number }) => (
     <div className="absolute left-1/2 -translate-x-1/2" style={{ bottom: `${position}%` }}>
         <div className="absolute w-24 h-24 bg-yellow-400 rounded-full animate-ping opacity-75"></div>
@@ -64,7 +63,7 @@ const Explosion = ({ position }: { position: number }) => (
     </div>
 );
 
-const RocketAnimation = ({ gameState, multiplier, crashPoint, hasCashedOut }: { gameState: GameState; multiplier: number; crashPoint: number | null, hasCashedOut: boolean }) => {
+const RocketAnimation = ({ gameState, multiplier, hasCashedOut }: { gameState: CassinoGameRound['status'] | 'idle'; multiplier: number; hasCashedOut: boolean }) => {
     const [stars, setStars] = useState<{ top: string; left: string; size: string; delay: string; duration: string }[]>([]);
 
     useEffect(() => {
@@ -80,7 +79,8 @@ const RocketAnimation = ({ gameState, multiplier, crashPoint, hasCashedOut }: { 
 
     const getRocketPosition = () => {
         if (multiplier < 1) return 5;
-        const progress = Math.log1p(multiplier - 0.9) / Math.log1p(50);
+        // Logarithmic scale for smoother take-off and faster acceleration
+        const progress = Math.log1p(multiplier - 0.9) / Math.log1p(50); 
         return 5 + Math.min(progress, 1) * 80;
     };
     
@@ -88,7 +88,6 @@ const RocketAnimation = ({ gameState, multiplier, crashPoint, hasCashedOut }: { 
 
     return (
         <div className="w-full h-full flex flex-col items-center justify-end relative overflow-hidden bg-slate-900 rounded-lg">
-            {/* Stars */}
             {stars.map((star, i) => (
                 <div
                     key={i}
@@ -104,29 +103,7 @@ const RocketAnimation = ({ gameState, multiplier, crashPoint, hasCashedOut }: { 
                 />
             ))}
             
-            {/* Display Text */}
-            <div className="absolute inset-0 flex items-center justify-center z-20 pointer-events-none">
-                {gameState === 'playing' && (
-                     <div className={cn(
-                        "text-6xl font-bold drop-shadow-lg transition-colors",
-                        hasCashedOut ? 'text-green-400' : 'text-primary'
-                     )}>
-                        {multiplier.toFixed(2)}x
-                     </div>
-                )}
-                 {gameState === 'crashed' && crashPoint && (
-                     <div className="text-6xl font-bold text-destructive drop-shadow-lg transition-opacity">
-                        {crashPoint.toFixed(2)}x
-                     </div>
-                )}
-                 {gameState === 'betting' && (
-                     <div className="text-4xl font-bold text-primary drop-shadow-lg">
-                        Começando em breve...
-                     </div>
-                )}
-            </div>
-
-            {gameState !== 'crashed' && (
+            {gameState !== 'crashed' ? (
                 <div
                     className={cn(
                         'absolute z-10 transition-all duration-100 ease-linear',
@@ -136,9 +113,9 @@ const RocketAnimation = ({ gameState, multiplier, crashPoint, hasCashedOut }: { 
                 >
                     <RocketSvg />
                 </div>
+            ) : (
+                <Explosion position={rocketPosition} />
             )}
-            
-            {gameState === 'crashed' && <Explosion position={rocketPosition} />}
         </div>
     );
 };
@@ -164,6 +141,79 @@ const GameHistory = ({ games }: { games: { crashPoint: number }[] }) => {
     );
 };
 
+const GameStateDisplay = ({ round, multiplier, hasCashedOut }: { round: CassinoGameRound | null, multiplier: number, hasCashedOut: boolean }) => {
+    if (!round) return null;
+    
+    switch (round.status) {
+        case 'betting':
+            return <BettingCountdown bettingEndsAt={round.bettingEndsAt} />;
+        case 'playing':
+            return (
+                <div className={cn("text-6xl font-bold drop-shadow-lg", hasCashedOut ? 'text-green-400' : 'text-primary')}>
+                    {multiplier.toFixed(2)}x
+                </div>
+            );
+        case 'crashed':
+            return <div className="text-6xl font-bold text-destructive drop-shadow-lg">{round.crashPoint.toFixed(2)}x</div>;
+        default:
+            return null;
+    }
+}
+
+const BettingCountdown = ({ bettingEndsAt }: { bettingEndsAt: Date | string }) => {
+    const [countdown, setCountdown] = useState(0);
+
+    useEffect(() => {
+        const interval = setInterval(() => {
+            const ends = new Date(bettingEndsAt).getTime();
+            const now = Date.now();
+            const remaining = Math.max(0, (ends - now) / 1000);
+            setCountdown(remaining);
+        }, 100);
+
+        return () => clearInterval(interval);
+    }, [bettingEndsAt]);
+
+    return (
+        <div className="text-center">
+            <h2 className="text-3xl font-bold text-primary drop-shadow-lg">Apostas abertas!</h2>
+            <p className="text-5xl font-bold">{countdown.toFixed(1)}s</p>
+        </div>
+    );
+};
+
+const PlayerList = ({ players }: { players: CassinoBet[] }) => {
+    if (players.length === 0) {
+        return <p className="text-center text-sm text-muted-foreground">Nenhum jogador na rodada.</p>
+    }
+
+    const getStatusColor = (status: CassinoBet['status']) => {
+        return status === 'cashed_out' ? 'text-green-400' : 'text-yellow-400';
+    }
+
+    return (
+        <div className="space-y-2">
+            {players.map(player => (
+                <div key={player._id as string} className="flex justify-between items-center bg-muted/50 p-2 rounded-md text-sm">
+                    <div className="flex items-center gap-2 overflow-hidden">
+                        <Avatar className="h-6 w-6">
+                            <AvatarImage src={player.userAvatar} alt={player.userName} data-ai-hint="user avatar" />
+                            <AvatarFallback><AvatarFallbackText name={player.userName} /></AvatarFallback>
+                        </Avatar>
+                        <span className="truncate">{player.userName}</span>
+                    </div>
+                    <div className={cn("font-semibold", getStatusColor(player.status))}>
+                        {player.status === 'cashed_out' && player.cashOutMultiplier
+                            ? `${player.cashOutMultiplier.toFixed(2)}x`
+                            : `R$ ${player.stake.toFixed(2)}`
+                        }
+                    </div>
+                </div>
+            ))}
+        </div>
+    );
+}
+
 
 export function CassinoGameClient({ initialRecentGames }: { initialRecentGames: { crashPoint: number }[] }) {
     const { data: session, update: updateSession } = useSession();
@@ -171,286 +221,202 @@ export function CassinoGameClient({ initialRecentGames }: { initialRecentGames: 
     
     // Game controls state
     const [betAmount, setBetAmount] = useState('10');
-    const [autoCashOut, setAutoCashOut] = useState('');
     
     // Game logic state
-    const [gameState, setGameState] = useState<GameState>('idle');
+    const [round, setRound] = useState<CassinoGameRound | null>(null);
     const [multiplier, setMultiplier] = useState(1.00);
-    const [activeBetId, setActiveBetId] = useState<string | null>(null);
-    const [crashPoint, setCrashPoint] = useState<number | null>(null);
-    const [hasCashedOut, setHasCashedOut] = useState(false);
-    
-    // Auto-bet state
-    const [isAutoBetting, setIsAutoBetting] = useState(false);
-    const [autoBetRounds, setAutoBetRounds] = useState('5');
-    const [remainingRounds, setRemainingRounds] = useState(0);
+    const [playerBet, setPlayerBet] = useState<CassinoBet | null>(null);
+    const [playersInRound, setPlayersInRound] = useState<CassinoBet[]>([]);
 
+    // UI state
+    const [isProcessing, setIsProcessing] = useState(false);
+    
     // History state
     const [recentGames, setRecentGames] = useState(initialRecentGames);
-    
-    // Refs for state inside intervals/timeouts
-    const intervalRef = useRef<NodeJS.Timeout | null>(null);
-    const gameStateRef = useRef(gameState);
-    useEffect(() => { gameStateRef.current = gameState; }, [gameState]);
-    const hasCashedOutRef = useRef(hasCashedOut);
-    useEffect(() => { hasCashedOutRef.current = hasCashedOut; }, [hasCashedOut]);
-    const isAutoBettingRef = useRef(isAutoBetting);
-    useEffect(() => { isAutoBettingRef.current = isAutoBetting; }, [isAutoBetting]);
-    const autoCashOutRef = useRef(autoCashOut);
-    useEffect(() => { autoCashOutRef.current = autoCashOut; }, [autoCashOut]);
 
-    const stopGame = () => {
-        if (intervalRef.current) {
-            clearInterval(intervalRef.current);
-            intervalRef.current = null;
-        }
-    };
-    
-    const handleRoundEnd = () => {
-        if (gameStateRef.current !== 'playing') return;
-        
-        stopGame();
-        setGameState('crashed');
+    // Refs for intervals/timeouts
+    const animationIntervalRef = useRef<NodeJS.Timeout | null>(null);
+    const syncTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+    const playersIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
-        if (crashPoint) {
-            setRecentGames(prev => [...prev.slice(-14), { crashPoint: crashPoint }]);
-        
-            if (activeBetId && !hasCashedOutRef.current) {
-                // If user was in the game and didn't cash out, register the loss.
-                cashOutCassino(activeBetId, crashPoint);
-            }
+    const stopAnimation = () => {
+        if (animationIntervalRef.current) {
+            clearInterval(animationIntervalRef.current);
+            animationIntervalRef.current = null;
         }
     };
 
+    const stopPlayerSync = () => {
+        if (playersIntervalRef.current) {
+            clearInterval(playersIntervalRef.current);
+            playersIntervalRef.current = null;
+        }
+    };
+    
+    const syncGameState = useCallback(async () => {
+        if (syncTimeoutRef.current) clearTimeout(syncTimeoutRef.current);
+        
+        const newRoundState = await getGameState();
+        setRound(newRoundState);
+
+        if(newRoundState.status === 'crashed' && !recentGames.some(g => g.crashPoint === newRoundState.crashPoint)) {
+             setRecentGames(prev => [...prev.slice(-14), { crashPoint: newRoundState.crashPoint }]);
+        }
+    }, [recentGames]);
+
+    // Main game loop effect
+    useEffect(() => {
+        if (!round) {
+            syncGameState();
+            return;
+        }
+
+        stopAnimation();
+        stopPlayerSync();
+        if(round.status === 'betting') {
+            setPlayerBet(null);
+            setPlayersInRound([]);
+        }
+
+        switch (round.status) {
+            case 'betting':
+                playersIntervalRef.current = setInterval(async () => {
+                    const bets = await getBetsForRound(round._id as string);
+                    setPlayersInRound(bets);
+                }, 1500);
+
+                const timeUntilStart = new Date(round.bettingEndsAt).getTime() - Date.now();
+                syncTimeoutRef.current = setTimeout(async () => {
+                    await startGameRound(round._id as string);
+                    syncGameState();
+                }, Math.max(0, timeUntilStart));
+                break;
+            
+            case 'playing':
+                const startTime = new Date(round.startedAt!).getTime();
+                
+                animationIntervalRef.current = setInterval(() => {
+                    const elapsedTime = Date.now() - startTime;
+                    const newMultiplier = parseFloat((1 * Math.pow(1.00008, elapsedTime)).toFixed(2));
+                    
+                    if (newMultiplier >= round.crashPoint) {
+                        setMultiplier(round.crashPoint);
+                        syncGameState();
+                    } else {
+                        setMultiplier(newMultiplier);
+                    }
+                }, 50);
+
+                playersIntervalRef.current = setInterval(async () => {
+                    const bets = await getBetsForRound(round._id as string);
+                    setPlayersInRound(bets);
+                }, 1500);
+
+                break;
+            
+            case 'crashed':
+                setMultiplier(round.crashPoint);
+                syncTimeoutRef.current = setTimeout(syncGameState, POST_CRASH_DELAY_MS);
+                break;
+        }
+
+        return () => {
+            if (syncTimeoutRef.current) clearTimeout(syncTimeoutRef.current);
+            stopAnimation();
+            stopPlayerSync();
+        };
+    }, [round, syncGameState]);
+
+    const handlePlaceBet = async () => {
+        if (!round || round.status !== 'betting') return;
+        
+        setIsProcessing(true);
+        const amount = parseFloat(betAmount);
+        const result = await placeCassinoBet({ stake: amount, roundId: round._id as string });
+
+        if (result.success && result.bet) {
+            toast({ title: "Aposta Aceita!" });
+            setPlayerBet(result.bet);
+            await updateSession();
+        } else {
+            toast({ title: "Erro ao Apostar", description: result.message, variant: "destructive" });
+        }
+        setIsProcessing(false);
+    };
 
     const handleCashOut = async () => {
-        if (!activeBetId || gameStateRef.current !== 'playing' || hasCashedOutRef.current) return;
-        
-        setHasCashedOut(true); 
-        
-        const result = await cashOutCassino(activeBetId, multiplier);
-        if(result.success) {
+        if (!playerBet || round?.status !== 'playing' || playerBet.status === 'cashed_out') return;
+
+        setIsProcessing(true);
+        const result = await cashOutCassino(playerBet._id as string, multiplier);
+
+        if (result.success) {
             toast({ title: "Sucesso!", description: result.message });
+            setPlayerBet(prev => prev ? {...prev, status: 'cashed_out', cashOutMultiplier: multiplier, winnings: result.winnings} : null);
             await updateSession();
         } else {
-            toast({ title: "Erro", description: result.message, variant: "destructive" });
+             toast({ title: "Falha ao Sacar", description: result.message, variant: "destructive" });
         }
-    };
-
-    // Main Game Loop Effect
-    useEffect(() => {
-        if (gameState === 'playing' && crashPoint) {
-            const startTime = Date.now();
-            
-            intervalRef.current = setInterval(() => {
-                const elapsedTime = Date.now() - startTime;
-                const newMultiplier = parseFloat((1 * Math.pow(1.00008, elapsedTime)).toFixed(2));
-                
-                const autoCashOutValue = parseFloat(autoCashOutRef.current);
-                if (!hasCashedOutRef.current && !isNaN(autoCashOutValue) && autoCashOutValue > 1 && newMultiplier >= autoCashOutValue) {
-                    setMultiplier(autoCashOutValue);
-                    handleCashOut();
-                } else if (newMultiplier >= crashPoint) {
-                    setMultiplier(crashPoint);
-                    handleRoundEnd();
-                } else {
-                    setMultiplier(newMultiplier);
-                }
-            }, 50);
-
-        } else if (gameState === 'crashed') {
-            const timer = setTimeout(() => {
-                setGameState('idle');
-                // Reset states for next round
-                setActiveBetId(null);
-                setCrashPoint(null);
-            }, POST_CRASH_DELAY);
-            return () => clearTimeout(timer);
-        }
-
-        return () => stopGame();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [gameState, crashPoint]);
-    
-    // Auto-Bet Loop Effect
-    useEffect(() => {
-        if (isAutoBettingRef.current && gameState === 'idle' && remainingRounds > 0) {
-            handleStartGame();
-            setRemainingRounds(r => r - 1);
-        } else if (isAutoBettingRef.current && gameState === 'idle' && remainingRounds <= 0) {
-            setIsAutoBetting(false);
-            toast({ title: "Auto-Aposta Concluída" });
-        }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [gameState, remainingRounds]);
-
-
-    const handleStartGame = async () => {
-        const amount = parseFloat(betAmount);
-        if (isNaN(amount) || amount <= 0) {
-            toast({ title: "Valor inválido", variant: "destructive" });
-            return;
-        }
-        
-        if (session?.user && amount > session.user.balance) {
-             toast({ title: "Saldo insuficiente", variant: "destructive" });
-             setIsAutoBetting(false);
-             setRemainingRounds(0);
-            return;
-        }
-
-        setGameState('betting');
-        setMultiplier(1.00);
-        setHasCashedOut(false);
-
-        const payload = {
-            stake: amount,
-            autoCashOutAt: parseFloat(autoCashOut) || undefined,
-        }
-
-        const result = await placeCassinoBet(payload);
-        if (result.success && result.betId && result.crashPoint) {
-            await updateSession();
-            setActiveBetId(result.betId);
-            setCrashPoint(result.crashPoint);
-            setTimeout(() => {
-                if (gameStateRef.current === 'betting') {
-                    setGameState('playing');
-                }
-            }, PRE_GAME_DELAY);
-        } else {
-            toast({ title: "Erro ao iniciar", description: result.message, variant: "destructive" });
-            setGameState('idle');
-            setIsAutoBetting(false);
-        }
-    };
-    
-    const handleAutoBetToggle = () => {
-        if (isAutoBetting) {
-            setIsAutoBetting(false);
-            setRemainingRounds(0);
-            toast({ title: "Auto-Aposta Parada" });
-        } else {
-            const rounds = parseInt(autoBetRounds, 10);
-            if (isNaN(rounds) || rounds <= 0) {
-                toast({ title: "Número de rodadas inválido.", variant: "destructive" });
-                return;
-            }
-            setIsAutoBetting(true);
-            setRemainingRounds(rounds);
-            toast({ title: `Auto-Aposta iniciada para ${rounds} rodadas.` });
-        }
-    };
-    
-    const getButton = () => {
-        switch (gameState) {
-            case 'idle':
-                return <Button className="w-full h-16 text-xl" onClick={handleStartGame}>Apostar</Button>;
-            case 'betting':
-                return <Button className="w-full h-16 text-xl" variant="secondary" disabled><Loader2 className="mr-2 h-6 w-6 animate-spin" />Aguardando...</Button>;
-            case 'playing':
-                 if (hasCashedOut) {
-                    return <Button className="w-full h-16 text-xl" variant="outline" disabled>SACADO!</Button>;
-                }
-                return <Button className="w-full h-16 text-xl" variant="destructive" onClick={handleCashOut}>Sacar R$ {(parseFloat(betAmount) * multiplier).toFixed(2)}</Button>;
-            case 'crashed':
-                return <Button className="w-full h-16 text-xl" onClick={handleStartGame}>Jogar Novamente</Button>;
-        }
+        setIsProcessing(false);
     }
     
-    const getAutoBetButton = () => {
-        if (isAutoBetting) {
-            return <Button className="w-full h-16 text-xl" variant="destructive" onClick={handleAutoBetToggle}>Parar Auto-Aposta ({remainingRounds})</Button>;
+    const getButton = () => {
+        if (!round) return <Button className="w-full h-16 text-xl" disabled><Loader2 className="mr-2 h-6 w-6 animate-spin" />Carregando...</Button>;
+
+        switch(round.status) {
+            case 'betting':
+                if (playerBet) {
+                    return <Button className="w-full h-16 text-xl" variant="outline" disabled>Aposta Confirmada</Button>;
+                }
+                return <Button className="w-full h-16 text-xl" onClick={handlePlaceBet} disabled={isProcessing}>Apostar</Button>;
+            
+            case 'playing':
+                 if (!playerBet) {
+                    return <Button className="w-full h-16 text-xl" variant="secondary" disabled>Aguardando...</Button>;
+                 }
+                 if (playerBet.status === 'cashed_out') {
+                    return <Button className="w-full h-16 text-xl" variant="outline" disabled>SACADO!</Button>;
+                 }
+                return <Button className="w-full h-16 text-xl" variant="destructive" onClick={handleCashOut} disabled={isProcessing}>Sacar R$ {(playerBet.stake * multiplier).toFixed(2)}</Button>;
+
+            case 'crashed':
+                 return <Button className="w-full h-16 text-xl" variant="secondary" disabled>Aguardando Próxima Rodada</Button>;
         }
-        if (gameState === 'idle') {
-            return <Button className="w-full h-16 text-xl" onClick={handleAutoBetToggle}>Iniciar Auto-Aposta</Button>;
-        }
-        return <Button className="w-full h-16 text-xl" disabled>Aguarde a rodada terminar</Button>;
     };
-
-    const isBettingDisabled = (gameState !== 'idle' && gameState !== 'crashed') || isAutoBetting;
     
-    const quickBetAmounts = [10, 20, 50, 100];
-
-    const manualBettingPanel = (
-        <>
-            <CardHeader><CardTitle>Aposta Manual</CardTitle></CardHeader>
-            <CardContent className="space-y-4">
-                <div className="space-y-2">
-                    <Label htmlFor="bet-amount">Valor da Aposta (R$)</Label>
-                    <Input id="bet-amount" type="number" value={betAmount} onChange={(e) => setBetAmount(e.target.value)} disabled={isBettingDisabled} className="h-12 text-lg" />
-                    <div className="flex gap-2 pt-1">
-                        {quickBetAmounts.map(amount => (
-                            <Button key={amount} variant="outline" size="sm" onClick={() => setBetAmount(String(amount))}  disabled={isBettingDisabled}>
-                                {amount}
-                            </Button>
-                        ))}
-                    </div>
-                </div>
-                <div className="space-y-2">
-                    <Label htmlFor="auto-cashout">Auto Saque (Opcional)</Label>
-                    <Input id="auto-cashout" type="number" placeholder="Ex: 2.00" value={autoCashOut} onChange={(e) => setAutoCashOut(e.target.value)} disabled={isBettingDisabled} />
-                </div>
-            </CardContent>
-            <CardFooter>{getButton()}</CardFooter>
-        </>
-    );
-
-     const autoBettingPanel = (
-        <>
-            <CardHeader><CardTitle>Aposta Automática</CardTitle></CardHeader>
-            <CardContent className="space-y-4">
-                 <div className="space-y-2">
-                    <Label htmlFor="auto-bet-amount">Valor da Aposta (R$)</Label>
-                    <Input id="auto-bet-amount" type="number" value={betAmount} onChange={(e) => setBetAmount(e.target.value)} disabled={isAutoBetting} className="h-12 text-lg" />
-                </div>
-                 <div className="space-y-2">
-                    <Label htmlFor="auto-bet-cashout">Auto Saque</Label>
-                    <Input id="auto-bet-cashout" type="number" placeholder="Ex: 2.00" value={autoCashOut} onChange={(e) => setAutoCashOut(e.target.value)} disabled={isAutoBetting} />
-                </div>
-                 <div className="space-y-2">
-                    <Label htmlFor="auto-bet-rounds">Número de Rodadas</Label>
-                    <Input id="auto-bet-rounds" type="number" value={autoBetRounds} onChange={(e) => setAutoBetRounds(e.target.value)} disabled={isAutoBetting} />
-                </div>
-            </CardContent>
-            <CardFooter>{getAutoBetButton()}</CardFooter>
-        </>
-    );
-
     return (
         <div className="flex-1 p-4 sm:p-6 lg:p-8">
             <div className="mb-8">
                 <h1 className="text-3xl font-bold font-headline tracking-tight">Foguetinho FielBet</h1>
                 <p className="text-muted-foreground">Aposte e saque antes que o foguete exploda!</p>
             </div>
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <div className="lg:col-span-1 lg:order-1">
-                    <Tabs defaultValue="manual" className="w-full">
-                        <TabsList className="grid w-full grid-cols-2">
-                            <TabsTrigger value="manual" disabled={isAutoBetting}>Manual</TabsTrigger>
-                            <TabsTrigger value="auto" disabled={gameState !== 'idle'}>Auto</TabsTrigger>
-                        </TabsList>
-                        <TabsContent value="manual">
-                            <Card>{manualBettingPanel}</Card>
-                        </TabsContent>
-                        <TabsContent value="auto">
-                            <Card>{autoBettingPanel}</Card>
-                        </TabsContent>
-                    </Tabs>
+             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div className="lg:col-span-1 lg:order-2">
+                    <Card>
+                        <CardHeader><CardTitle>Jogadores na Rodada ({playersInRound.length})</CardTitle></CardHeader>
+                        <CardContent className="max-h-[500px] overflow-y-auto"><PlayerList players={playersInRound} /></CardContent>
+                    </Card>
                 </div>
 
-                <div className="lg:col-span-2 lg:order-2">
-                    <Card>
+                <div className="lg:col-span-2 lg:order-1 row-start-1 lg:row-start-auto">
+                     <Card>
                         <CardContent className="p-2 space-y-2">
                             <GameHistory games={recentGames} />
                             <Separator />
                             <div className="aspect-[16/10] bg-muted/50 rounded-lg flex items-center justify-center p-4 relative overflow-hidden">
-                                <RocketAnimation 
-                                    gameState={gameState} 
-                                    multiplier={multiplier}
-                                    crashPoint={crashPoint}
-                                    hasCashedOut={hasCashedOut}
-                                />
+                                <div className="absolute inset-0 flex items-center justify-center z-20 pointer-events-none">
+                                    <GameStateDisplay round={round} multiplier={multiplier} hasCashedOut={playerBet?.status === 'cashed_out'} />
+                                </div>
+                                <RocketAnimation gameState={round?.status || 'idle'} multiplier={multiplier} hasCashedOut={playerBet?.status === 'cashed_out'} />
+                            </div>
+                        </CardContent>
+                        <CardContent>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <Label htmlFor="bet-amount">Valor da Aposta (R$)</Label>
+                                    <Input id="bet-amount" type="number" value={betAmount} onChange={(e) => setBetAmount(e.target.value)} disabled={round?.status !== 'betting' || !!playerBet || isProcessing} />
+                                </div>
+                                <div className="flex items-end">{getButton()}</div>
                             </div>
                         </CardContent>
                     </Card>
