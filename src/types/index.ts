@@ -307,10 +307,12 @@ export type Advertisement = {
   description: string;
   imageUrl: string;
   linkUrl: string;
-  status: 'active' | 'inactive';
+  status: 'active' | 'inactive' | 'pending';
   owner: 'system' | 'user';
   userId?: string;
   createdAt: Date | string;
+  startDate?: Date | string | null;
+  endDate?: Date | string | null;
 };
 
 export type PurchaseAdminView = {

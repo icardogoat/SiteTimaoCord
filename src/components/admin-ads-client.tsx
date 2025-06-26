@@ -131,9 +131,9 @@ export default function AdminAdsClient({ initialAds }: { initialAds: Advertiseme
         setSubmittingId(null);
     };
     
-    const pendingAds = ads.filter(ad => ad.owner === 'user' && ad.status === 'inactive');
+    const pendingAds = ads.filter(ad => ad.status === 'pending');
     const activeAds = ads.filter(ad => ad.status === 'active');
-    const inactiveSystemAds = ads.filter(ad => ad.owner === 'system' && ad.status === 'inactive');
+    const inactiveSystemAds = ads.filter(ad => ad.status === 'inactive');
 
     return (
         <>
@@ -327,5 +327,3 @@ export default function AdminAdsClient({ initialAds }: { initialAds: Advertiseme
         </>
     );
 }
-
-    

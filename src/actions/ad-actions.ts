@@ -1,3 +1,4 @@
+
 'use server';
 
 import { getServerSession } from 'next-auth/next';
@@ -15,7 +16,15 @@ export async function getDisplayAdvertisements(): Promise<Advertisement[]> {
         const db = client.db('timaocord');
         const adsCollection = db.collection<Advertisement>('advertisements');
 
-        const ads = await adsCollection.find({ status: 'active' }).toArray();
+        const now = new Date();
+        const ads = await adsCollection.find({ 
+            status: 'active',
+            $or: [
+                { endDate: { $gt: now } },
+                { endDate: { $exists: false } },
+                { endDate: null }
+            ]
+        }).toArray();
 
         // Return serializable data
         return JSON.parse(JSON.stringify(ads));

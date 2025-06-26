@@ -1,3 +1,4 @@
+
 'use server';
 
 import { getServerSession } from 'next-auth/next';
@@ -18,7 +19,7 @@ export async function getUserAdPrice(): Promise<number> {
     return AD_PRICE;
 }
 
-export async function submitUserAdvertisement(data: Omit<Advertisement, '_id' | 'createdAt' | 'owner' | 'status' | 'userId'>): Promise<CreateAdResult> {
+export async function submitUserAdvertisement(data: Omit<Advertisement, '_id' | 'createdAt' | 'owner' | 'status' | 'userId' | 'startDate' | 'endDate'>): Promise<CreateAdResult> {
   const session = await getServerSession(authOptions);
   if (!session?.user?.discordId) {
     return { success: false, message: 'Você precisa estar logado para anunciar.' };
@@ -67,7 +68,7 @@ export async function submitUserAdvertisement(data: Omit<Advertisement, '_id' | 
             ...data,
             owner: 'user',
             userId: userId,
-            status: 'inactive', // Admin must approve
+            status: 'pending', // Admin must approve
             createdAt: new Date(),
         };
 

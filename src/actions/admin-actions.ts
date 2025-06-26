@@ -111,6 +111,7 @@ export type RecentBet = {
 };
 
 const AD_PRICE = 500; // Price for user-submitted advertisement
+const AD_DURATION_DAYS = 7; // Duration for a user-submitted ad
 
 // Helper function to send a win notification to a Discord channel
 async function sendWinNotification(bet: WithId<PlacedBet>, user: UserRanking, winnings: number) {
@@ -1521,10 +1522,10 @@ export async function getAdminAdvertisements(): Promise<Advertisement[]> {
     }
 }
 
-export async function upsertAdvertisement(data: Omit<Advertisement, '_id' | 'createdAt' | 'owner'> & {id?: string}): Promise<{ success: boolean; message: string }> {
+export async function upsertAdvertisement(data: Omit<Advertisement, '_id' | 'createdAt' | 'owner' | 'userId' | 'startDate' | 'endDate'> & {id?: string}): Promise<{ success: boolean; message: string }> {
     const { id, ...adData } = data;
 
-    const adToSave: Omit<Advertisement, '_id'> = {
+    const adToSave: Omit<Advertisement, '_id' | 'userId' | 'startDate' | 'endDate'> = {
         ...adData,
         owner: 'system',
         createdAt: new Date(),
@@ -1582,9 +1583,17 @@ export async function approveAdvertisement(adId: string): Promise<{ success: boo
             return { success: false, message: 'Anúncio não encontrado.' };
         }
 
+        const startDate = new Date();
+        const endDate = new Date();
+        endDate.setDate(startDate.getDate() + AD_DURATION_DAYS);
+
         await adsCollection.updateOne(
             { _id: new ObjectId(adId) },
-            { $set: { status: 'active' } }
+            { $set: { 
+                status: 'active',
+                startDate: startDate,
+                endDate: endDate,
+            } }
         );
 
         // Notify user if it's a user-submitted ad
@@ -1592,7 +1601,7 @@ export async function approveAdvertisement(adId: string): Promise<{ success: boo
             const newNotification: Omit<Notification, '_id'> = {
                 userId: ad.userId,
                 title: '✅ Anúncio Aprovado!',
-                description: `Seu anúncio "${ad.title}" foi aprovado e agora está ativo.`,
+                description: `Seu anúncio "${ad.title}" foi aprovado e ficará ativo por ${AD_DURATION_DAYS} dias.`,
                 date: new Date(),
                 read: false,
                 link: '/advertise'
@@ -1831,5 +1840,3 @@ export async function deletePurchase(inventoryId: string): Promise<{ success: bo
         return { success: false, message: "Ocorreu um erro ao excluir o registro." };
     }
 }
-
-    

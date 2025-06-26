@@ -1,3 +1,4 @@
+
 'use client';
 
 import type { ReactNode } from 'react';
@@ -22,7 +23,7 @@ import { Header } from '@/components/header';
 import { ChampionshipSidebarMenu } from '@/components/championship-sidebar-menu';
 import { BetSlipProvider } from '@/context/bet-slip-context';
 import { BetSlip } from '@/components/bet-slip';
-import { Store, Table, Swords, Star } from 'lucide-react';
+import { Store, Table, Swords, Star, Megaphone } from 'lucide-react';
 import { AdBanner } from './ad-banner';
 
 interface AppLayoutProps {
@@ -72,6 +73,11 @@ export function AppLayout({ children, availableLeagues }: AppLayoutProps) {
                                             <Link href="/standings"><Table /><span>Tabela</span></Link>
                                         </SidebarMenuButton>
                                     </SidebarMenuItem>
+                                    <SidebarMenuItem>
+                                        <SidebarMenuButton asChild isActive={pathname?.startsWith('/advertise')}>
+                                            <Link href="/advertise"><Megaphone /><span>Anuncie Conosco</span></Link>
+                                        </SidebarMenuButton>
+                                    </SidebarMenuItem>
                                 </SidebarMenu>
                             </SidebarGroupContent>
                         </SidebarGroup>
@@ -89,7 +95,9 @@ export function AppLayout({ children, availableLeagues }: AppLayoutProps) {
                 </Sidebar>
                 <SidebarInset>
                     <Header />
-                    {children}
+                    <div className="flex-1">
+                        {children}
+                    </div>
                     <BetSlip />
                     <AdBanner />
                 </SidebarInset>

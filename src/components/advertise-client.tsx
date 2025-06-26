@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -65,7 +66,7 @@ export function AdvertiseClient({ adPrice, userBalance }: AdvertiseClientProps) 
                     <Card>
                         <CardHeader>
                             <CardTitle>Criar Novo Anúncio</CardTitle>
-                            <CardDescription>Preencha o formulário abaixo. Seu anúncio será revisado por um administrador antes de ir ao ar.</CardDescription>
+                            <CardDescription>Preencha o formulário abaixo. Seu anúncio será revisado e, se aprovado, ficará ativo por 7 dias.</CardDescription>
                         </CardHeader>
                          <Form {...form}>
                             <form onSubmit={form.handleSubmit(onSubmit)}>
