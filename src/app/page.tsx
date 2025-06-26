@@ -53,7 +53,7 @@ export default async function TimaocordHome() {
       </main>
       <footer className="flex flex-col items-center justify-center p-6 text-sm text-muted-foreground z-10">
         <p className="max-w-lg text-center text-xs mb-4">
-            Esta é uma plataforma de apostas com moeda virtual apenas para fins de entretenimento. Nenhum dinheiro real está envolvido.
+            Esta é uma plataforma de apostas fictícias, criada exclusivamente para fins de entretenimento, utilizando apenas moedas virtuais sem valor real.
         </p>
         <p>© 2025 Timaocord. Todos os direitos reservados.</p>
         <div className="flex gap-4 mt-2">
