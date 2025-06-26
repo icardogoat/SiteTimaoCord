@@ -349,6 +349,74 @@ export async function getAdminUsers(): Promise<UserAdminView[]> {
     }
 }
 
+// Type for the full API response for a fixture
+interface FixtureApiResponse {
+  fixture: {
+    id: number;
+    status: {
+      short: string;
+    };
+  };
+  league: {
+    id: number;
+    name: string;
+    logo: string;
+  };
+  teams: {
+    home: { id: number; name: string; winner: boolean | null; logo: string };
+    away: { id: number; name: string; winner: boolean | null; logo: string };
+  };
+  goals: {
+    home: number | null;
+    away: number | null;
+  };
+  statistics: {
+    team: { id: number };
+    statistics: { type: string; value: any }[];
+  }[];
+}
+
+// Fetches the latest fixture data from the API
+async function getFixtureFromApi(fixtureId: number): Promise<{ success: boolean; data?: FixtureApiResponse; message?: string }> {
+    let apiKey;
+    try {
+      apiKey = await getAvailableApiKey();
+    } catch (error: any) {
+      console.error('API Key Error:', error.message);
+      return { success: false, message: error.message };
+    }
+
+    const url = `https://api-football-v1.p.rapidapi.com/v3/fixtures?id=${fixtureId}`;
+    const options = {
+        method: 'GET',
+        headers: {
+            'X-RapidAPI-Key': apiKey,
+            'X-RapidAPI-Host': 'api-football-v1.p.rapidapi.com'
+        },
+        cache: 'no-store' as RequestCache
+    };
+
+    try {
+        const response = await fetch(url, options);
+        if (!response.ok) {
+            const errorData = await response.json();
+            console.error(`API Error fetching fixture ${fixtureId}:`, errorData);
+            return { success: false, message: `Erro na API: ${errorData.message || 'Falha ao buscar dados da partida.'}` };
+        }
+
+        const data = await response.json();
+        if (!data.response || data.response.length === 0) {
+            return { success: false, message: 'Partida não encontrada na API.' };
+        }
+        
+        return { success: true, data: data.response[0] };
+
+    } catch (error) {
+        console.error(`Failed to fetch fixture ${fixtureId}:`, error);
+        return { success: false, message: 'Falha crítica ao se comunicar com a API.' };
+    }
+}
+
 // Function to evaluate one selection
 function evaluateSelection(selection: PlacedBet['bets'][0], goals: { home: number, away: number }, stats: StatsInDB[] | undefined, teams: TeamDataInDB): 'Ganha' | 'Perdida' | 'Anulada' {
     const { home, away } = goals;
@@ -480,42 +548,33 @@ export async function resolveMatch(fixtureId: number, options: { revalidate: boo
     const matchesCollection = db.collection<FullMatchInDb>('matches');
 
     try {
-        const matchData = await matchesCollection.findOne({ _id: fixtureId });
+        const matchInDb = await matchesCollection.findOne({ _id: fixtureId });
 
-        if (!matchData) {
-            return { success: false, message: `Partida ${fixtureId} não encontrada no banco de dados.` };
-        }
-
-        if (matchData.isProcessed) {
+        if (matchInDb?.isProcessed) {
             return { success: true, message: `Partida ${fixtureId} já foi processada anteriormente.` };
         }
 
-        if (matchData.status !== 'FT') {
-            return { success: false, message: `A partida ${fixtureId} ainda não foi finalizada (Status: ${matchData.status}).` };
+        // Fetch latest data from the API to ensure accuracy
+        const apiResult = await getFixtureFromApi(fixtureId);
+        if (!apiResult.success || !apiResult.data) {
+            return { success: false, message: apiResult.message || 'Não foi possível obter os dados da API para a partida.' };
+        }
+        const apiData = apiResult.data;
+
+        if (apiData.fixture.status.short !== 'FT') {
+            return { success: false, message: `A partida ${fixtureId} ainda não foi finalizada (Status API: ${apiData.fixture.status.short}).` };
         }
 
-        const { goals, statistics: finalStats } = matchData;
+        const { goals, statistics: finalStats, teams } = apiData;
 
         if (goals.home === null || goals.away === null) {
-            return { success: false, message: 'Dados de gols ausentes no documento da partida.' };
+            return { success: false, message: 'Dados de gols ausentes no documento da partida (API).' };
         }
 
-        const getTeamIdFromLogo = (url: string | undefined): number | null => {
-            if (!url) return null;
-            const match = url.match(/\/teams\/(\d+)\.png$/);
-            return match ? parseInt(match[1], 10) : null;
+        const teamsForEval: TeamDataInDB = {
+            home: { id: teams.home.id, name: teams.home.name, winner: teams.home.winner },
+            away: { id: teams.away.id, name: teams.away.name, winner: teams.away.winner },
         };
-
-        const homeTeamId = getTeamIdFromLogo(matchData.homeLogo);
-        const awayTeamId = getTeamIdFromLogo(matchData.awayLogo);
-        
-        let teamsForEval: TeamDataInDB | undefined = undefined;
-        if(homeTeamId && awayTeamId) {
-             teamsForEval = {
-                home: { id: homeTeamId, name: matchData.homeTeam, winner: null },
-                away: { id: awayTeamId, name: matchData.awayTeam, winner: null },
-            };
-        }
 
         const mongoSession = client.startSession();
         let settledCount = 0;
@@ -526,10 +585,15 @@ export async function resolveMatch(fixtureId: number, options: { revalidate: boo
             const notificationsCollection = db.collection('notifications');
             const usersCollection = db.collection('users');
 
-            // Mark as processed inside the transaction
+            // Mark as processed inside the transaction, and update with fresh API data
             await matchesCollection.updateOne(
                 { '_id': fixtureId },
-                { $set: { isProcessed: true } },
+                { $set: { 
+                    isProcessed: true,
+                    status: apiData.fixture.status.short,
+                    goals: apiData.goals,
+                    statistics: apiData.statistics,
+                } },
                 { session: mongoSession }
             );
 
@@ -541,9 +605,6 @@ export async function resolveMatch(fixtureId: number, options: { revalidate: boo
             for (const bet of openBets) {
                 const updatedSelections = bet.bets.map(selection => {
                     if (selection.matchId === fixtureId) {
-                        if (!teamsForEval) {
-                           return { ...selection, status: 'Anulada' as const };
-                        }
                         return { ...selection, status: evaluateSelection(selection, goals, finalStats, teamsForEval) };
                     }
                     return selection;
