@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
@@ -189,9 +188,16 @@ export function CassinoGameClient({ initialRecentGames }: { initialRecentGames: 
     // History state
     const [recentGames, setRecentGames] = useState(initialRecentGames);
     
+    // Refs for state inside intervals/timeouts
     const intervalRef = useRef<NodeJS.Timeout | null>(null);
     const gameStateRef = useRef(gameState);
-    useEffect(() => { gameStateRef.current = gameState }, [gameState]);
+    useEffect(() => { gameStateRef.current = gameState; }, [gameState]);
+    const hasCashedOutRef = useRef(hasCashedOut);
+    useEffect(() => { hasCashedOutRef.current = hasCashedOut; }, [hasCashedOut]);
+    const isAutoBettingRef = useRef(isAutoBetting);
+    useEffect(() => { isAutoBettingRef.current = isAutoBetting; }, [isAutoBetting]);
+    const autoCashOutRef = useRef(autoCashOut);
+    useEffect(() => { autoCashOutRef.current = autoCashOut; }, [autoCashOut]);
 
     const stopGame = () => {
         if (intervalRef.current) {
@@ -206,10 +212,10 @@ export function CassinoGameClient({ initialRecentGames }: { initialRecentGames: 
         stopGame();
         setGameState('crashed');
 
-        if(crashPoint) {
-            setRecentGames(prev => [...prev.slice(-14), { crashPoint: crashPoint }])
+        if (crashPoint) {
+            setRecentGames(prev => [...prev.slice(-14), { crashPoint: crashPoint }]);
         
-            if (activeBetId && !hasCashedOut) {
+            if (activeBetId && !hasCashedOutRef.current) {
                 // If user was in the game and didn't cash out, register the loss.
                 cashOutCassino(activeBetId, crashPoint);
             }
@@ -218,7 +224,7 @@ export function CassinoGameClient({ initialRecentGames }: { initialRecentGames: 
 
 
     const handleCashOut = async () => {
-        if (!activeBetId || gameStateRef.current !== 'playing' || hasCashedOut) return;
+        if (!activeBetId || gameStateRef.current !== 'playing' || hasCashedOutRef.current) return;
         
         setHasCashedOut(true); 
         
@@ -231,7 +237,7 @@ export function CassinoGameClient({ initialRecentGames }: { initialRecentGames: 
         }
     };
 
-     // Main Game Loop Effect
+    // Main Game Loop Effect
     useEffect(() => {
         if (gameState === 'playing' && crashPoint) {
             const startTime = Date.now();
@@ -240,8 +246,8 @@ export function CassinoGameClient({ initialRecentGames }: { initialRecentGames: 
                 const elapsedTime = Date.now() - startTime;
                 const newMultiplier = parseFloat((1 * Math.pow(1.00008, elapsedTime)).toFixed(2));
                 
-                const autoCashOutValue = parseFloat(autoCashOut);
-                if (!hasCashedOut && !isNaN(autoCashOutValue) && autoCashOutValue > 1 && newMultiplier >= autoCashOutValue) {
+                const autoCashOutValue = parseFloat(autoCashOutRef.current);
+                if (!hasCashedOutRef.current && !isNaN(autoCashOutValue) && autoCashOutValue > 1 && newMultiplier >= autoCashOutValue) {
                     setMultiplier(autoCashOutValue);
                     handleCashOut();
                 } else if (newMultiplier >= crashPoint) {
@@ -266,17 +272,17 @@ export function CassinoGameClient({ initialRecentGames }: { initialRecentGames: 
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [gameState, crashPoint]);
     
-     // Auto-Bet Loop Effect
+    // Auto-Bet Loop Effect
     useEffect(() => {
-        if (isAutoBetting && gameState === 'idle' && remainingRounds > 0) {
+        if (isAutoBettingRef.current && gameState === 'idle' && remainingRounds > 0) {
             handleStartGame();
             setRemainingRounds(r => r - 1);
-        } else if (isAutoBetting && gameState === 'idle' && remainingRounds <= 0) {
+        } else if (isAutoBettingRef.current && gameState === 'idle' && remainingRounds <= 0) {
             setIsAutoBetting(false);
             toast({ title: "Auto-Aposta Concluída" });
         }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [isAutoBetting, gameState, remainingRounds]);
+    }, [gameState, remainingRounds]);
 
 
     const handleStartGame = async () => {
