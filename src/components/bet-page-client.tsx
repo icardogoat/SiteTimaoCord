@@ -1,9 +1,9 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
-import type { Match } from '@/types';
+import type { Match, Advertisement } from '@/types';
 import { MatchCard } from '@/components/match-card';
+import { InFeedAdCard } from '@/components/in-feed-ad-card';
 import { AppLayout } from '@/components/app-layout';
 import { Card, CardHeader, CardTitle } from '@/components/ui/card';
 import { useSearchParams } from 'next/navigation';
@@ -11,14 +11,41 @@ import { Button } from '@/components/ui/button';
 import { getMatches } from '@/actions/bet-actions';
 import { Loader2 } from 'lucide-react';
 
+// Type guard to check if an item is an Advertisement
+function isAdvertisement(item: Match | Advertisement): item is Advertisement {
+    // A simple check for a property that only exists on Advertisement
+    return 'owner' in item;
+}
+
+// Helper to intersperse ads into a list of matches
+const intersperseAds = (matches: Match[], ads: Advertisement[]): (Match | Advertisement)[] => {
+    if (!ads || ads.length === 0) {
+        return matches;
+    }
+    const items: (Match | Advertisement)[] = [];
+    let adIndex = 0;
+    const adInterval = 4; // Show an ad every 4 matches
+
+    matches.forEach((match, index) => {
+        items.push(match);
+        // Add an ad after the 4th match, 8th, etc., but not as the very last item
+        if ((index + 1) % adInterval === 0 && index < matches.length - 1) {
+            items.push(ads[adIndex % ads.length]);
+            adIndex++;
+        }
+    });
+    return items;
+};
+
 interface BetPageClientProps {
     initialMatches: Match[];
     availableLeagues: string[];
+    ads: Advertisement[];
 }
 
 const MATCHES_PER_PAGE = 6;
 
-export function BetPageClient({ initialMatches, availableLeagues }: BetPageClientProps) {
+export function BetPageClient({ initialMatches, availableLeagues, ads }: BetPageClientProps) {
     const searchParams = useSearchParams();
     const selectedLeague = searchParams.get('league');
 
@@ -62,6 +89,8 @@ export function BetPageClient({ initialMatches, availableLeagues }: BetPageClien
         (match) => match.teamA.name !== 'Corinthians' && match.teamB.name !== 'Corinthians'
     );
 
+    const otherItemsWithAds = intersperseAds(otherMatches, ads);
+
     return (
         <AppLayout availableLeagues={availableLeagues}>
             <div className="p-4 sm:p-6 lg:p-8 pb-32 md:pb-8 md:pr-[26rem]">
@@ -85,7 +114,7 @@ export function BetPageClient({ initialMatches, availableLeagues }: BetPageClien
                                 <h2 className="text-2xl font-bold font-headline tracking-tight border-b pb-2 mb-6">Jogos do Timão</h2>
                                 <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
                                     {corinthiansMatches.map((match) => (
-                                        <MatchCard key={match.id} match={match} />
+                                        <MatchCard key={`match-${match.id}`} match={match} />
                                     ))}
                                 </div>
                             </section>
@@ -95,8 +124,10 @@ export function BetPageClient({ initialMatches, availableLeagues }: BetPageClien
                             <section>
                                 {corinthiansMatches.length > 0 && <h2 className="text-2xl font-bold font-headline tracking-tight border-b pb-2 mb-6">Outras Partidas</h2>}
                                 <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
-                                    {otherMatches.map((match) => (
-                                        <MatchCard key={match.id} match={match} />
+                                    {otherItemsWithAds.map((item) => (
+                                        isAdvertisement(item)
+                                            ? <InFeedAdCard key={`ad-${item._id.toString()}`} ad={item} />
+                                            : <MatchCard key={`match-${item.id}`} match={item} />
                                     ))}
                                 </div>
                             </section>
