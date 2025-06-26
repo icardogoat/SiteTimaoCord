@@ -160,14 +160,21 @@ export function StandingsClient({ standings }: StandingsClientProps) {
                             </div>
                         </CardHeader>
                         <CardContent className="p-0">
-                            {s.standings.map((group, index) => (
-                                <div key={index}>
-                                    {s.standings.length > 1 && (
-                                        <h3 className="text-lg font-semibold p-4 pt-0 border-b">Grupo {group[0]?.group.replace('Group ', '')}</h3>
-                                    )}
-                                    <StandingsTable group={group} />
+                            {s.standings && s.standings.length > 0 && s.standings[0].length > 0 ? (
+                                s.standings.map((group, index) => (
+                                    <div key={index}>
+                                        {s.standings.length > 1 && (
+                                            <h3 className="text-lg font-semibold p-4 pt-0 border-b">Grupo {group[0]?.group.replace('Group ', '')}</h3>
+                                        )}
+                                        <StandingsTable group={group} />
+                                    </div>
+                                ))
+                            ) : (
+                                <div className="p-8 text-center text-muted-foreground">
+                                    <p>Este campeonato está em fase de mata-mata ou não possui uma tabela de classificação tradicional.</p>
+                                    <p className="text-xs mt-2">Os jogos podem ser encontrados na página principal de apostas.</p>
                                 </div>
-                            ))}
+                            )}
                         </CardContent>
                     </Card>
                 </TabsContent>
