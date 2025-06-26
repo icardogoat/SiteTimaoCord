@@ -50,7 +50,7 @@ export async function placeCassinoBet(stake: number): Promise<PlaceCassinoBetRes
 
         await mongoSession.withTransaction(async () => {
             const walletsCollection = db.collection('wallets');
-            const cassinoBetsCollection = db.collection('cassino_bets');
+            const cassinoBetsCollection = db.collection<CassinoBet>('cassino_bets');
 
             const userWallet = await walletsCollection.findOne({ userId }, { session: mongoSession });
 
@@ -58,14 +58,19 @@ export async function placeCassinoBet(stake: number): Promise<PlaceCassinoBetRes
                 throw new Error('Saldo insuficiente.');
             }
             
-            // Check for an existing, unfinished game
+            // Check for and resolve any existing, unfinished game as a loss.
+            // This prevents a user from being locked out if they refresh the page.
             const existingBet = await cassinoBetsCollection.findOne({ userId, status: 'playing' }, { session: mongoSession });
             if (existingBet) {
-                // In a real scenario, you might resolve the old bet as a loss.
-                // For simplicity here, we just prevent a new one.
-                throw new Error('Você já tem um jogo em andamento.');
+                console.warn(`User ${userId} had a stuck game (${existingBet._id}). Marking it as crashed before starting a new one.`);
+                await cassinoBetsCollection.updateOne(
+                    { _id: existingBet._id },
+                    { $set: { status: 'crashed', settledAt: new Date() } },
+                    { session: mongoSession }
+                );
             }
 
+            // Now, create the new bet.
             const newTransaction: Transaction = {
                 id: new ObjectId().toString(),
                 type: 'Aposta',
@@ -96,9 +101,6 @@ export async function placeCassinoBet(stake: number): Promise<PlaceCassinoBetRes
 
             const insertResult = await cassinoBetsCollection.insertOne(newBet as any, { session: mongoSession });
             
-            // This is not secure for a real-money game, as the client can see the crash point.
-            // For a prototype or play-money game, it's acceptable.
-            // A real implementation would use a provably fair system (e.g., hashed server seed).
             result = { 
                 success: true, 
                 message: 'Jogo iniciado!', 
