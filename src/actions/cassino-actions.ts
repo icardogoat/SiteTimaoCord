@@ -101,7 +101,7 @@ export async function placeCassinoBet(payload: PlaceCassinoBetPayload): Promise<
                 userId,
                 stake,
                 crashPoint,
-                autoCashOutAt,
+                autoCashOutAt: autoCashOutAt && autoCashOutAt > 1 ? autoCashOutAt : undefined,
                 status: 'playing',
                 createdAt: new Date(),
             };
@@ -244,7 +244,7 @@ export async function getRecentCassinoGames(): Promise<{ crashPoint: number }[]>
         const cassinoBetsCollection = db.collection<CassinoBet>('cassino_bets');
 
         const recentGames = await cassinoBetsCollection
-            .find({ status: 'crashed' })
+            .find({ status: { $in: ['crashed', 'cashed_out'] } })
             .sort({ settledAt: -1 })
             .limit(15)
             .project<{ crashPoint: number }>({ crashPoint: 1, _id: 0 })
