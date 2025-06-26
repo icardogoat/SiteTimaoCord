@@ -4,7 +4,7 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import type { ReactNode } from "react"
-import { Home, Users, Trophy, Ticket, Menu, Bot, Server, Settings, Star, ShoppingBag, Megaphone, Receipt } from "lucide-react"
+import { Bot, Home, Megaphone, Menu, Receipt, Server, Settings, ShoppingBag, Star, Ticket, Trophy, Users } from "lucide-react"
 import { useSession, signOut } from "next-auth/react"
 
 import { Button } from "@/components/ui/button"
@@ -23,19 +23,58 @@ interface AdminLayoutProps {
     children: ReactNode;
 }
 
-const navLinks = [
-    { href: "/admin/dashboard", label: "Dashboard", icon: Home },
-    { href: "/admin/bets", label: "Apostas", icon: Ticket },
-    { href: "/admin/matches", label: "Partidas", icon: Trophy },
-    { href: "/admin/users", label: "Usuários", icon: Users },
-    { href: "/admin/mvp", label: "MVP Votação", icon: Star },
-    { href: "/admin/store", label: "Loja", icon: ShoppingBag },
-    { href: "/admin/purchases", label: "Compras", icon: Receipt },
-    { href: "/admin/ads", label: "Anúncios", icon: Megaphone },
-    { href: "/admin/server", label: "Servidor", icon: Server },
-    { href: "/admin/bot", label: "Bot", icon: Bot },
-    { href: "/admin/settings", label: "Configurações", icon: Settings },
+const navGroups = [
+  {
+    title: 'Principal',
+    links: [
+      { href: "/admin/dashboard", label: "Dashboard", icon: Home },
+    ]
+  },
+  {
+    title: 'Gerenciamento',
+    links: [
+      { href: "/admin/matches", label: "Partidas", icon: Trophy },
+      { href: "/admin/bets", label: "Apostas", icon: Ticket },
+      { href: "/admin/users", label: "Usuários", icon: Users },
+      { href: "/admin/purchases", label: "Compras", icon: Receipt },
+    ]
+  },
+  {
+    title: 'Comunidade & Eventos',
+    links: [
+        { href: "/admin/mvp", label: "MVP Votação", icon: Star },
+    ]
+  },
+  {
+    title: 'Monetização',
+    links: [
+        { href: "/admin/store", label: "Loja", icon: ShoppingBag },
+        { href: "/admin/ads", label: "Anúncios", icon: Megaphone },
+    ]
+  },
+  {
+    title: 'Configuração',
+    links: [
+        { href: "/admin/server", label: "Servidor", icon: Server },
+        { href: "/admin/bot", label: "Bot", icon: Bot },
+        { href: "/admin/settings", label: "Configurações", icon: Settings },
+    ]
+  }
 ];
+
+const NavLink = ({ href, label, icon: Icon, pathname, isMobile = false }: any) => (
+  <Link
+    href={href}
+    className={cn(
+      "flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary",
+      isMobile && "gap-4 text-base",
+      pathname === href && "bg-muted text-primary font-semibold"
+    )}
+  >
+    <Icon className={cn("h-4 w-4", isMobile && "h-5 w-5")} />
+    {label}
+  </Link>
+);
 
 
 export default function AdminLayout({ children }: AdminLayoutProps) {
@@ -64,20 +103,17 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
               <span className="text-lg">Painel Admin</span>
             </Link>
           </div>
-          <div className="flex-1">
-            <nav className="grid items-start px-2 text-sm font-medium lg:px-4">
-              {navLinks.map(({ href, label, icon: Icon }) => (
-                  <Link
-                    key={href}
-                    href={href}
-                    className={cn(
-                        "flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary",
-                        pathname === href && "bg-muted text-primary font-semibold"
-                    )}
-                  >
-                    <Icon className="h-4 w-4" />
-                    {label}
-                  </Link>
+          <div className="flex-1 overflow-y-auto">
+            <nav className="grid items-start px-2 py-4 text-sm font-medium lg:px-4">
+              {navGroups.map((group) => (
+                <div key={group.title} className="mb-4">
+                  <h3 className="mb-2 px-3 text-xs font-semibold uppercase text-muted-foreground tracking-wider">{group.title}</h3>
+                  <div className="space-y-1">
+                    {group.links.map(link => (
+                      <NavLink key={link.href} {...link} pathname={pathname} />
+                    ))}
+                  </div>
+                </div>
               ))}
             </nav>
           </div>
@@ -108,21 +144,20 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                             </Link>
                         </SheetTitle>
                     </SheetHeader>
-                    <nav className="grid gap-2 text-base font-medium mt-4 px-4">
-                        {navLinks.map(({ href, label, icon: Icon }) => (
-                           <Link
-                                key={href}
-                                href={href}
-                                className={cn(
-                                    "flex items-center gap-4 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary",
-                                    pathname === href && "bg-muted text-primary font-semibold"
-                                )}
-                            >
-                                <Icon className="h-5 w-5" />
-                                {label}
-                            </Link>
-                        ))}
-                    </nav>
+                     <div className="flex-1 overflow-y-auto">
+                        <nav className="grid gap-2 text-base font-medium mt-4 px-4">
+                            {navGroups.map((group) => (
+                                <div key={group.title} className="mb-4">
+                                  <h3 className="mb-2 px-3 text-xs font-semibold uppercase text-muted-foreground tracking-wider">{group.title}</h3>
+                                  <div className="space-y-1">
+                                    {group.links.map(link => (
+                                      <NavLink key={link.href} {...link} pathname={pathname} isMobile />
+                                    ))}
+                                  </div>
+                                </div>
+                              ))}
+                        </nav>
+                    </div>
                 </SheetContent>
             </Sheet>
           <div className="w-full flex-1" />
@@ -140,7 +175,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
             </DropdownMenuContent>
           </DropdownMenu>
         </header>
-        <main className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6">
+        <main className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6 bg-muted/20">
           {children}
         </main>
       </div>

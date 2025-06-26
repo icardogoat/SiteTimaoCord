@@ -34,12 +34,12 @@ interface AdminDashboardClientProps {
 export function AdminDashboardClient({ stats, weeklyVolume, topBettors, recentBets }: AdminDashboardClientProps) {
     const formatCurrency = (value: number) => `R$ ${value.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
-    const getChangeColor = (value: number) => value >= 0 ? "text-green-400" : "text-red-400";
+    const getChangeColor = (value: number) => value >= 0 ? "text-green-500" : "text-red-500";
 
   return (
     <div className="grid auto-rows-max items-start gap-4 md:gap-8 lg:grid-cols-3">
       <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-4 lg:col-span-3">
-          <Card>
+          <Card className="border-l-4 border-primary">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
                 Total Apostado
@@ -50,7 +50,7 @@ export function AdminDashboardClient({ stats, weeklyVolume, topBettors, recentBe
               <div className="text-2xl font-bold">{formatCurrency(stats.totalWagered)}</div>
             </CardContent>
           </Card>
-          <Card>
+          <Card className="border-l-4 border-sky-500">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
                 Usuários Ativos
@@ -61,7 +61,7 @@ export function AdminDashboardClient({ stats, weeklyVolume, topBettors, recentBe
               <div className="text-2xl font-bold">+{stats.activeUsers}</div>
             </CardContent>
           </Card>
-          <Card>
+          <Card className="border-l-4 border-amber-500">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Total de Apostas</CardTitle>
               <CreditCard className="h-4 w-4 text-muted-foreground" />
@@ -70,13 +70,13 @@ export function AdminDashboardClient({ stats, weeklyVolume, topBettors, recentBe
               <div className="text-2xl font-bold">+{stats.totalBets.toLocaleString('pt-BR')}</div>
             </CardContent>
           </Card>
-          <Card>
+          <Card className={cn("border-l-4", stats.grossProfit >= 0 ? "border-green-500" : "border-red-500")}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Lucro Bruto</CardTitle>
               <Activity className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className={`text-2xl font-bold ${getChangeColor(stats.grossProfit)}`}>
+              <div className={cn("text-2xl font-bold", getChangeColor(stats.grossProfit))}>
                   {stats.grossProfit >= 0 ? `+${formatCurrency(stats.grossProfit)}` : formatCurrency(stats.grossProfit)}
               </div>
             </CardContent>
