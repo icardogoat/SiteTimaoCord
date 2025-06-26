@@ -18,8 +18,8 @@ export default async function TimaocordHome() {
 
   return (
     <div className="flex flex-col min-h-screen bg-background text-foreground">
-      <header className="px-4 lg:px-6 h-28 flex items-center justify-center">
-        <Link href="/" className="flex items-center justify-center" prefetch={false}>
+      <main className="flex-1 flex flex-col items-center justify-center text-center p-4">
+        <div className="mb-10">
           <Image
             src="https://i.imgur.com/xD76hcl.png"
             alt="TimãoCord Logo"
@@ -29,9 +29,8 @@ export default async function TimaocordHome() {
             priority
             data-ai-hint="logo"
           />
-        </Link>
-      </header>
-      <main className="flex-1 flex flex-col items-center justify-center text-center p-4">
+        </div>
+
         <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold font-headline tracking-tighter mb-4">
           Bem-vindo ao Timaocord
         </h1>
