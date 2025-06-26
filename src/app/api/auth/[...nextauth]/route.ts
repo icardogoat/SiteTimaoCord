@@ -19,7 +19,7 @@ async function checkUserInGuild(discordId: string): Promise<boolean> {
 
         const botToken = process.env.DISCORD_BOT_TOKEN;
         if (!botToken || botToken === 'YOUR_BOT_TOKEN_HERE') {
-            console.error('Discord bot token not configured. Denying login.');
+            console.error('Discord bot token not configured. Membership check cannot be performed. Denying login.');
             return false;
         }
 
@@ -28,20 +28,28 @@ async function checkUserInGuild(discordId: string): Promise<boolean> {
             cache: 'no-store'
         });
 
-        if (!response.ok) {
-            if (response.status === 404) {
-                 console.log(`User ${discordId} is not in guild ${config.guildId}. Denying login.`);
-            } else {
-                 console.error(`Error checking guild membership for ${discordId}. Status: ${response.status}. Denying login.`);
-            }
+        if (response.ok) {
+            // User is in the guild
+            return true;
+        }
+
+        // If response is not OK, analyze the error
+        if (response.status === 404) {
+            // User is definitely not in the guild
+            console.log(`User ${discordId} is not in guild ${config.guildId}. Denying login.`);
             return false;
         }
         
+        // For other errors (e.g., 403 Forbidden due to missing intents), we can't be certain.
+        // Log the error but allow login to avoid locking out users due to bot config issues.
+        const errorText = await response.text();
+        console.error(`Could not definitively check guild membership for user ${discordId} due to a Discord API error. Status: ${response.status}. Response: ${errorText}. Allowing login as a fallback to prevent user lockout.`);
         return true;
 
     } catch (error) {
-        console.error(`Failed to check guild membership for user ${discordId}:`, error);
-        return false;
+        // Also allow login for network errors, as it's not the user's fault.
+        console.error(`A network or other unexpected error occurred while checking guild membership for ${discordId}. Allowing login as a fallback.`, error);
+        return true;
     }
 }
 
@@ -149,7 +157,7 @@ export const authOptions: AuthOptions = {
 
       const isMember = await checkUserInGuild(userId);
       if (!isMember) {
-        // If the guild is configured but the user is not a member, redirect them.
+        // If the guild is configured and we are SURE the user is not a member, redirect.
         const { guildId } = await getBotConfig();
         if (guildId) {
             return '/join-server';
