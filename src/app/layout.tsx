@@ -6,6 +6,9 @@ import SessionProviderWrapper from '@/components/session-provider-wrapper';
 export const metadata: Metadata = {
   title: 'Timaocord',
   description: 'Sua comunidade e plataforma de apostas para os verdadeiros fiéis.',
+  icons: {
+    icon: 'https://i.imgur.com/oIIJLkY.jpeg',
+  },
 };
 
 export default function RootLayout({
