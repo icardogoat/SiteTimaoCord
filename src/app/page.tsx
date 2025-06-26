@@ -18,14 +18,14 @@ export default async function TimaocordHome() {
 
   return (
     <div className="flex flex-col min-h-screen bg-background text-foreground">
-      <header className="px-4 lg:px-6 h-28 flex items-center justify-between">
+      <header className="px-4 lg:px-6 h-28 flex items-center justify-center">
         <Link href="/" className="flex items-center justify-center" prefetch={false}>
           <Image
             src="https://i.imgur.com/xD76hcl.png"
             alt="TimãoCord Logo"
             width={500}
             height={127}
-            className="h-20 w-auto"
+            className="h-24 w-auto"
             priority
             data-ai-hint="logo"
           />
