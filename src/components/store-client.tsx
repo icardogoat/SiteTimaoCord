@@ -9,7 +9,7 @@ import { useSession } from 'next-auth/react';
 import { useToast } from '@/hooks/use-toast';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from './ui/alert-dialog';
 import { purchaseItem } from '@/actions/store-actions';
-import { Award, Loader2, Star, Gift, Clock } from 'lucide-react';
+import { Award, Loader2, Star, Gift, Clock, ShieldOff } from 'lucide-react';
 
 type StoreItemData = Omit<StoreItem, '_id' | 'createdAt' | 'isActive'> & { id: string };
 
@@ -21,6 +21,7 @@ interface StoreClientProps {
 const iconMap = {
     'ROLE': Award,
     'XP_BOOST': Star,
+    'AD_REMOVAL': ShieldOff,
     'DEFAULT': Gift,
 };
 
@@ -86,10 +87,15 @@ export function StoreClient({ initialItems, initialInventory }: StoreClientProps
 
                         const ownedItem = initialInventory.find(invItem => invItem.itemId.toString() === item.id);
                         let isOwnedAndActive = false;
+                        
                         if (item.type === 'ROLE' && ownedItem) {
                             if (ownedItem.itemDuration === 'PERMANENT') {
                                 isOwnedAndActive = true;
                             } else if (ownedItem.itemDuration === 'MONTHLY' && ownedItem.expiresAt && new Date(ownedItem.expiresAt) > new Date()) {
+                                isOwnedAndActive = true;
+                            }
+                        } else if (item.type === 'AD_REMOVAL') {
+                            if (session?.user?.adRemovalExpiresAt && new Date(session.user.adRemovalExpiresAt) > new Date()) {
                                 isOwnedAndActive = true;
                             }
                         }
@@ -117,6 +123,12 @@ export function StoreClient({ initialItems, initialInventory }: StoreClientProps
                                         <div className="ml-auto flex items-center gap-1 text-xs text-muted-foreground">
                                            {item.duration === 'MONTHLY' ? <Clock className="h-3 w-3" /> : null}
                                            <span>{item.duration === 'PERMANENT' ? 'Permanente' : 'Mensal'}</span>
+                                        </div>
+                                    )}
+                                    {item.type === 'AD_REMOVAL' && (
+                                        <div className="ml-auto flex items-center gap-1 text-xs text-muted-foreground">
+                                           <Clock className="h-3 w-3" />
+                                           <span>{item.durationInDays} dia(s)</span>
                                         </div>
                                     )}
                                 </CardHeader>
