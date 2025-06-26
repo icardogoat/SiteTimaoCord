@@ -39,19 +39,22 @@ export default async function TimaocordHome() {
           Bem-vindo ao Timaocord
         </h1>
         <p className="max-w-[600px] text-muted-foreground md:text-xl mb-8">
-          Sua comunidade e plataforma de apostas para os verdadeiros fiéis.
+          Sua comunidade para os verdadeiros fiéis. Divirta-se em nossa plataforma de apostas com moeda virtual.
         </p>
         <div className="flex flex-col sm:flex-row gap-4">
           <Button size="lg" asChild disabled={!guildInviteUrl}>
             <Link href={guildInviteUrl || '#'} target="_blank" rel="noopener noreferrer">
               <DiscordLogo className="mr-2 h-5 w-5" />
-              Entrar no Servidor
+              Entrar no Discord
             </Link>
           </Button>
           <LoginButton />
         </div>
       </main>
       <footer className="flex flex-col items-center justify-center p-6 text-sm text-muted-foreground z-10">
+        <p className="max-w-lg text-center text-xs mb-4">
+            Esta é uma plataforma de apostas com moeda virtual apenas para fins de entretenimento. Nenhum dinheiro real está envolvido.
+        </p>
         <p>© 2025 Timaocord. Todos os direitos reservados.</p>
         <div className="flex gap-4 mt-2">
             <Link href="/terms" className="hover:text-primary transition-colors">Termos e Condições</Link>
