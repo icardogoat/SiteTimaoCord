@@ -213,9 +213,16 @@ export type BotConfig = {
   vipRoleIds: string[];
 };
 
+export type ApiKeyEntry = {
+  id: string;
+  key: string;
+  usage: number;
+  lastReset: Date | string;
+};
+
 export type ApiSettings = {
     _id: string | ObjectId;
-    apiFootballKey?: string;
+    apiKeys?: ApiKeyEntry[];
     maintenanceMode?: boolean;
     welcomeBonus?: number;
     siteUrl?: string;

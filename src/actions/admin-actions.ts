@@ -7,7 +7,7 @@ import { ObjectId, WithId } from 'mongodb';
 import { revalidatePath } from 'next/cache';
 import { getBotConfig } from './bot-config-actions';
 import { grantAchievement } from './achievement-actions';
-import { getApiSettings } from './settings-actions';
+import { getApiSettings, getAvailableApiKey } from './settings-actions';
 
 // Base type for a match in the DB (for admin list view)
 type MatchFromDb = {
@@ -932,16 +932,19 @@ const getTeamIdFromLogo = (url: string | undefined): number | null => {
 
 
 async function getMatchLineups(fixtureId: number): Promise<{ success: boolean; data?: MvpTeamLineup[]; message?: string }> {
-    const { apiFootballKey } = await getApiSettings();
-    if (!apiFootballKey) {
-        return { success: false, message: 'Chave da API-Football não configurada.' };
+    let apiKey;
+    try {
+      apiKey = await getAvailableApiKey();
+    } catch (error: any) {
+      console.error('API Key Error:', error.message);
+      return { success: false, message: error.message };
     }
 
     const url = `https://api-football-v1.p.rapidapi.com/v3/fixtures/players?fixture=${fixtureId}`;
     const options = {
         method: 'GET',
         headers: {
-            'X-RapidAPI-Key': apiFootballKey,
+            'X-RapidAPI-Key': apiKey,
             'X-RapidAPI-Host': 'api-football-v1.p.rapidapi.com'
         },
         cache: 'no-store' as RequestCache
