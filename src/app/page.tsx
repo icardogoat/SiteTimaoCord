@@ -5,9 +5,11 @@ import { LoginButton } from '@/components/login-button';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from './api/auth/[...nextauth]/route';
 import { redirect } from 'next/navigation';
+import { getBotConfig } from '@/actions/bot-config-actions';
 
 export default async function TimaocordHome() {
   const session = await getServerSession(authOptions);
+  const { guildInviteUrl } = await getBotConfig();
 
   if (session) {
     redirect('/bet');
@@ -29,8 +31,8 @@ export default async function TimaocordHome() {
           Sua comunidade e plataforma de apostas para os verdadeiros fiéis.
         </p>
         <div className="flex flex-col sm:flex-row gap-4">
-          <Button size="lg" asChild>
-            <Link href="https://discord.gg" target="_blank" rel="noopener noreferrer">
+          <Button size="lg" asChild disabled={!guildInviteUrl}>
+            <Link href={guildInviteUrl || '#'} target="_blank" rel="noopener noreferrer">
               <DiscordLogo className="mr-2 h-5 w-5" />
               Entrar no Servidor
             </Link>
