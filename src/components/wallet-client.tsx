@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState } from "react";
@@ -8,6 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { Transaction } from "@/types";
+import { DailyRewardClient } from "./daily-reward-client";
 
 const getStatusClass = (status: Transaction['status']) => {
     switch (status) {
@@ -60,6 +60,7 @@ export function WalletClient({ availableLeagues, initialBalance, initialTransact
                                 <p className="text-4xl font-bold">R$ {initialBalance.toFixed(2)}</p>
                             </CardContent>
                         </Card>
+                         <DailyRewardClient />
                     </div>
 
                     <div className="md:col-span-2">

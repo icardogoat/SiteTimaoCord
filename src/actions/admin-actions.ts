@@ -1,9 +1,7 @@
-
-
 'use server';
 
 import clientPromise from '@/lib/mongodb';
-import type { PlacedBet, Transaction, UserRanking, MvpVoting, MvpPlayer, MvpTeamLineup, Notification, StoreItem, Bolao } from '@/types';
+import type { PlacedBet, Transaction, UserRanking, MvpVoting, MvpPlayer, MvpTeamLineup, Notification, StoreItem, Bolao, Advertisement } from '@/types';
 import { ObjectId, WithId } from 'mongodb';
 import { revalidatePath } from 'next/cache';
 import { getBotConfig } from './bot-config-actions';
@@ -1416,7 +1414,7 @@ export async function getAdminStoreItems(): Promise<StoreItemAdminData[]> {
         const db = client.db('timaocord');
         const items = await db.collection<StoreItem>('store_items')
             .find({})
-            .sort({ createdAt: -1 })
+            .sort({ price: 1 })
             .toArray();
 
         return items.map(item => ({
@@ -1426,6 +1424,7 @@ export async function getAdminStoreItems(): Promise<StoreItemAdminData[]> {
             price: item.price,
             type: item.type,
             duration: item.duration,
+            durationInDays: item.durationInDays,
             roleId: item.roleId,
             xpAmount: item.xpAmount,
             isActive: item.isActive,
@@ -1439,15 +1438,22 @@ export async function getAdminStoreItems(): Promise<StoreItemAdminData[]> {
 export async function upsertStoreItem(data: Omit<StoreItemAdminData, 'id'> & {id?: string}): Promise<{ success: boolean; message: string }> {
     const { id, ...itemData } = data;
 
-    if (itemData.type === 'XP_BOOST') {
-        itemData.duration = 'PERMANENT';
-    }
-
-    const itemToSave = {
-        ...itemData,
-        xpAmount: itemData.type === 'XP_BOOST' ? itemData.xpAmount : undefined,
-        roleId: itemData.type === 'ROLE' ? itemData.roleId : undefined,
+    const itemToSave: Partial<StoreItem> = {
+        name: itemData.name,
+        description: itemData.description,
+        price: itemData.price,
+        type: itemData.type,
+        isActive: itemData.isActive,
     };
+
+    if (itemData.type === 'XP_BOOST') {
+        itemToSave.xpAmount = itemData.xpAmount;
+    } else if (itemData.type === 'ROLE') {
+        itemToSave.roleId = itemData.roleId;
+        itemToSave.duration = itemData.duration;
+    } else if (itemData.type === 'AD_REMOVAL') {
+        itemToSave.durationInDays = itemData.durationInDays;
+    }
     
     try {
         const client = await clientPromise;
@@ -1490,5 +1496,73 @@ export async function deleteStoreItem(itemId: string): Promise<{ success: boolea
     } catch (error) {
         console.error("Error deleting store item:", error);
         return { success: false, message: "Ocorreu um erro ao excluir o item." };
+    }
+}
+
+
+// ---- ADMIN ADVERTISEMENT ACTIONS ----
+
+export async function getAdminAdvertisements(): Promise<Advertisement[]> {
+    try {
+        const client = await clientPromise;
+        const db = client.db('timaocord');
+        const ads = await db.collection<Advertisement>('advertisements')
+            .find({})
+            .sort({ createdAt: -1 })
+            .toArray();
+
+        return JSON.parse(JSON.stringify(ads));
+    } catch (error) {
+        console.error("Error fetching admin advertisements:", error);
+        return [];
+    }
+}
+
+export async function upsertAdvertisement(data: Omit<Advertisement, '_id' | 'createdAt' | 'owner'> & {id?: string}): Promise<{ success: boolean; message: string }> {
+    const { id, ...adData } = data;
+
+    const adToSave: Omit<Advertisement, '_id'> = {
+        ...adData,
+        owner: 'system',
+        createdAt: new Date(),
+    };
+
+    try {
+        const client = await clientPromise;
+        const db = client.db('timaocord');
+        const collection = db.collection<Advertisement>('advertisements');
+
+        if (id) {
+            // Update
+            await collection.updateOne(
+                { _id: new ObjectId(id) },
+                { $set: adData }
+            );
+        } else {
+            // Insert
+            await collection.insertOne(adToSave as any);
+        }
+        revalidatePath('/admin/ads');
+        return { success: true, message: `Anúncio ${id ? 'atualizado' : 'criado'} com sucesso!` };
+    } catch (error) {
+        console.error("Error upserting advertisement:", error);
+        return { success: false, message: "Ocorreu um erro ao salvar o anúncio." };
+    }
+}
+
+
+export async function deleteAdvertisement(adId: string): Promise<{ success: boolean; message: string }> {
+     try {
+        const client = await clientPromise;
+        const db = client.db('timaocord');
+        const collection = db.collection<Advertisement>('advertisements');
+
+        await collection.deleteOne({ _id: new ObjectId(adId) });
+
+        revalidatePath('/admin/ads');
+        return { success: true, message: "Anúncio excluído com sucesso." };
+    } catch (error) {
+        console.error("Error deleting advertisement:", error);
+        return { success: false, message: "Ocorreu um erro ao excluir o anúncio." };
     }
 }

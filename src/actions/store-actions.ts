@@ -1,4 +1,3 @@
-
 'use server';
 
 import { getServerSession } from 'next-auth/next';
@@ -27,6 +26,7 @@ export async function getStoreItems(): Promise<Omit<StoreItem, '_id' | 'createdA
             price: item.price,
             type: item.type,
             duration: item.duration,
+            durationInDays: item.durationInDays,
             roleId: item.roleId,
             xpAmount: item.xpAmount,
             isActive: item.isActive,
@@ -103,6 +103,13 @@ export async function purchaseItem(itemId: string): Promise<PurchaseResult> {
         }
     }
 
+    if (item.type === 'AD_REMOVAL') {
+        const user = await db.collection('users').findOne({ discordId: userId });
+        if (user && user.adRemovalExpiresAt && new Date(user.adRemovalExpiresAt) > new Date()) {
+            return { success: false, message: 'Você já possui um período de remoção de anúncios ativo.' };
+        }
+    }
+
 
     const finalPrice = isVip && item.type !== 'ROLE' ? item.price * VIP_DISCOUNT_MULTIPLIER : item.price;
 
@@ -122,7 +129,6 @@ export async function purchaseItem(itemId: string): Promise<PurchaseResult> {
                 throw new Error('Saldo insuficiente.');
             }
             
-            // If item is XP boost, apply it directly without a code
             if (item.type === 'XP_BOOST' && item.xpAmount) {
                  await usersCollection.updateOne(
                     { discordId: userId },
@@ -131,6 +137,18 @@ export async function purchaseItem(itemId: string): Promise<PurchaseResult> {
                 );
                 
                 result = { success: true, message: `Bônus de ${item.xpAmount} XP aplicado com sucesso!` };
+
+            } else if (item.type === 'AD_REMOVAL' && item.durationInDays) {
+                const now = new Date();
+                const expiryDate = new Date(now.setDate(now.getDate() + item.durationInDays));
+                
+                await usersCollection.updateOne(
+                    { discordId: userId },
+                    { $set: { adRemovalExpiresAt: expiryDate } },
+                    { session: mongoSession }
+                );
+                
+                result = { success: true, message: `Anúncios removidos por ${item.durationInDays} dia(s)!` };
 
             } else { // For roles or other redeemable items, generate a code
                  // Generate a unique code
@@ -191,7 +209,7 @@ export async function purchaseItem(itemId: string): Promise<PurchaseResult> {
         if (result?.success) {
             revalidatePath('/wallet');
             revalidatePath('/store');
-            revalidatePath('/profile'); // Revalidate profile in case of XP purchase
+            revalidatePath('/profile'); // Revalidate profile in case of XP/Ad purchase
             return result;
         }
 

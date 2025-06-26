@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState } from 'react';
@@ -18,7 +17,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { Loader2, PlusCircle, Trash2, Edit, Award, Star, Gift, Clock } from 'lucide-react';
+import { Loader2, PlusCircle, Trash2, Edit, Award, Star, Gift, Clock, ShieldOff } from 'lucide-react';
 import type { StoreItem } from '@/types';
 
 type StoreItemData = Omit<StoreItem, '_id' | 'createdAt'> & { id: string };
@@ -28,8 +27,9 @@ const formSchema = z.object({
   name: z.string().min(3, { message: 'O nome deve ter pelo menos 3 caracteres.' }),
   description: z.string().min(10, { message: 'A descrição deve ter pelo menos 10 caracteres.' }),
   price: z.coerce.number().min(0, { message: 'O preço não pode ser negativo.' }),
-  type: z.enum(['ROLE', 'XP_BOOST']),
-  duration: z.enum(['PERMANENT', 'MONTHLY']),
+  type: z.enum(['ROLE', 'XP_BOOST', 'AD_REMOVAL']),
+  duration: z.enum(['PERMANENT', 'MONTHLY']).optional(),
+  durationInDays: z.coerce.number().optional(),
   roleId: z.string().optional(),
   xpAmount: z.coerce.number().optional(),
   isActive: z.boolean().default(true),
@@ -45,9 +45,15 @@ const formSchema = z.object({
 }, {
     message: "A quantia de XP é obrigatória e deve ser maior que 0.",
     path: ['xpAmount'],
+}).refine(data => {
+    if (data.type === 'AD_REMOVAL') return !!data.durationInDays && data.durationInDays > 0;
+    return true;
+}, {
+    message: "A duração em dias é obrigatória e deve ser maior que 0.",
+    path: ['durationInDays'],
 });
 
-const iconMap = { 'ROLE': Award, 'XP_BOOST': Star, 'DEFAULT': Gift };
+const iconMap = { 'ROLE': Award, 'XP_BOOST': Star, 'AD_REMOVAL': ShieldOff, 'DEFAULT': Gift };
 
 export default function AdminStoreClient({ initialItems }: { initialItems: StoreItemData[] }) {
     const { toast } = useToast();
@@ -66,7 +72,7 @@ export default function AdminStoreClient({ initialItems }: { initialItems: Store
 
     const handleOpenDialog = (item: StoreItemData | null) => {
         setCurrentItem(item);
-        form.reset(item ? { ...item, xpAmount: item.xpAmount || 0 } : { name: '', description: '', price: 0, type: 'ROLE', duration: 'PERMANENT', roleId: '', xpAmount: 0, isActive: true });
+        form.reset(item ? { ...item, xpAmount: item.xpAmount || 0, durationInDays: item.durationInDays || 0 } : { name: '', description: '', price: 0, type: 'ROLE', duration: 'PERMANENT', roleId: '', xpAmount: 0, durationInDays: 0, isActive: true });
         setIsDialogOpen(true);
     };
 
@@ -96,6 +102,15 @@ export default function AdminStoreClient({ initialItems }: { initialItems: Store
         }
         setIsSubmitting(false);
     };
+
+    const getTypeLabel = (type: StoreItem['type']) => {
+        switch(type) {
+            case 'ROLE': return 'Cargo';
+            case 'XP_BOOST': return 'Bônus de XP';
+            case 'AD_REMOVAL': return 'Remover Anúncios';
+            default: return 'Desconhecido';
+        }
+    }
 
     return (
         <>
@@ -135,7 +150,7 @@ export default function AdminStoreClient({ initialItems }: { initialItems: Store
                                             </div>
                                         </div>
                                     </TableCell>
-                                    <TableCell>{item.type}</TableCell>
+                                    <TableCell>{getTypeLabel(item.type)}</TableCell>
                                     <TableCell>
                                         <div className="flex items-center gap-2">
                                             {item.type === 'ROLE' ? (
@@ -143,7 +158,9 @@ export default function AdminStoreClient({ initialItems }: { initialItems: Store
                                                     {item.duration === 'MONTHLY' && <Clock className="h-4 w-4 text-muted-foreground" />}
                                                     <span>{item.duration === 'PERMANENT' ? 'Permanente' : 'Mensal'}</span>
                                                 </>
-                                            ): (
+                                            ) : item.type === 'AD_REMOVAL' ? (
+                                                <span>{item.durationInDays} dia(s)</span>
+                                            ) : (
                                                 <span>N/A</span>
                                             )}
                                         </div>
@@ -190,6 +207,7 @@ export default function AdminStoreClient({ initialItems }: { initialItems: Store
                                     <SelectContent>
                                         <SelectItem value="ROLE">Cargo (ROLE)</SelectItem>
                                         <SelectItem value="XP_BOOST">Bônus de XP</SelectItem>
+                                        <SelectItem value="AD_REMOVAL">Remoção de Anúncios</SelectItem>
                                     </SelectContent>
                                 </Select>
                                 <FormMessage />
@@ -219,6 +237,11 @@ export default function AdminStoreClient({ initialItems }: { initialItems: Store
                              {itemType === 'XP_BOOST' && (
                                 <FormField control={form.control} name="xpAmount" render={({ field }) => (
                                     <FormItem><FormLabel>Quantidade de XP</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormDescription>A quantidade de XP que o usuário receberá (resgate direto, sem código).</FormDescription><FormMessage /></FormItem>
+                                )}/>
+                            )}
+                             {itemType === 'AD_REMOVAL' && (
+                                <FormField control={form.control} name="durationInDays" render={({ field }) => (
+                                    <FormItem><FormLabel>Duração (em dias)</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormDescription>Por quantos dias os anúncios serão removidos para o usuário.</FormDescription><FormMessage /></FormItem>
                                 )}/>
                             )}
                              <FormField control={form.control} name="isActive" render={({ field }) => (

@@ -15,6 +15,8 @@ declare module 'next-auth' {
       admin: boolean;
       level: UserLevel;
       isVip: boolean;
+      adRemovalExpiresAt: string | null;
+      dailyRewardLastClaimed: string | null;
     } & DefaultSession['user'];
   }
 

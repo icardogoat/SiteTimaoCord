@@ -78,51 +78,64 @@ async function checkUserVipStatus(discordId: string): Promise<boolean> {
     }
 }
 
+const providers = [];
+const discordProfile = (profile: any) => {
+    if (!profile.discriminator || profile.discriminator === "0") {
+        const numericId = BigInt(profile.id);
+        const defaultAvatarNumber = Number(numericId % 6n);
+        const image_url = `https://cdn.discordapp.com/embed/avatars/${defaultAvatarNumber}.png`;
+
+        return {
+            id: profile.id,
+            name: profile.global_name || profile.username,
+            email: profile.email,
+            image: profile.avatar ? `https://cdn.discordapp.com/avatars/${profile.id}/${profile.avatar}.png` : image_url,
+            discordId: profile.id,
+            admin: false,
+            isVip: false,
+        };
+    }
+    
+    let image_url: string;
+    if (profile.avatar) {
+      const format = profile.avatar.startsWith("a_") ? "gif" : "png"
+      image_url = `https://cdn.discordapp.com/avatars/${profile.id}/${profile.avatar}.${format}`
+    } else {
+      const defaultAvatarNumber = parseInt(profile.discriminator) % 5;
+      image_url = `https://cdn.discordapp.com/embed/avatars/${defaultAvatarNumber}.png`
+    }
+
+    return {
+      id: profile.id,
+      name: profile.username,
+      email: profile.email,
+      image: image_url,
+      discordId: profile.id,
+      admin: false,
+      isVip: false,
+    }
+};
+
+if (process.env.DISCORD_CLIENT_ID && process.env.DISCORD_CLIENT_SECRET) {
+  providers.push(
+    DiscordProvider({
+      clientId: process.env.DISCORD_CLIENT_ID,
+      clientSecret: process.env.DISCORD_CLIENT_SECRET,
+      profile: discordProfile,
+    })
+  );
+} else {
+  console.error("\n\n!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
+  console.error("!!!         DISCORD_CLIENT_ID or DISCORD_CLIENT_SECRET       !!!");
+  console.error("!!!              are not set in the .env file.               !!!");
+  console.error("!!!          Authentication will not work until set.         !!!");
+  console.error("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n\n");
+}
+
 
 export const authOptions: AuthOptions = {
   adapter: MongoDBAdapter(clientPromise, { databaseName: "timaocord" }),
-  providers: [
-    DiscordProvider({
-      clientId: process.env.DISCORD_CLIENT_ID!,
-      clientSecret: process.env.DISCORD_CLIENT_SECRET!,
-      profile(profile) {
-        if (!profile.discriminator || profile.discriminator === "0") {
-            const numericId = BigInt(profile.id);
-            const defaultAvatarNumber = Number(numericId % 6n);
-            const image_url = `https://cdn.discordapp.com/embed/avatars/${defaultAvatarNumber}.png`;
-
-            return {
-                id: profile.id,
-                name: profile.global_name || profile.username,
-                email: profile.email,
-                image: profile.avatar ? `https://cdn.discordapp.com/avatars/${profile.id}/${profile.avatar}.png` : image_url,
-                discordId: profile.id,
-                admin: false,
-                isVip: false,
-            };
-        }
-        
-        let image_url: string;
-        if (profile.avatar) {
-          const format = profile.avatar.startsWith("a_") ? "gif" : "png"
-          image_url = `https://cdn.discordapp.com/avatars/${profile.id}/${profile.avatar}.${format}`
-        } else {
-          const defaultAvatarNumber = parseInt(profile.discriminator) % 5;
-          image_url = `https://cdn.discordapp.com/embed/avatars/${defaultAvatarNumber}.png`
-        }
-
-        return {
-          id: profile.id,
-          name: profile.username,
-          email: profile.email,
-          image: image_url,
-          discordId: profile.id,
-          admin: false,
-          isVip: false,
-        }
-      },
-    }),
-  ],
+  providers: providers,
   session: {
     strategy: "jwt",
   },
@@ -160,7 +173,9 @@ export const authOptions: AuthOptions = {
             if (typeof dbUser.level === 'undefined') updateOps.level = 1;
             if (typeof dbUser.xp === 'undefined') updateOps.xp = 0;
             if (typeof dbUser.unlockedAchievements === 'undefined') updateOps.unlockedAchievements = [];
-            
+            if (typeof dbUser.adRemovalExpiresAt === 'undefined') updateOps.adRemovalExpiresAt = null;
+            if (typeof dbUser.dailyRewardLastClaimed === 'undefined') updateOps.dailyRewardLastClaimed = null;
+
             if (Object.keys(updateOps).length > 0) {
                  await usersCollection.updateOne(
                     { _id: dbUser._id },
@@ -235,6 +250,9 @@ export const authOptions: AuthOptions = {
         // VIP status is now synced only on sign-in, making this callback much faster.
         token.isVip = dbUser.isVip ?? false;
         token.admin = dbUser.admin ?? false;
+        token.adRemovalExpiresAt = dbUser.adRemovalExpiresAt ? (dbUser.adRemovalExpiresAt as Date).toISOString() : null;
+        token.dailyRewardLastClaimed = dbUser.dailyRewardLastClaimed ? (dbUser.dailyRewardLastClaimed as Date).toISOString() : null;
+
 
       } catch (error) {
         console.error("Error in JWT callback, returning existing token to avoid session loss:", error);
@@ -248,6 +266,8 @@ export const authOptions: AuthOptions = {
         session.user.discordId = token.discordId as string;
         session.user.admin = token.admin as boolean;
         session.user.isVip = token.isVip as boolean;
+        session.user.adRemovalExpiresAt = token.adRemovalExpiresAt as string | null;
+        session.user.dailyRewardLastClaimed = token.dailyRewardLastClaimed as string | null;
         
         try {
           const client = await clientPromise;

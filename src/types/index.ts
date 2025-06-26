@@ -141,8 +141,9 @@ export type StoreItem = {
   name: string;
   description: string;
   price: number;
-  type: 'ROLE' | 'XP_BOOST';
-  duration: 'PERMANENT' | 'MONTHLY';
+  type: 'ROLE' | 'XP_BOOST' | 'AD_REMOVAL';
+  duration?: 'PERMANENT' | 'MONTHLY';
+  durationInDays?: number;
   roleId?: string;
   xpAmount?: number;
   isActive: boolean;
@@ -155,7 +156,7 @@ export type UserInventoryItem = {
     itemId: string | ObjectId;
     itemName: string;
     itemType: StoreItem['type'];
-    itemDuration: StoreItem['duration'];
+    itemDuration?: StoreItem['duration'];
     redemptionCode: string;
     isRedeemed: boolean;
     purchasedAt: Date | string;
@@ -298,4 +299,16 @@ export type MvpVoting = {
   mvpPlayerId?: number;
   createdAt: Date | string;
   finalizedAt?: Date | string;
+};
+
+export type Advertisement = {
+  _id: string | ObjectId;
+  title: string;
+  description: string;
+  imageUrl: string;
+  linkUrl: string;
+  status: 'active' | 'inactive';
+  owner: 'system' | 'user';
+  userId?: string;
+  createdAt: Date | string;
 };

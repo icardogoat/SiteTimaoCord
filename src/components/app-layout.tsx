@@ -23,6 +23,7 @@ import { ChampionshipSidebarMenu } from '@/components/championship-sidebar-menu'
 import { BetSlipProvider } from '@/context/bet-slip-context';
 import { BetSlip } from '@/components/bet-slip';
 import { Store, Table, Swords, Star } from 'lucide-react';
+import { AdBanner } from './ad-banner';
 
 interface AppLayoutProps {
     children: ReactNode;
@@ -90,6 +91,7 @@ export function AppLayout({ children, availableLeagues }: AppLayoutProps) {
                     <Header />
                     {children}
                     <BetSlip />
+                    <AdBanner />
                 </SidebarInset>
             </BetSlipProvider>
         </SidebarProvider>
