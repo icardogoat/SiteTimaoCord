@@ -1,11 +1,12 @@
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { FielBetLogo, DiscordLogo } from '@/components/icons';
+import { DiscordLogo } from '@/components/icons';
 import { LoginButton } from '@/components/login-button';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from './api/auth/[...nextauth]/route';
 import { redirect } from 'next/navigation';
 import { getBotConfig } from '@/actions/bot-config-actions';
+import Image from 'next/image';
 
 export default async function TimaocordHome() {
   const session = await getServerSession(authOptions);
@@ -19,8 +20,15 @@ export default async function TimaocordHome() {
     <div className="flex flex-col min-h-screen bg-background text-foreground">
       <header className="px-4 lg:px-6 h-16 flex items-center justify-between">
         <Link href="/" className="flex items-center justify-center" prefetch={false}>
-          <FielBetLogo className="h-7 w-7 text-primary" />
-          <span className="ml-2 text-xl font-bold font-headline text-primary">Timaocord</span>
+          <Image
+            src="https://i.imgur.com/gK9x2oF.png"
+            alt="TimãoCord Logo"
+            width={189}
+            height={48}
+            className="h-12 w-auto"
+            priority
+            data-ai-hint="logo"
+          />
         </Link>
       </header>
       <main className="flex-1 flex flex-col items-center justify-center text-center p-4">
