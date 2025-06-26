@@ -13,14 +13,14 @@ async function checkUserInGuild(discordId: string): Promise<boolean> {
     try {
         const config = await getBotConfig();
         if (!config.guildId) {
-            console.warn('Discord Guild ID not configured. Cannot verify user membership, allowing login.');
+            console.warn('Discord Guild ID not configured. Membership check is disabled, allowing login.');
             return true;
         }
 
         const botToken = process.env.DISCORD_BOT_TOKEN;
         if (!botToken || botToken === 'YOUR_BOT_TOKEN_HERE') {
-            console.error('Discord bot token not configured. Membership check cannot be performed. Denying login.');
-            return false;
+            console.warn('Discord bot token not configured. Membership check cannot be performed, allowing login as a fallback. Please configure DISCORD_BOT_TOKEN in your .env file to enforce guild membership.');
+            return true; // Allow login if token is missing, with a warning.
         }
 
         const response = await fetch(`https://discord.com/api/v10/guilds/${config.guildId}/members/${discordId}`, {
@@ -33,7 +33,6 @@ async function checkUserInGuild(discordId: string): Promise<boolean> {
             return true;
         }
 
-        // If response is not OK, analyze the error
         if (response.status === 404) {
             // User is definitely not in the guild
             console.log(`User ${discordId} is not in guild ${config.guildId}. Denying login.`);
