@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -15,12 +16,16 @@ import { Globe, Home, Trophy, Star } from 'lucide-react';
 const championships = {
   destaques: [
     'Brasileirão Série A',
-    'Série A',
+    'Premier League',
+    'La Liga',
+    'Serie A',
+    'Bundesliga',
     'Copa do Brasil',
     'CONMEBOL Libertadores',
     'CONMEBOL Sul-Americana',
-    'Mundial de Clubes da FIFA',
+    'UEFA Champions League',
     'FIFA Club World Cup',
+    'Mundial de Clubes da FIFA',
   ],
   brasil: [
     'Série B', 'Brasileirão Série B',

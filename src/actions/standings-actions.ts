@@ -1,3 +1,4 @@
+
 'use server';
 
 import clientPromise from '@/lib/mongodb';
@@ -5,9 +6,26 @@ import type { Standing } from '@/types';
 import type { WithId } from 'mongodb';
 
 const relevantLeagues = [
+    // Brazil
     'Brasileirão Série A',
+    'Brasileirão Série B',
+    'Copa do Brasil',
+    // CONMEBOL
     'CONMEBOL Libertadores',
     'CONMEBOL Sul-Americana',
+    // Europe
+    'Premier League',
+    'La Liga',
+    'Serie A',
+    'Bundesliga',
+    'Ligue 1',
+    'UEFA Champions League',
+    'UEFA Europa League',
+    // USA
+    'MLS',
+    // World
+    'FIFA Club World Cup',
+    'Mundial de Clubes da FIFA',
 ];
 
 export async function getStandings(): Promise<Standing[]> {
@@ -29,10 +47,31 @@ export async function getStandings(): Promise<Standing[]> {
             _id: s._id.toString(),
         }));
         
+        const leagueOrder = [
+            'Brasileirão Série A',
+            'Brasileirão Série B',
+            'Copa do Brasil',
+            'CONMEBOL Libertadores',
+            'CONMEBOL Sul-Americana',
+            'UEFA Champions League',
+            'Premier League',
+            'La Liga',
+            'Serie A',
+            'Bundesliga',
+            'Ligue 1',
+            'MLS',
+            'FIFA Club World Cup',
+            'Mundial de Clubes da FIFA',
+            'UEFA Europa League',
+        ];
+
+        const getOrder = (leagueName: string) => {
+            const index = leagueOrder.indexOf(leagueName);
+            return index === -1 ? Infinity : index;
+        };
+        
         processedStandings.sort((a, b) => {
-            if (a.league.name === 'Brasileirão Série A') return -1;
-            if (b.league.name === 'Brasileirão Série A') return 1;
-            return a.league.name.localeCompare(b.league.name);
+            return getOrder(a.league.name) - getOrder(b.league.name);
         });
 
         return JSON.parse(JSON.stringify(processedStandings));
