@@ -89,15 +89,10 @@ export default {
             height: '0',
           },
         },
-        'rocket-shake': {
-          '0%, 100%': { transform: 'translateX(0) rotate(-1deg)' },
-          '50%': { transform: 'translateX(2px) rotate(1deg)' },
-        }
       },
       animation: {
         'accordion-down': 'accordion-down 0.2s ease-out',
         'accordion-up': 'accordion-up 0.2s ease-out',
-        'rocket-shake': 'rocket-shake 0.3s ease-in-out infinite',
       },
     },
   },

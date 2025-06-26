@@ -327,26 +327,3 @@ export type PurchaseAdminView = {
   redemptionCode?: string;
   userId: string;
 };
-
-export type CassinoGameRound = {
-  _id: string | ObjectId;
-  roundNumber: number;
-  status: 'betting' | 'playing' | 'crashed';
-  crashPoint: number;
-  startedAt?: Date | string; // Time the multiplier starts rising
-  bettingEndsAt: Date | string; // Time the betting window closes
-  settledAt?: Date | string; // Time the round fully crashed and was processed
-};
-
-export type CassinoBet = {
-  _id: string | ObjectId;
-  userId: string;
-  userName: string;
-  userAvatar: string;
-  roundId: string | ObjectId;
-  stake: number;
-  status: 'playing' | 'cashed_out';
-  cashOutMultiplier?: number;
-  winnings?: number;
-  createdAt: Date | string;
-};
