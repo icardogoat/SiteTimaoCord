@@ -29,7 +29,6 @@ async function sendNewBolaoNotification(bolao: Omit<Bolao, '_id'>) {
         description: `**${bolao.homeTeam} vs ${bolao.awayTeam}**\n\nAdivinhe o placar e concorra a prêmios!`,
         fields: [
             { name: 'Entrada', value: `R$ ${bolao.entryFee.toFixed(2)}`, inline: true },
-            { name: 'Prêmio Inicial', value: `R$ ${bolao.prizePool.toFixed(2)}`, inline: true },
         ],
         footer: {
             text: `Campeonato: ${bolao.league}`,
