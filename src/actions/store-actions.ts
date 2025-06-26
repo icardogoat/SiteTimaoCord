@@ -140,7 +140,7 @@ export async function purchaseItem(itemId: string): Promise<PurchaseResult> {
 
             } else if (item.type === 'AD_REMOVAL' && item.durationInDays) {
                 const now = new Date();
-                const expiryDate = new Date(now.setDate(now.getDate() + item.durationInDays));
+                const expiryDate = new Date(new Date().setDate(now.getDate() + item.durationInDays));
                 
                 await usersCollection.updateOne(
                     { discordId: userId },
@@ -148,6 +148,21 @@ export async function purchaseItem(itemId: string): Promise<PurchaseResult> {
                     { session: mongoSession }
                 );
                 
+                // Add to inventory for tracking in admin
+                const newInventoryItem: Omit<UserInventoryItem, '_id'> = {
+                    userId: userId,
+                    itemId: item._id,
+                    itemName: item.name,
+                    pricePaid: finalPrice,
+                    itemType: item.type,
+                    isRedeemed: true, // It's applied directly
+                    redeemedAt: new Date(),
+                    expiresAt: expiryDate,
+                    purchasedAt: new Date(),
+                    redemptionCode: 'APLICADO_DIRETAMENTE', // No code needed
+                };
+                await inventoryCollection.insertOne(newInventoryItem as any, { session: mongoSession });
+
                 result = { success: true, message: `Anúncios removidos por ${item.durationInDays} dia(s)!` };
 
             } else { // For roles or other redeemable items, generate a code
@@ -211,6 +226,7 @@ export async function purchaseItem(itemId: string): Promise<PurchaseResult> {
             revalidatePath('/wallet');
             revalidatePath('/store');
             revalidatePath('/profile'); // Revalidate profile in case of XP/Ad purchase
+            revalidatePath('/admin/purchases'); // Revalidate admin purchases view
             return result;
         }
 

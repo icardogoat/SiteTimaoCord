@@ -15,7 +15,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { LogOut, User, Wallet, Ticket, Bell, Trophy, LayoutGrid, Store, Table, Swords, Star } from 'lucide-react';
+import { LogOut, User, Wallet, Ticket, Bell, Trophy, LayoutGrid, Store, Table, Swords, Star, Megaphone } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useSession, signOut } from 'next-auth/react';
@@ -255,6 +255,12 @@ export function Header() {
               <Link href="/standings">
                 <Table className="mr-2 h-4 w-4" />
                 <span>Tabela</span>
+              </Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem asChild>
+              <Link href="/advertise">
+                <Megaphone className="mr-2 h-4 w-4" />
+                <span>Anunciar</span>
               </Link>
             </DropdownMenuItem>
             {user?.admin && (

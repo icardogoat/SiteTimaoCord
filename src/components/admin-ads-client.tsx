@@ -91,6 +91,7 @@ export default function AdminAdsClient({ initialAds }: { initialAds: Advertiseme
                         <TableHeader>
                             <TableRow>
                                 <TableHead>Anúncio</TableHead>
+                                <TableHead>Proprietário</TableHead>
                                 <TableHead className="text-center">Status</TableHead>
                                 <TableHead className="w-24">Ações</TableHead>
                             </TableRow>
@@ -106,6 +107,11 @@ export default function AdminAdsClient({ initialAds }: { initialAds: Advertiseme
                                                 <p className="text-xs text-muted-foreground truncate max-w-xs">{ad.description}</p>
                                             </div>
                                         </div>
+                                    </TableCell>
+                                    <TableCell>
+                                        <span className={`text-xs ${ad.owner === 'user' ? 'text-blue-400' : 'text-muted-foreground'}`}>
+                                            {ad.owner === 'user' ? 'Usuário' : 'Sistema'}
+                                        </span>
                                     </TableCell>
                                     <TableCell className="text-center">
                                         <span className={`px-2 py-1 text-xs rounded-full ${ad.status === 'active' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200'}`}>
