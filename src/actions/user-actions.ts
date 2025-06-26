@@ -1,9 +1,9 @@
-
 'use server';
 
 import clientPromise from '@/lib/mongodb';
 import type { UserRanking, ActiveBettorRanking, TopLevelUserRanking, PlacedBet, UserLevel, RichestUserRanking } from '@/types';
 import type { WithId } from 'mongodb';
+import { cache } from 'react';
 
 export interface UserStats {
     totalWagered: number;
@@ -14,7 +14,7 @@ export interface UserStats {
     betsLost: number;
 }
 
-export async function getUserStats(userId: string): Promise<UserStats> {
+export const getUserStats = cache(async (userId: string): Promise<UserStats> => {
     try {
         const client = await clientPromise;
         const db = client.db('timaocord');
@@ -42,9 +42,9 @@ export async function getUserStats(userId: string): Promise<UserStats> {
         console.error('Error fetching user stats:', error);
         return { totalWagered: 0, totalBets: 0, totalWinnings: 0, totalLosses: 0, betsWon: 0, betsLost: 0 };
     }
-}
+});
 
-export async function getTopWinners(): Promise<UserRanking[]> {
+export const getTopWinners = cache(async (): Promise<UserRanking[]> => {
     try {
         const client = await clientPromise;
         const db = client.db('timaocord');
@@ -94,9 +94,9 @@ export async function getTopWinners(): Promise<UserRanking[]> {
         console.error('Error fetching top winners:', error);
         return [];
     }
-}
+});
 
-export async function getMostActiveBettors(): Promise<ActiveBettorRanking[]> {
+export const getMostActiveBettors = cache(async (): Promise<ActiveBettorRanking[]> => {
     try {
         const client = await clientPromise;
         const db = client.db('timaocord');
@@ -145,9 +145,9 @@ export async function getMostActiveBettors(): Promise<ActiveBettorRanking[]> {
         console.error('Error fetching most active bettors:', error);
         return [];
     }
-}
+});
 
-export async function getTopLevelUsers(): Promise<TopLevelUserRanking[]> {
+export const getTopLevelUsers = cache(async (): Promise<TopLevelUserRanking[]> => {
     try {
         const client = await clientPromise;
         const db = client.db('timaocord');
@@ -171,9 +171,9 @@ export async function getTopLevelUsers(): Promise<TopLevelUserRanking[]> {
         console.error('Error fetching top level users:', error);
         return [];
     }
-}
+});
 
-export async function getRichestUsers(): Promise<RichestUserRanking[]> {
+export const getRichestUsers = cache(async (): Promise<RichestUserRanking[]> => {
     try {
         const client = await clientPromise;
         const db = client.db('timaocord');
@@ -218,7 +218,7 @@ export async function getRichestUsers(): Promise<RichestUserRanking[]> {
         console.error('Error fetching richest users:', error);
         return [];
     }
-}
+});
 
 
 const LEVEL_THRESHOLDS = [
@@ -234,7 +234,7 @@ const LEVEL_THRESHOLDS = [
     { level: 10, xp: 150000 },
 ];
 
-export async function getUserLevel(userId: string): Promise<UserLevel> {
+export const getUserLevel = cache(async (userId: string): Promise<UserLevel> => {
     try {
         const client = await clientPromise;
         const db = client.db('timaocord');
@@ -280,4 +280,4 @@ export async function getUserLevel(userId: string): Promise<UserLevel> {
         console.error(`Error fetching user level for ${userId}:`, error);
         return { level: 1, xp: 0, xpForNextLevel: LEVEL_THRESHOLDS[1]?.xp ?? 100, progress: 0 };
     }
-}
+});

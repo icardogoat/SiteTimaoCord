@@ -1,4 +1,3 @@
-
 'use server';
 
 import clientPromise from '@/lib/mongodb';
@@ -7,6 +6,7 @@ import {
 } from 'lucide-react';
 import { revalidatePath } from 'next/cache';
 import type { Notification } from '@/types';
+import { cache } from 'react';
 
 export type Achievement = {
   id: string;
@@ -61,7 +61,7 @@ export async function getAllAchievements(): Promise<Achievement[]> {
     return allAchievementsList;
 }
 
-export async function getUserAchievements(userId: string): Promise<string[]> {
+export const getUserAchievements = cache(async (userId: string): Promise<string[]> => {
     if (!userId) return [];
     try {
         const client = await clientPromise;
@@ -73,7 +73,7 @@ export async function getUserAchievements(userId: string): Promise<string[]> {
         console.error('Error fetching user achievements:', error);
         return [];
     }
-}
+});
 
 export async function grantAchievement(userId: string, achievementId: string) {
     if (!userId || !achievementId) return;

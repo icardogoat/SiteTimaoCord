@@ -1,4 +1,3 @@
-
 'use server';
 
 import { getServerSession } from 'next-auth/next';
@@ -9,6 +8,7 @@ import { revalidatePath } from 'next/cache';
 import { ObjectId } from 'mongodb';
 import { translateMarketData } from '@/lib/translations';
 import { grantAchievement } from './achievement-actions';
+import { cache } from 'react';
 
 
 interface PlaceBetResult {
@@ -123,7 +123,7 @@ export async function placeBet(betsInSlip: BetInSlip[], stake: number): Promise<
   }
 }
 
-export async function getAvailableLeagues(): Promise<string[]> {
+export const getAvailableLeagues = cache(async (): Promise<string[]> => {
     try {
         const client = await clientPromise;
         const db = client.db("timaocord");
@@ -136,7 +136,7 @@ export async function getAvailableLeagues(): Promise<string[]> {
         console.error('Failed to fetch available leagues:', error);
         return [];
     }
-}
+});
 
 const MATCHES_PER_PAGE = 6;
 
