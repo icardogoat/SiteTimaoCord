@@ -152,10 +152,11 @@ export const authOptions: AuthOptions = {
         
         const dbUser = await usersCollection.findOne({ discordId: userId });
         
-        // Ensure user record has level/xp/achievements initialized.
-        // The JWT callback will handle the VIP status sync.
         if (dbUser) {
+            // Sync VIP status on every sign-in for existing users
+            const isVip = await checkUserVipStatus(userId);
             const updateOps: any = {};
+            if (dbUser.isVip !== isVip) updateOps.isVip = isVip;
             if (typeof dbUser.level === 'undefined') updateOps.level = 1;
             if (typeof dbUser.xp === 'undefined') updateOps.xp = 0;
             if (typeof dbUser.unlockedAchievements === 'undefined') updateOps.unlockedAchievements = [];
@@ -231,20 +232,8 @@ export const authOptions: AuthOptions = {
             return token;
         }
 
-        // Always check the current VIP status from Discord
-        const currentVipStatus = await checkUserVipStatus(discordId);
-
-        // If the VIP status in the database is different from the live status, update it
-        if (dbUser.isVip !== currentVipStatus) {
-            await usersCollection.updateOne({ _id: dbUser._id }, { $set: { isVip: currentVipStatus } });
-            // Update the status on the token immediately
-            token.isVip = currentVipStatus;
-        } else {
-            // Otherwise, use the status from the database
-            token.isVip = dbUser.isVip;
-        }
-
-        // Always use the admin status from the database
+        // VIP status is now synced only on sign-in, making this callback much faster.
+        token.isVip = dbUser.isVip ?? false;
         token.admin = dbUser.admin ?? false;
 
       } catch (error) {
