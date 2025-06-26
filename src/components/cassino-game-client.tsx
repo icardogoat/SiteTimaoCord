@@ -6,116 +6,97 @@ import { Button } from './ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from './ui/card';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
-import { Separator } from './ui/separator';
 import { Badge } from './ui/badge';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { getGameState, placeCassinoBet, cashOutCassino, startGameRound, getBetsForRound } from '@/actions/cassino-actions';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Zap, Rocket } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import { AvatarFallbackText } from './avatar-fallback-text';
 import type { CassinoGameRound, CassinoBet } from '@/types';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 
 
 const POST_CRASH_DELAY_MS = 4000;
 
 const RocketSvg = () => (
-    <svg
-        width="80"
-        height="120"
-        viewBox="0 0 100 150"
-        fill="none"
-        xmlns="http://www.w3.org/2000/svg"
-        className="drop-shadow-lg"
-    >
-        <title>Rocket</title>
-        {/* Flames */}
-        <path
-            d="M30 140 C 40 125, 60 125, 70 140 L 50 165 Z"
-            fill="url(#flameGradient)"
-            transform="translate(0, 5)"
-        />
-        <path d="M50 120 L 35 145 L 65 145 Z" fill="#94A3B8" />
-        {/* Body */}
-        <path d="M35 50 C 35 30, 65 30, 65 50 V 120 H 35 V 50 Z" fill="#E2E8F0" />
-        {/* Tip */}
-        <path d="M50 0 L 35 50 H 65 Z" fill="#3B82F6" />
-        {/* Window */}
-        <circle cx="50" cy="70" r="12" fill="#3B82F6" stroke="#94A3B8" strokeWidth="2" />
-        {/* Fins */}
-        <path d="M35 120 L 15 140 V 90 Z" fill="#94A3B8" />
-        <path d="M65 120 L 85 140 V 90 Z" fill="#94A3B8" />
+    <svg width="100" height="100" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="drop-shadow-lg">
         <defs>
             <linearGradient id="flameGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" style={{ stopColor: '#FBBF24', stopOpacity: 1 }} />
-            <stop offset="100%" style={{ stopColor: '#F97316', stopOpacity: 1 }} />
+                <stop offset="0%" stopColor="#FBBF24" />
+                <stop offset="100%" stopColor="#F97316" />
             </linearGradient>
         </defs>
+        <g className="animate-[rocket-thrust_0.4s_ease-in-out_infinite]">
+            <path d="M9 21.5C9 21.5 8 20.5 8 19C8 17.5 9 16.5 9 16.5L12 15L15 16.5C15 16.5 16 17.5 16 19C16 20.5 15 21.5 15 21.5H9Z" fill="url(#flameGradient)" />
+        </g>
+        <path d="M12 2C12 2 13 4.58172 13 8V15H11V8C11 4.58172 12 2 12 2Z" fill="#E2E8F0" />
+        <path d="M13 15L17 17.5V12.5L13 11V15Z" fill="#94A3B8" />
+        <path d="M11 15L7 17.5V12.5L11 11V15Z" fill="#94A3B8" />
+        <path d="M12 2L11 5H13L12 2Z" fill="#3B82F6" />
     </svg>
 );
 
-const Explosion = ({ position }: { position: number }) => (
-    <div className="absolute left-1/2 -translate-x-1/2" style={{ bottom: `${position}%` }}>
-        <div className="absolute w-24 h-24 bg-yellow-400 rounded-full animate-ping opacity-75"></div>
-        <div className="absolute w-32 h-32 bg-orange-500 rounded-full animate-ping opacity-50 [animation-delay:0.1s]"></div>
-        <div className="absolute w-16 h-16 bg-red-600 rounded-full animate-ping opacity-60 [animation-delay:0.2s]"></div>
+const Explosion = () => (
+    <div className="absolute inset-0 flex items-center justify-center">
+        <div className="w-4 h-4 bg-yellow-300 rounded-full animate-explosion-outer opacity-0"></div>
+        <div className="w-8 h-8 bg-orange-400 rounded-full animate-explosion-inner opacity-0 absolute"></div>
     </div>
 );
 
-const RocketAnimation = ({ gameState, multiplier, hasCashedOut }: { gameState: CassinoGameRound['status'] | 'idle'; multiplier: number; hasCashedOut: boolean }) => {
+const RocketAnimation = ({ multiplier, gameState }: { multiplier: number, gameState: CassinoGameRound['status'] | 'idle' }) => {
     const [stars, setStars] = useState<{ top: string; left: string; size: string; delay: string; duration: string }[]>([]);
 
     useEffect(() => {
-        const newStars = Array.from({ length: 50 }).map(() => ({
-            top: `${Math.random() * 100}%`,
-            left: `${Math.random() * 100}%`,
-            size: `${Math.random() * 1.5 + 0.5}px`,
-            delay: `${Math.random() * 5}s`,
-            duration: `${Math.random() * 2 + 3}s`,
-        }));
-        setStars(newStars);
+        setStars(
+            Array.from({ length: 50 }).map(() => ({
+                top: `${Math.random() * 100}%`,
+                left: `${Math.random() * 100}%`,
+                size: `${Math.random() * 1.5 + 0.5}px`,
+                delay: `${Math.random() * 10}s`,
+                duration: `${Math.random() * 5 + 5}s`,
+            }))
+        );
     }, []);
 
     const getRocketPosition = () => {
-        if (multiplier < 1) return 5;
-        // Logarithmic scale for smoother take-off and faster acceleration
-        const progress = Math.log1p(multiplier - 0.9) / Math.log1p(50); 
-        return 5 + Math.min(progress, 1) * 80;
+        if (multiplier < 1 || gameState === 'betting') return { bottom: '5%', left: '5%' };
+        // Logarithmic scale for a smoother take-off
+        const progress = Math.log1p(multiplier - 0.9) / Math.log1p(30); // 30 is an arbitrary max for scaling
+        const clampedProgress = Math.min(progress, 1);
+        
+        const bottom = 5 + clampedProgress * 80;
+        const left = 5 + clampedProgress * 80;
+        return { bottom: `${bottom}%`, left: `${left}%` };
     };
-    
-    const rocketPosition = getRocketPosition();
+
+    const position = getRocketPosition();
 
     return (
-        <div className="w-full h-full flex flex-col items-center justify-end relative overflow-hidden bg-slate-900 rounded-lg">
-            {stars.map((star, i) => (
+        <div className="w-full h-full flex flex-col items-center justify-end relative overflow-hidden bg-gradient-to-tr from-slate-900 via-indigo-950 to-slate-900">
+             {stars.map((star, i) => (
                 <div
                     key={i}
-                    className="absolute bg-white rounded-full"
+                    className="absolute bg-slate-400 rounded-full animate-star-travel"
                     style={{
-                        top: star.top,
+                        top: '-10px',
                         left: star.left,
                         width: star.size,
                         height: star.size,
-                        animation: `pulse ${star.duration} infinite`,
                         animationDelay: star.delay,
+                        animationDuration: star.duration,
                     }}
                 />
             ))}
-            
             {gameState !== 'crashed' ? (
                 <div
-                    className={cn(
-                        'absolute z-10 transition-all duration-100 ease-linear',
-                        gameState === 'playing' && 'animate-rocket-shake'
-                    )}
-                    style={{ bottom: `${rocketPosition}%`, left: 'calc(50% - 40px)' }}
+                    className="absolute z-10 transition-all duration-100 ease-linear -rotate-45"
+                    style={{ ...position }}
                 >
                     <RocketSvg />
                 </div>
-            ) : (
-                <Explosion position={rocketPosition} />
-            )}
+            ) : <Explosion />}
         </div>
     );
 };
@@ -129,7 +110,7 @@ const GameHistory = ({ games }: { games: { crashPoint: number }[] }) => {
     };
 
     return (
-        <div className="w-full overflow-x-auto p-2">
+        <div className="w-full overflow-x-auto p-2 bg-background/50">
             <div className="flex flex-row-reverse gap-2">
                 {games.map((game, i) => (
                     <Badge key={i} variant="outline" className={cn("shrink-0", getPointColor(game.crashPoint))}>
@@ -149,12 +130,12 @@ const GameStateDisplay = ({ round, multiplier, hasCashedOut }: { round: CassinoG
             return <BettingCountdown bettingEndsAt={round.bettingEndsAt} />;
         case 'playing':
             return (
-                <div className={cn("text-6xl font-bold drop-shadow-lg", hasCashedOut ? 'text-green-400' : 'text-primary')}>
+                <div className={cn("text-6xl font-bold font-mono drop-shadow-lg transition-colors", hasCashedOut ? 'text-green-400' : 'text-primary')}>
                     {multiplier.toFixed(2)}x
                 </div>
             );
         case 'crashed':
-            return <div className="text-6xl font-bold text-destructive drop-shadow-lg">{round.crashPoint.toFixed(2)}x</div>;
+            return <div className="text-6xl font-bold font-mono text-destructive drop-shadow-lg">{round.crashPoint.toFixed(2)}x</div>;
         default:
             return null;
     }
@@ -176,44 +157,51 @@ const BettingCountdown = ({ bettingEndsAt }: { bettingEndsAt: Date | string }) =
 
     return (
         <div className="text-center">
-            <h2 className="text-3xl font-bold text-primary drop-shadow-lg">Apostas abertas!</h2>
-            <p className="text-5xl font-bold">{countdown.toFixed(1)}s</p>
+            <h2 className="text-2xl font-bold text-primary drop-shadow-lg">Apostas em {countdown.toFixed(1)}s</h2>
         </div>
     );
 };
 
 const PlayerList = ({ players }: { players: CassinoBet[] }) => {
+    const { data: session } = useSession();
+    const currentUserDiscordId = session?.user?.discordId;
+
     if (players.length === 0) {
         return <p className="text-center text-sm text-muted-foreground">Nenhum jogador na rodada.</p>
     }
 
-    const getStatusColor = (status: CassinoBet['status']) => {
-        return status === 'cashed_out' ? 'text-green-400' : 'text-yellow-400';
-    }
-
     return (
         <div className="space-y-2">
-            {players.map(player => (
-                <div key={player._id as string} className="flex justify-between items-center bg-muted/50 p-2 rounded-md text-sm">
-                    <div className="flex items-center gap-2 overflow-hidden">
-                        <Avatar className="h-6 w-6">
-                            <AvatarImage src={player.userAvatar} alt={player.userName} data-ai-hint="user avatar" />
-                            <AvatarFallback><AvatarFallbackText name={player.userName} /></AvatarFallback>
-                        </Avatar>
-                        <span className="truncate">{player.userName}</span>
+            {players.map(player => {
+                const isCurrentUser = player.userId === currentUserDiscordId;
+                const cashedOut = player.status === 'cashed_out';
+                return (
+                    <div key={player._id as string} className={cn(
+                        "flex justify-between items-center bg-muted/50 p-2 rounded-md text-sm transition-all",
+                        isCurrentUser && "bg-primary/10 border border-primary/50",
+                        cashedOut && "opacity-60"
+                        )}>
+                        <div className="flex items-center gap-2 overflow-hidden">
+                            <Avatar className="h-6 w-6">
+                                <AvatarImage src={player.userAvatar} alt={player.userName} data-ai-hint="user avatar" />
+                                <AvatarFallback><AvatarFallbackText name={player.userName} /></AvatarFallback>
+                            </Avatar>
+                            <span className="truncate">{player.userName}</span>
+                        </div>
+                        <div className="flex items-center gap-4">
+                             <Badge variant="outline" className="hidden sm:inline-flex">R$ {player.stake.toFixed(2)}</Badge>
+                             {cashedOut && player.winnings ? (
+                                <Badge variant="default" className="bg-green-600">R$ {player.winnings.toFixed(2)}</Badge>
+                             ) : (
+                                <Badge variant="destructive" className="hidden sm:inline-flex">Em Jogo</Badge>
+                             )}
+                        </div>
                     </div>
-                    <div className={cn("font-semibold", getStatusColor(player.status))}>
-                        {player.status === 'cashed_out' && player.cashOutMultiplier
-                            ? `${player.cashOutMultiplier.toFixed(2)}x`
-                            : `R$ ${player.stake.toFixed(2)}`
-                        }
-                    </div>
-                </div>
-            ))}
+                );
+            })}
         </div>
     );
 }
-
 
 export function CassinoGameClient({ initialRecentGames }: { initialRecentGames: { crashPoint: number }[] }) {
     const { data: session, update: updateSession } = useSession();
@@ -221,7 +209,10 @@ export function CassinoGameClient({ initialRecentGames }: { initialRecentGames: 
     
     // Game controls state
     const [betAmount, setBetAmount] = useState('10');
-    
+    const [autoCashOut, setAutoCashOut] = useState('');
+    const [isAutoBetting, setIsAutoBetting] = useState(false);
+    const [autoBetRounds, setAutoBetRounds] = useState('0');
+
     // Game logic state
     const [round, setRound] = useState<CassinoGameRound | null>(null);
     const [multiplier, setMultiplier] = useState(1.00);
@@ -230,6 +221,7 @@ export function CassinoGameClient({ initialRecentGames }: { initialRecentGames: 
 
     // UI state
     const [isProcessing, setIsProcessing] = useState(false);
+    const [gameState, setGameState] = useState<'idle' | 'betting' | 'playing' | 'crashed'>('idle');
     
     // History state
     const [recentGames, setRecentGames] = useState(initialRecentGames);
@@ -238,6 +230,8 @@ export function CassinoGameClient({ initialRecentGames }: { initialRecentGames: 
     const animationIntervalRef = useRef<NodeJS.Timeout | null>(null);
     const syncTimeoutRef = useRef<NodeJS.Timeout | null>(null);
     const playersIntervalRef = useRef<NodeJS.Timeout | null>(null);
+    const hasCashedOutRef = useRef(false);
+    const roundsLeftRef = useRef(0);
 
     const stopAnimation = () => {
         if (animationIntervalRef.current) {
@@ -256,13 +250,24 @@ export function CassinoGameClient({ initialRecentGames }: { initialRecentGames: 
     const syncGameState = useCallback(async () => {
         if (syncTimeoutRef.current) clearTimeout(syncTimeoutRef.current);
         
-        const newRoundState = await getGameState();
-        setRound(newRoundState);
+        try {
+            const newRoundState = await getGameState();
+            setRound(newRoundState);
+            setGameState(newRoundState.status);
 
-        if(newRoundState.status === 'crashed' && !recentGames.some(g => g.crashPoint === newRoundState.crashPoint)) {
-             setRecentGames(prev => [...prev.slice(-14), { crashPoint: newRoundState.crashPoint }]);
+            if (newRoundState.status === 'betting' && !playerBet) {
+                hasCashedOutRef.current = false;
+            }
+        
+            if(newRoundState.status === 'crashed' && !recentGames.some(g => g.crashPoint === newRoundState.crashPoint)) {
+                setRecentGames(prev => [...prev.slice(-14), { crashPoint: newRoundState.crashPoint }]);
+            }
+        } catch (error) {
+            console.error("Failed to sync game state:", error);
+            // Retry after a delay
+            syncTimeoutRef.current = setTimeout(syncGameState, 5000);
         }
-    }, [recentGames]);
+    }, [recentGames, playerBet]);
 
     // Main game loop effect
     useEffect(() => {
@@ -273,22 +278,34 @@ export function CassinoGameClient({ initialRecentGames }: { initialRecentGames: 
 
         stopAnimation();
         stopPlayerSync();
-        if(round.status === 'betting') {
-            setPlayerBet(null);
-            setPlayersInRound([]);
-        }
 
         switch (round.status) {
             case 'betting':
+                setPlayerBet(null);
+                setPlayersInRound([]);
+                hasCashedOutRef.current = false;
+
                 playersIntervalRef.current = setInterval(async () => {
-                    const bets = await getBetsForRound(round._id as string);
-                    setPlayersInRound(bets);
+                    if (round) {
+                       const bets = await getBetsForRound(round._id as string);
+                       setPlayersInRound(bets);
+                    }
                 }, 1500);
+
+                if (isAutoBetting && roundsLeftRef.current > 0 && !playerBet) {
+                    handlePlaceBet();
+                    roundsLeftRef.current -= 1;
+                    setAutoBetRounds(String(roundsLeftRef.current));
+                }
+                
+                if (roundsLeftRef.current === 0) {
+                    setIsAutoBetting(false);
+                }
 
                 const timeUntilStart = new Date(round.bettingEndsAt).getTime() - Date.now();
                 syncTimeoutRef.current = setTimeout(async () => {
                     await startGameRound(round._id as string);
-                    syncGameState();
+                    await syncGameState();
                 }, Math.max(0, timeUntilStart));
                 break;
             
@@ -308,14 +325,17 @@ export function CassinoGameClient({ initialRecentGames }: { initialRecentGames: 
                 }, 50);
 
                 playersIntervalRef.current = setInterval(async () => {
-                    const bets = await getBetsForRound(round._id as string);
-                    setPlayersInRound(bets);
+                   if (round) {
+                       const bets = await getBetsForRound(round._id as string);
+                       setPlayersInRound(bets);
+                   }
                 }, 1500);
 
                 break;
             
             case 'crashed':
                 setMultiplier(round.crashPoint);
+                setPlayerBet(null);
                 syncTimeoutRef.current = setTimeout(syncGameState, POST_CRASH_DELAY_MS);
                 break;
         }
@@ -325,7 +345,17 @@ export function CassinoGameClient({ initialRecentGames }: { initialRecentGames: 
             stopAnimation();
             stopPlayerSync();
         };
-    }, [round, syncGameState]);
+    }, [round, syncGameState, isAutoBetting]);
+
+    // Auto cash out effect
+    useEffect(() => {
+        if (gameState === 'playing' && playerBet && !hasCashedOutRef.current) {
+            const autoCashOutValue = parseFloat(autoCashOut);
+            if (autoCashOutValue > 0 && multiplier >= autoCashOutValue) {
+                handleCashOut();
+            }
+        }
+    }, [multiplier, gameState, playerBet, autoCashOut]);
 
     const handlePlaceBet = async () => {
         if (!round || round.status !== 'betting') return;
@@ -338,15 +368,16 @@ export function CassinoGameClient({ initialRecentGames }: { initialRecentGames: 
             toast({ title: "Aposta Aceita!" });
             setPlayerBet(result.bet);
             await updateSession();
-        } else {
+        } else if(!isAutoBetting) { // Don't toast for auto-bet failures
             toast({ title: "Erro ao Apostar", description: result.message, variant: "destructive" });
         }
         setIsProcessing(false);
     };
 
     const handleCashOut = async () => {
-        if (!playerBet || round?.status !== 'playing' || playerBet.status === 'cashed_out') return;
+        if (!playerBet || round?.status !== 'playing' || hasCashedOutRef.current) return;
 
+        hasCashedOutRef.current = true;
         setIsProcessing(true);
         const result = await cashOutCassino(playerBet._id as string, multiplier);
 
@@ -356,10 +387,27 @@ export function CassinoGameClient({ initialRecentGames }: { initialRecentGames: 
             await updateSession();
         } else {
              toast({ title: "Falha ao Sacar", description: result.message, variant: "destructive" });
+             hasCashedOutRef.current = false; // Allow retry if failed
         }
         setIsProcessing(false);
     }
     
+    const handleToggleAutoBet = () => {
+        if (isAutoBetting) {
+            setIsAutoBetting(false);
+            roundsLeftRef.current = 0;
+            setAutoBetRounds('0');
+        } else {
+            const rounds = parseInt(autoBetRounds);
+            if (rounds > 0) {
+                setIsAutoBetting(true);
+                roundsLeftRef.current = rounds;
+            } else {
+                toast({ title: "Valor inválido", description: "Por favor, insira um número de rodadas maior que zero.", variant: "destructive" });
+            }
+        }
+    }
+
     const getButton = () => {
         if (!round) return <Button className="w-full h-16 text-xl" disabled><Loader2 className="mr-2 h-6 w-6 animate-spin" />Carregando...</Button>;
 
@@ -374,10 +422,10 @@ export function CassinoGameClient({ initialRecentGames }: { initialRecentGames: 
                  if (!playerBet) {
                     return <Button className="w-full h-16 text-xl" variant="secondary" disabled>Aguardando...</Button>;
                  }
-                 if (playerBet.status === 'cashed_out') {
+                 if (playerBet.status === 'cashed_out' || hasCashedOutRef.current) {
                     return <Button className="w-full h-16 text-xl" variant="outline" disabled>SACADO!</Button>;
                  }
-                return <Button className="w-full h-16 text-xl" variant="destructive" onClick={handleCashOut} disabled={isProcessing}>Sacar R$ {(playerBet.stake * multiplier).toFixed(2)}</Button>;
+                return <Button className="w-full h-16 text-xl bg-green-500 hover:bg-green-600" onClick={handleCashOut} disabled={isProcessing}>Sacar R$ {(playerBet.stake * multiplier).toFixed(2)}</Button>;
 
             case 'crashed':
                  return <Button className="w-full h-16 text-xl" variant="secondary" disabled>Aguardando Próxima Rodada</Button>;
@@ -390,34 +438,74 @@ export function CassinoGameClient({ initialRecentGames }: { initialRecentGames: 
                 <h1 className="text-3xl font-bold font-headline tracking-tight">Foguetinho FielBet</h1>
                 <p className="text-muted-foreground">Aposte e saque antes que o foguete exploda!</p>
             </div>
-             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <div className="lg:col-span-1 lg:order-2">
-                    <Card>
-                        <CardHeader><CardTitle>Jogadores na Rodada ({playersInRound.length})</CardTitle></CardHeader>
-                        <CardContent className="max-h-[500px] overflow-y-auto"><PlayerList players={playersInRound} /></CardContent>
+             <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+                
+                <div className="lg:col-span-1">
+                    <Card className="sticky top-20">
+                         <Tabs defaultValue="manual" className="w-full">
+                            <TabsList className="grid w-full grid-cols-2">
+                                <TabsTrigger value="manual">Manual</TabsTrigger>
+                                <TabsTrigger value="auto">Auto</TabsTrigger>
+                            </TabsList>
+                            <TabsContent value="manual" className="p-4">
+                                <div className="space-y-4">
+                                    <div className="space-y-2">
+                                        <Label htmlFor="bet-amount">Valor da Aposta (R$)</Label>
+                                        <Input id="bet-amount" type="number" value={betAmount} onChange={(e) => setBetAmount(e.target.value)} disabled={round?.status !== 'betting' || !!playerBet || isProcessing || isAutoBetting} />
+                                    </div>
+                                    <div className="grid grid-cols-4 gap-2">
+                                        {[10, 50, 100, 500].map(amount => (
+                                            <Button key={amount} variant="outline" size="sm" onClick={() => setBetAmount(String(amount))} disabled={round?.status !== 'betting' || !!playerBet || isProcessing || isAutoBetting}>
+                                                {amount}
+                                            </Button>
+                                        ))}
+                                    </div>
+                                </div>
+                            </TabsContent>
+                             <TabsContent value="auto" className="p-4">
+                               <div className="space-y-4">
+                                    <div className="space-y-2">
+                                        <Label htmlFor="auto-bet-amount">Valor da Aposta</Label>
+                                        <Input id="auto-bet-amount" type="number" value={betAmount} onChange={(e) => setBetAmount(e.target.value)} disabled={isAutoBetting} />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label htmlFor="auto-cashout">Auto Saque (ex: 1.5)</Label>
+                                        <Input id="auto-cashout" type="number" placeholder="Opcional" value={autoCashOut} onChange={(e) => setAutoCashOut(e.target.value)} disabled={isAutoBetting} />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label htmlFor="auto-rounds">Número de Rodadas</Label>
+                                        <Input id="auto-rounds" type="number" placeholder="0" value={autoBetRounds} onChange={(e) => setAutoBetRounds(e.target.value)} disabled={isAutoBetting} />
+                                    </div>
+                                    <Button onClick={handleToggleAutoBet} className="w-full" variant={isAutoBetting ? "destructive" : "default"}>
+                                        {isAutoBetting ? "Parar Auto-Aposta" : "Iniciar Auto-Aposta"}
+                                    </Button>
+                                </div>
+                             </TabsContent>
+                        </Tabs>
+                        <div className="p-4 border-t">
+                            {getButton()}
+                        </div>
                     </Card>
                 </div>
 
-                <div className="lg:col-span-2 lg:order-1 row-start-1 lg:row-start-auto">
+                <div className="lg:col-span-3 space-y-6">
+                     <Card className="overflow-hidden">
+                        <div className="aspect-[16/9] bg-muted/50 rounded-t-lg flex items-center justify-center p-4 relative overflow-hidden">
+                            <div className="absolute inset-0 z-20 pointer-events-none">
+                                <RocketAnimation gameState={gameState} multiplier={multiplier} />
+                            </div>
+                            <div className="absolute inset-0 flex items-center justify-center z-30 pointer-events-none">
+                                <GameStateDisplay round={round} multiplier={multiplier} hasCashedOut={hasCashedOutRef.current} />
+                            </div>
+                        </div>
+                        <GameHistory games={recentGames} />
+                    </Card>
                      <Card>
-                        <CardContent className="p-2 space-y-2">
-                            <GameHistory games={recentGames} />
-                            <Separator />
-                            <div className="aspect-[16/10] bg-muted/50 rounded-lg flex items-center justify-center p-4 relative overflow-hidden">
-                                <div className="absolute inset-0 flex items-center justify-center z-20 pointer-events-none">
-                                    <GameStateDisplay round={round} multiplier={multiplier} hasCashedOut={playerBet?.status === 'cashed_out'} />
-                                </div>
-                                <RocketAnimation gameState={round?.status || 'idle'} multiplier={multiplier} hasCashedOut={playerBet?.status === 'cashed_out'} />
-                            </div>
-                        </CardContent>
-                        <CardContent>
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="space-y-2">
-                                    <Label htmlFor="bet-amount">Valor da Aposta (R$)</Label>
-                                    <Input id="bet-amount" type="number" value={betAmount} onChange={(e) => setBetAmount(e.target.value)} disabled={round?.status !== 'betting' || !!playerBet || isProcessing} />
-                                </div>
-                                <div className="flex items-end">{getButton()}</div>
-                            </div>
+                        <CardHeader>
+                            <CardTitle>Jogadores na Rodada ({playersInRound.length})</CardTitle>
+                        </CardHeader>
+                        <CardContent className="max-h-[300px] overflow-y-auto">
+                            <PlayerList players={playersInRound} />
                         </CardContent>
                     </Card>
                 </div>
