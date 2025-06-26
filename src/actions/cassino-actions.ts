@@ -22,6 +22,11 @@ function calculateCrashPoint(): number {
     return Math.max(1.00, crashPoint);
 }
 
+interface PlaceCassinoBetPayload {
+  stake: number;
+  autoCashOutAt?: number;
+}
+
 interface PlaceCassinoBetResult {
   success: boolean;
   message: string;
@@ -30,12 +35,13 @@ interface PlaceCassinoBetResult {
   newBalance?: number;
 }
 
-export async function placeCassinoBet(stake: number): Promise<PlaceCassinoBetResult> {
+export async function placeCassinoBet(payload: PlaceCassinoBetPayload): Promise<PlaceCassinoBetResult> {
     const session = await getServerSession(authOptions);
     if (!session?.user?.discordId) {
         return { success: false, message: 'Você precisa estar logado para jogar.' };
     }
     const userId = session.user.discordId;
+    const { stake, autoCashOutAt } = payload;
 
     if (stake <= 0) {
         return { success: false, message: 'Valor da aposta inválido.' };
@@ -95,6 +101,7 @@ export async function placeCassinoBet(stake: number): Promise<PlaceCassinoBetRes
                 userId,
                 stake,
                 crashPoint,
+                autoCashOutAt,
                 status: 'playing',
                 createdAt: new Date(),
             };
@@ -226,5 +233,26 @@ export async function cashOutCassino(betId: string, cashOutMultiplier: number): 
     } catch (error: any) {
         await mongoSession.endSession();
         return { success: false, message: error.message || 'Ocorreu um erro ao sacar.' };
+    }
+}
+
+
+export async function getRecentCassinoGames(): Promise<{ crashPoint: number }[]> {
+    try {
+        const client = await clientPromise;
+        const db = client.db('timaocord');
+        const cassinoBetsCollection = db.collection<CassinoBet>('cassino_bets');
+
+        const recentGames = await cassinoBetsCollection
+            .find({ status: 'crashed' })
+            .sort({ settledAt: -1 })
+            .limit(15)
+            .project<{ crashPoint: number }>({ crashPoint: 1, _id: 0 })
+            .toArray();
+            
+        return recentGames.reverse(); // So the latest is on the right
+    } catch (error) {
+        console.error('Error fetching recent cassino games:', error);
+        return [];
     }
 }

@@ -1,8 +1,10 @@
+
 'use server';
 
 import { AppLayout } from '@/components/app-layout';
 import { CassinoGameClient } from '@/components/cassino-game-client';
 import { getAvailableLeagues } from '@/actions/bet-actions';
+import { getRecentCassinoGames } from '@/actions/cassino-actions';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '../api/auth/[...nextauth]/route';
 import { redirect } from 'next/navigation';
@@ -13,11 +15,14 @@ export default async function CassinoPage() {
         redirect('/');
     }
     
-    const availableLeagues = await getAvailableLeagues();
+    const [availableLeagues, recentGames] = await Promise.all([
+        getAvailableLeagues(),
+        getRecentCassinoGames(),
+    ]);
 
     return (
         <AppLayout availableLeagues={availableLeagues}>
-            <CassinoGameClient />
+            <CassinoGameClient initialRecentGames={recentGames} />
         </AppLayout>
     );
 }

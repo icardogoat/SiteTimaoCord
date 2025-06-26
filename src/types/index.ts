@@ -333,6 +333,7 @@ export type CassinoBet = {
   userId: string;
   stake: number;
   crashPoint: number;
+  autoCashOutAt?: number;
   status: 'playing' | 'cashed_out' | 'crashed';
   cashOutMultiplier?: number;
   winnings?: number;
