@@ -1,5 +1,3 @@
-'use server';
-
 import { redirect } from 'next/navigation';
 
 // This page just redirects to the main cassino game.
