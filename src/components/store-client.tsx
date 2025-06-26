@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState } from 'react';
@@ -133,7 +132,7 @@ export function StoreClient({ initialItems, initialInventory }: StoreClientProps
                                     )}
                                 </CardHeader>
                                 <CardContent className="flex-grow">
-                                    <p className="text-sm text-muted-foreground">{item.description}</p>
+                                    <p className="text-sm text-muted-foreground line-clamp-2">{item.description}</p>
                                 </CardContent>
                                 <CardFooter>
                                     <Button 
