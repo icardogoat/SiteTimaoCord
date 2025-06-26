@@ -61,14 +61,16 @@ const RocketAnimation = ({ multiplier, gameState }: { multiplier: number, gameSt
     }, []);
 
     const getRocketPosition = () => {
-        if (multiplier < 1 || gameState === 'betting') return { bottom: '5%', left: '5%' };
+        // Start at the bottom center of the container
+        if (multiplier < 1 || gameState === 'betting') return { bottom: '5%', left: '50%', transform: 'translateX(-50%)' };
+        
         // Logarithmic scale for a smoother take-off
         const progress = Math.log1p(multiplier - 0.9) / Math.log1p(30); // 30 is an arbitrary max for scaling
         const clampedProgress = Math.min(progress, 1);
         
-        const bottom = 5 + clampedProgress * 80;
-        const left = 5 + clampedProgress * 80;
-        return { bottom: `${bottom}%`, left: `${left}%` };
+        const bottom = 5 + clampedProgress * 80; // Move up to 85% of the container height
+        
+        return { bottom: `${bottom}%`, left: '50%', transform: 'translateX(-50%)' };
     };
 
     const position = getRocketPosition();
@@ -91,7 +93,7 @@ const RocketAnimation = ({ multiplier, gameState }: { multiplier: number, gameSt
             ))}
             {gameState !== 'crashed' ? (
                 <div
-                    className="absolute z-10 transition-all duration-100 ease-linear -rotate-45"
+                    className="absolute z-10 transition-all duration-100 ease-linear"
                     style={{ ...position }}
                 >
                     <RocketSvg />
