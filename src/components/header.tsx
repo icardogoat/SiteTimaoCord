@@ -15,7 +15,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { LogOut, User, Wallet, Ticket, Bell, Trophy, LayoutGrid, Store, Table, Swords, Star, Megaphone } from 'lucide-react';
+import { LogOut, User, Wallet, Ticket, Bell, Trophy, LayoutGrid, Store, Table, Swords, Star, Megaphone, Gamepad2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useSession, signOut } from 'next-auth/react';
@@ -227,6 +227,12 @@ export function Header() {
                 <span>Minhas Apostas</span>
               </Link>
             </DropdownMenuItem>
+             <DropdownMenuItem asChild>
+                <Link href="/cassino">
+                  <Gamepad2 className="mr-2 h-4 w-4" />
+                  <span>Cassino</span>
+                </Link>
+              </DropdownMenuItem>
              <DropdownMenuItem asChild>
               <Link href="/bolao">
                 <Swords className="mr-2 h-4 w-4" />

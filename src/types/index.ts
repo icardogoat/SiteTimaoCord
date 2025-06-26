@@ -327,3 +327,15 @@ export type PurchaseAdminView = {
   redemptionCode?: string;
   userId: string;
 };
+
+export type CassinoBet = {
+  _id: string | ObjectId;
+  userId: string;
+  stake: number;
+  crashPoint: number;
+  status: 'playing' | 'cashed_out' | 'crashed';
+  cashOutMultiplier?: number;
+  winnings?: number;
+  createdAt: Date | string;
+  settledAt?: Date | string;
+};
