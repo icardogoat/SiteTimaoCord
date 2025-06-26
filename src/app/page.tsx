@@ -29,7 +29,7 @@ export default async function TimaocordHome() {
             alt="TimãoCord Logo"
             width={500}
             height={127}
-            className="h-24 w-auto"
+            className="h-32 w-auto"
             priority
             data-ai-hint="logo"
           />
@@ -51,8 +51,13 @@ export default async function TimaocordHome() {
           <LoginButton />
         </div>
       </main>
-      <footer className="flex items-center justify-center p-6 text-sm text-muted-foreground z-10">
+      <footer className="flex flex-col items-center justify-center p-6 text-sm text-muted-foreground z-10">
         <p>© 2025 Timaocord. Todos os direitos reservados.</p>
+        <div className="flex gap-4 mt-2">
+            <Link href="/terms" className="hover:text-primary transition-colors">Termos e Condições</Link>
+            <span className="text-muted-foreground/50">|</span>
+            <Link href="/privacy" className="hover:text-primary transition-colors">Política de Privacidade</Link>
+        </div>
       </footer>
     </div>
   );
