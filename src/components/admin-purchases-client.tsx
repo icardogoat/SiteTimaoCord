@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -83,7 +84,7 @@ export default function AdminPurchasesClient({ initialPurchases }: AdminPurchase
                                 <TableHead>Item</TableHead>
                                 <TableHead className="text-right">Preço Pago</TableHead>
                                 <TableHead className="text-center">Status</TableHead>
-                                <TableHead className="hidden md:table-cell">Data</TableHead>
+                                <TableHead className="hidden sm:table-cell">Data</TableHead>
                                 <TableHead className="w-12"><span className="sr-only">Ações</span></TableHead>
                             </TableRow>
                         </TableHeader>
@@ -109,7 +110,7 @@ export default function AdminPurchasesClient({ initialPurchases }: AdminPurchase
                                             {purchase.isRedeemed ? 'Resgatado' : 'Pendente'}
                                         </Badge>
                                     </TableCell>
-                                    <TableCell className="hidden md:table-cell">{new Date(purchase.purchasedAt).toLocaleDateString('pt-BR')}</TableCell>
+                                    <TableCell className="hidden sm:table-cell">{new Date(purchase.purchasedAt).toLocaleDateString('pt-BR')}</TableCell>
                                     <TableCell>
                                         <DropdownMenu>
                                             <DropdownMenuTrigger asChild>

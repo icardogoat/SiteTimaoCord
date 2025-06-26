@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -129,8 +130,8 @@ export default function AdminStoreClient({ initialItems }: { initialItems: Store
                         <TableHeader>
                             <TableRow>
                                 <TableHead>Item</TableHead>
-                                <TableHead>Tipo</TableHead>
-                                <TableHead>Duração</TableHead>
+                                <TableHead className="hidden sm:table-cell">Tipo</TableHead>
+                                <TableHead className="hidden sm:table-cell">Duração</TableHead>
                                 <TableHead className="text-right">Preço</TableHead>
                                 <TableHead className="text-center">Status</TableHead>
                                 <TableHead className="w-24">Ações</TableHead>
@@ -150,8 +151,8 @@ export default function AdminStoreClient({ initialItems }: { initialItems: Store
                                             </div>
                                         </div>
                                     </TableCell>
-                                    <TableCell>{getTypeLabel(item.type)}</TableCell>
-                                    <TableCell>
+                                    <TableCell className="hidden sm:table-cell">{getTypeLabel(item.type)}</TableCell>
+                                    <TableCell className="hidden sm:table-cell">
                                         <div className="flex items-center gap-2">
                                             {item.type === 'ROLE' ? (
                                                 <>

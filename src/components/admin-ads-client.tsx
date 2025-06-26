@@ -17,7 +17,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
@@ -155,7 +155,7 @@ export default function AdminAdsClient({ initialAds }: { initialAds: Advertiseme
                         </CardHeader>
                         <CardContent>
                             <Table>
-                                <TableHeader><TableRow><TableHead>Anúncio</TableHead><TableHead>Link</TableHead><TableHead className="w-40 text-center">Ações</TableHead></TableRow></TableHeader>
+                                <TableHeader><TableRow><TableHead>Anúncio</TableHead><TableHead className="hidden sm:table-cell">Link</TableHead><TableHead className="w-40 text-center">Ações</TableHead></TableRow></TableHeader>
                                 <TableBody>
                                     {pendingAds.length > 0 ? pendingAds.map(ad => (
                                         <TableRow key={ad._id as string}>
@@ -168,7 +168,7 @@ export default function AdminAdsClient({ initialAds }: { initialAds: Advertiseme
                                                     </div>
                                                 </div>
                                             </TableCell>
-                                            <TableCell><Link href={ad.linkUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-400 hover:underline">{ad.linkUrl}</Link></TableCell>
+                                            <TableCell className="hidden sm:table-cell"><Link href={ad.linkUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-400 hover:underline">{ad.linkUrl}</Link></TableCell>
                                             <TableCell className="flex gap-2 justify-center">
                                                 <Button variant="outline" size="sm" onClick={() => handleApprove(ad._id.toString())} disabled={!!submittingId}>
                                                     {submittingId === ad._id.toString() ? <Loader2 className="h-4 w-4 animate-spin"/> : <CheckCircle className="h-4 w-4 mr-1"/>} Aprovar
@@ -190,7 +190,7 @@ export default function AdminAdsClient({ initialAds }: { initialAds: Advertiseme
                         <CardHeader><CardTitle>Anúncios Ativos</CardTitle><CardDescription>Todos os anúncios que estão sendo exibidos no site.</CardDescription></CardHeader>
                         <CardContent>
                              <Table>
-                                <TableHeader><TableRow><TableHead>Anúncio</TableHead><TableHead>Proprietário</TableHead><TableHead className="w-24">Ações</TableHead></TableRow></TableHeader>
+                                <TableHeader><TableRow><TableHead>Anúncio</TableHead><TableHead className="hidden sm:table-cell">Proprietário</TableHead><TableHead className="w-24">Ações</TableHead></TableRow></TableHeader>
                                 <TableBody>
                                     {activeAds.length > 0 ? activeAds.map(ad => (
                                         <TableRow key={ad._id as string}>
@@ -203,7 +203,7 @@ export default function AdminAdsClient({ initialAds }: { initialAds: Advertiseme
                                                     </div>
                                                 </div>
                                             </TableCell>
-                                            <TableCell><Badge variant={ad.owner === 'user' ? 'outline' : 'secondary'}>{ad.owner === 'user' ? 'Usuário' : 'Sistema'}</Badge></TableCell>
+                                            <TableCell className="hidden sm:table-cell"><Badge variant={ad.owner === 'user' ? 'outline' : 'secondary'}>{ad.owner === 'user' ? 'Usuário' : 'Sistema'}</Badge></TableCell>
                                             <TableCell className="flex gap-2">
                                                 <Button variant="outline" size="icon" onClick={() => handleOpenDialog(ad)}><Edit className="h-4 w-4" /></Button>
                                                 <Button variant="destructive" size="icon" onClick={() => setIsDeleteDialogOpen(ad._id.toString())}><Trash2 className="h-4 w-4" /></Button>
@@ -221,7 +221,7 @@ export default function AdminAdsClient({ initialAds }: { initialAds: Advertiseme
                         <CardHeader><CardTitle>Anúncios Inativos do Sistema</CardTitle><CardDescription>Anúncios criados por você que não estão ativos.</CardDescription></CardHeader>
                         <CardContent>
                              <Table>
-                                <TableHeader><TableRow><TableHead>Anúncio</TableHead><TableHead>Proprietário</TableHead><TableHead className="w-24">Ações</TableHead></TableRow></TableHeader>
+                                <TableHeader><TableRow><TableHead>Anúncio</TableHead><TableHead className="hidden sm:table-cell">Proprietário</TableHead><TableHead className="w-24">Ações</TableHead></TableRow></TableHeader>
                                 <TableBody>
                                     {inactiveSystemAds.length > 0 ? inactiveSystemAds.map(ad => (
                                         <TableRow key={ad._id as string}>
@@ -234,7 +234,7 @@ export default function AdminAdsClient({ initialAds }: { initialAds: Advertiseme
                                                     </div>
                                                 </div>
                                             </TableCell>
-                                            <TableCell><Badge variant={ad.owner === 'user' ? 'outline' : 'secondary'}>{ad.owner === 'user' ? 'Usuário' : 'Sistema'}</Badge></TableCell>
+                                            <TableCell className="hidden sm:table-cell"><Badge variant={ad.owner === 'user' ? 'outline' : 'secondary'}>{ad.owner === 'user' ? 'Usuário' : 'Sistema'}</Badge></TableCell>
                                             <TableCell className="flex gap-2">
                                                 <Button variant="outline" size="icon" onClick={() => handleOpenDialog(ad)}><Edit className="h-4 w-4" /></Button>
                                                 <Button variant="destructive" size="icon" onClick={() => setIsDeleteDialogOpen(ad._id.toString())}><Trash2 className="h-4 w-4" /></Button>
