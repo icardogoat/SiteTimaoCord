@@ -17,11 +17,11 @@ export default async function TimaocordHome() {
   }
 
   return (
-    <div className="flex flex-col min-h-screen bg-background text-foreground relative justify-center">
+    <div className="flex flex-col min-h-screen bg-background text-foreground relative">
       {/* Background Grid */}
       <div className="absolute inset-0 z-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px]"></div>
 
-      <main className="flex flex-col items-center justify-center text-center p-4 z-10">
+      <main className="flex flex-1 flex-col items-center justify-center text-center p-4 z-10">
         <div className="mb-8">
           <Image
             src="https://i.imgur.com/xD76hcl.png"
