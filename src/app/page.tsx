@@ -17,8 +17,11 @@ export default async function TimaocordHome() {
   }
 
   return (
-    <div className="flex flex-col min-h-screen bg-background text-foreground">
-      <main className="flex-1 flex flex-col items-center justify-center text-center p-4">
+    <div className="flex flex-col min-h-screen bg-background text-foreground relative">
+      {/* Background Grid */}
+      <div className="absolute inset-0 z-0 bg-[radial-gradient(#262626_1px,transparent_1px)] [background-size:16px_16px] [mask-image:radial-gradient(ellipse_50%_50%_at_50%_50%,#000_60%,transparent_100%)]"></div>
+
+      <main className="flex-1 flex flex-col items-center justify-center text-center p-4 -mt-16 z-10">
         <div className="mb-8">
           <Image
             src="https://i.imgur.com/xD76hcl.png"
@@ -47,7 +50,7 @@ export default async function TimaocordHome() {
           <LoginButton />
         </div>
       </main>
-      <footer className="flex items-center justify-center p-6 text-sm text-muted-foreground">
+      <footer className="flex items-center justify-center p-6 text-sm text-muted-foreground z-10">
         <p>© 2025 Timaocord. Todos os direitos reservados.</p>
       </footer>
     </div>
