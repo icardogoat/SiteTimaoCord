@@ -7,7 +7,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "../api/auth/[...nextauth]/route";
 import { redirect } from "next/navigation";
 import { StoreClient } from "@/components/store-client";
-import { getStoreItems } from "@/actions/store-actions";
+import { getStoreItems, getUserInventory } from "@/actions/store-actions";
 
 export default async function StorePage() {
     const session = await getServerSession(authOptions);
@@ -15,14 +15,15 @@ export default async function StorePage() {
         redirect('/');
     }
 
-    const [availableLeagues, items] = await Promise.all([
+    const [availableLeagues, items, inventory] = await Promise.all([
         getAvailableLeagues(),
-        getStoreItems()
+        getStoreItems(),
+        getUserInventory(session.user.discordId)
     ]);
     
     return (
         <AppLayout availableLeagues={availableLeagues}>
-            <StoreClient initialItems={items} />
+            <StoreClient initialItems={items} initialInventory={inventory} />
         </AppLayout>
     );
 }

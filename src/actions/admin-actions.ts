@@ -1256,6 +1256,7 @@ export async function getAdminStoreItems(): Promise<StoreItemAdminData[]> {
             description: item.description,
             price: item.price,
             type: item.type,
+            duration: item.duration,
             roleId: item.roleId,
             xpAmount: item.xpAmount,
             isActive: item.isActive,
@@ -1268,6 +1269,11 @@ export async function getAdminStoreItems(): Promise<StoreItemAdminData[]> {
 
 export async function upsertStoreItem(data: Omit<StoreItemAdminData, 'id'> & {id?: string}): Promise<{ success: boolean; message: string }> {
     const { id, ...itemData } = data;
+
+    if (itemData.type === 'XP_BOOST') {
+        itemData.duration = 'PERMANENT';
+    }
+
     const itemToSave = {
         ...itemData,
         xpAmount: itemData.type === 'XP_BOOST' ? itemData.xpAmount : undefined,

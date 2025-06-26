@@ -141,9 +141,10 @@ export type StoreItem = {
   name: string;
   description: string;
   price: number;
-  type: 'ROLE' | 'XP_BOOST'; // More types can be added later
-  roleId?: string; // Discord role ID if type is ROLE
-  xpAmount?: number; // Amount of XP if type is XP_BOOST
+  type: 'ROLE' | 'XP_BOOST';
+  duration: 'PERMANENT' | 'MONTHLY';
+  roleId?: string;
+  xpAmount?: number;
   isActive: boolean;
   createdAt: Date | string;
 };
@@ -154,10 +155,12 @@ export type UserInventoryItem = {
     itemId: string | ObjectId;
     itemName: string;
     itemType: StoreItem['type'];
+    itemDuration: StoreItem['duration'];
     redemptionCode: string;
     isRedeemed: boolean;
     purchasedAt: Date | string;
     redeemedAt?: Date | string;
+    expiresAt?: Date | string;
 };
 
 export type StandingTeam = {

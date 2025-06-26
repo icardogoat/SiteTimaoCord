@@ -18,7 +18,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { Loader2, PlusCircle, Trash2, Edit, Award, Star, Gift } from 'lucide-react';
+import { Loader2, PlusCircle, Trash2, Edit, Award, Star, Gift, Clock } from 'lucide-react';
 import type { StoreItem } from '@/types';
 
 type StoreItemData = Omit<StoreItem, '_id' | 'createdAt'> & { id: string };
@@ -29,11 +29,12 @@ const formSchema = z.object({
   description: z.string().min(10, { message: 'A descrição deve ter pelo menos 10 caracteres.' }),
   price: z.coerce.number().min(0, { message: 'O preço não pode ser negativo.' }),
   type: z.enum(['ROLE', 'XP_BOOST']),
+  duration: z.enum(['PERMANENT', 'MONTHLY']),
   roleId: z.string().optional(),
   xpAmount: z.coerce.number().optional(),
   isActive: z.boolean().default(true),
 }).refine(data => {
-    if (data.type === 'ROLE') return !!data.roleId;
+    if (data.type === 'ROLE') return !!data.roleId && data.roleId.length > 0;
     return true;
 }, {
     message: "O ID do Cargo é obrigatório para o tipo ROLE.",
@@ -58,14 +59,14 @@ export default function AdminStoreClient({ initialItems }: { initialItems: Store
 
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
-        defaultValues: { isActive: true, price: 0, type: 'ROLE' },
+        defaultValues: { isActive: true, price: 0, type: 'ROLE', duration: 'PERMANENT' },
     });
     
     const itemType = form.watch('type');
 
     const handleOpenDialog = (item: StoreItemData | null) => {
         setCurrentItem(item);
-        form.reset(item ? { ...item, xpAmount: item.xpAmount || 0 } : { name: '', description: '', price: 0, type: 'ROLE', roleId: '', xpAmount: 0, isActive: true });
+        form.reset(item ? { ...item, xpAmount: item.xpAmount || 0 } : { name: '', description: '', price: 0, type: 'ROLE', duration: 'PERMANENT', roleId: '', xpAmount: 0, isActive: true });
         setIsDialogOpen(true);
     };
 
@@ -114,6 +115,7 @@ export default function AdminStoreClient({ initialItems }: { initialItems: Store
                             <TableRow>
                                 <TableHead>Item</TableHead>
                                 <TableHead>Tipo</TableHead>
+                                <TableHead>Duração</TableHead>
                                 <TableHead className="text-right">Preço</TableHead>
                                 <TableHead className="text-center">Status</TableHead>
                                 <TableHead className="w-24">Ações</TableHead>
@@ -134,6 +136,18 @@ export default function AdminStoreClient({ initialItems }: { initialItems: Store
                                         </div>
                                     </TableCell>
                                     <TableCell>{item.type}</TableCell>
+                                    <TableCell>
+                                        <div className="flex items-center gap-2">
+                                            {item.type === 'ROLE' ? (
+                                                <>
+                                                    {item.duration === 'MONTHLY' && <Clock className="h-4 w-4 text-muted-foreground" />}
+                                                    <span>{item.duration === 'PERMANENT' ? 'Permanente' : 'Mensal'}</span>
+                                                </>
+                                            ): (
+                                                <span>N/A</span>
+                                            )}
+                                        </div>
+                                    </TableCell>
                                     <TableCell className="text-right font-mono">R$ {item.price.toLocaleString('pt-BR')}</TableCell>
                                     <TableCell className="text-center">
                                         <span className={`px-2 py-1 text-xs rounded-full ${item.isActive ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200'}`}>
@@ -182,9 +196,25 @@ export default function AdminStoreClient({ initialItems }: { initialItems: Store
                                 </FormItem>
                             )}/>
                             {itemType === 'ROLE' && (
-                                <FormField control={form.control} name="roleId" render={({ field }) => (
-                                    <FormItem><FormLabel>ID do Cargo (Discord)</FormLabel><FormControl><Input {...field} placeholder="Ex: 123456789012345678" /></FormControl><FormDescription>O ID do cargo que será atribuído no Discord ao resgatar.</FormDescription><FormMessage /></FormItem>
-                                )}/>
+                                <>
+                                    <FormField control={form.control} name="duration" render={({ field }) => (
+                                        <FormItem>
+                                        <FormLabel>Duração</FormLabel>
+                                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                            <FormControl><SelectTrigger><SelectValue placeholder="Selecione a duração" /></SelectTrigger></FormControl>
+                                            <SelectContent>
+                                                <SelectItem value="PERMANENT">Permanente</SelectItem>
+                                                <SelectItem value="MONTHLY">Mensal (30 dias)</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                        <FormDescription>Se o item expira ou é para sempre.</FormDescription>
+                                        <FormMessage />
+                                        </FormItem>
+                                    )}/>
+                                    <FormField control={form.control} name="roleId" render={({ field }) => (
+                                        <FormItem><FormLabel>ID do Cargo (Discord)</FormLabel><FormControl><Input {...field} placeholder="Ex: 123456789012345678" /></FormControl><FormDescription>O ID do cargo que será atribuído no Discord ao resgatar.</FormDescription><FormMessage /></FormItem>
+                                    )}/>
+                                </>
                             )}
                              {itemType === 'XP_BOOST' && (
                                 <FormField control={form.control} name="xpAmount" render={({ field }) => (

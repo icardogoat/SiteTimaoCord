@@ -2,19 +2,20 @@
 'use client';
 
 import { useState } from 'react';
-import type { StoreItem } from '@/types';
+import type { StoreItem, UserInventoryItem } from '@/types';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { useSession } from 'next-auth/react';
 import { useToast } from '@/hooks/use-toast';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from './ui/alert-dialog';
 import { purchaseItem } from '@/actions/store-actions';
-import { Award, Loader2, Star, Gift } from 'lucide-react';
+import { Award, Loader2, Star, Gift, Clock } from 'lucide-react';
 
 type StoreItemData = Omit<StoreItem, '_id' | 'createdAt' | 'isActive'> & { id: string };
 
 interface StoreClientProps {
     initialItems: StoreItemData[];
+    initialInventory: UserInventoryItem[];
 }
 
 const iconMap = {
@@ -30,7 +31,7 @@ interface SuccessDialogState {
     code?: string;
 }
 
-export function StoreClient({ initialItems }: StoreClientProps) {
+export function StoreClient({ initialItems, initialInventory }: StoreClientProps) {
     const { data: session, update: updateSession } = useSession();
     const { toast } = useToast();
     const [isConfirming, setIsConfirming] = useState<StoreItemData | null>(null);
@@ -82,6 +83,17 @@ export function StoreClient({ initialItems }: StoreClientProps) {
                         const Icon = iconMap[item.type as keyof typeof iconMap] || iconMap['DEFAULT'];
                         const finalPrice = isVip && item.type !== 'ROLE' ? item.price * VIP_DISCOUNT_MULTIPLIER : item.price;
                         const canAfford = userBalance >= finalPrice;
+
+                        const ownedItem = initialInventory.find(invItem => invItem.itemId.toString() === item.id);
+                        let isOwnedAndActive = false;
+                        if (item.type === 'ROLE' && ownedItem) {
+                            if (ownedItem.itemDuration === 'PERMANENT') {
+                                isOwnedAndActive = true;
+                            } else if (ownedItem.itemDuration === 'MONTHLY' && ownedItem.expiresAt && new Date(ownedItem.expiresAt) > new Date()) {
+                                isOwnedAndActive = true;
+                            }
+                        }
+
                         return (
                             <Card key={item.id} className="flex flex-col">
                                 <CardHeader className="flex-row gap-4 items-center">
@@ -101,6 +113,12 @@ export function StoreClient({ initialItems }: StoreClientProps) {
                                             )}
                                         </div>
                                     </div>
+                                    {item.type === 'ROLE' && (
+                                        <div className="ml-auto flex items-center gap-1 text-xs text-muted-foreground">
+                                           {item.duration === 'MONTHLY' ? <Clock className="h-3 w-3" /> : null}
+                                           <span>{item.duration === 'PERMANENT' ? 'Permanente' : 'Mensal'}</span>
+                                        </div>
+                                    )}
                                 </CardHeader>
                                 <CardContent className="flex-grow">
                                     <p className="text-sm text-muted-foreground">{item.description}</p>
@@ -108,10 +126,10 @@ export function StoreClient({ initialItems }: StoreClientProps) {
                                 <CardFooter>
                                     <Button 
                                         className="w-full" 
-                                        disabled={!canAfford || isSubmitting}
+                                        disabled={!canAfford || isSubmitting || isOwnedAndActive}
                                         onClick={() => setIsConfirming(item)}
                                     >
-                                        {canAfford ? 'Comprar' : 'Saldo Insuficiente'}
+                                        {isOwnedAndActive ? 'Item Ativo' : canAfford ? 'Comprar' : 'Saldo Insuficiente'}
                                     </Button>
                                 </CardFooter>
                             </Card>

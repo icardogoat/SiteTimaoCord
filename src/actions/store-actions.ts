@@ -26,6 +26,7 @@ export async function getStoreItems(): Promise<Omit<StoreItem, '_id' | 'createdA
             description: item.description,
             price: item.price,
             type: item.type,
+            duration: item.duration,
             roleId: item.roleId,
             xpAmount: item.xpAmount,
             isActive: item.isActive,
@@ -35,6 +36,24 @@ export async function getStoreItems(): Promise<Omit<StoreItem, '_id' | 'createdA
         return [];
     }
 };
+
+export async function getUserInventory(userId: string): Promise<UserInventoryItem[]> {
+    if (!userId) return [];
+    try {
+        const client = await clientPromise;
+        const db = client.db('timaocord');
+        const inventory = await db.collection<UserInventoryItem>('user_inventory')
+            .find({ userId })
+            .toArray();
+
+        // Convert to serializable format
+        return JSON.parse(JSON.stringify(inventory));
+    } catch (error) {
+        console.error("Error fetching user inventory:", error);
+        return [];
+    }
+}
+
 
 interface PurchaseResult {
     success: boolean;
@@ -68,7 +87,24 @@ export async function purchaseItem(itemId: string): Promise<PurchaseResult> {
         return { success: false, message: 'Item não encontrado ou indisponível.' };
     }
 
-    const finalPrice = isVip && item.type !== 'ROLE' ? item.price * VIP_DISCOUNT_MULTIPLIER : item.price; // Example: VIP discount doesn't apply to role purchases
+    // Check if user already owns an active version of this item
+    if (item.type === 'ROLE') {
+        const inventoryCollection = db.collection<UserInventoryItem>('user_inventory');
+        const userInventory = await inventoryCollection.find({ userId, itemId: item._id }).toArray();
+
+        for (const ownedItem of userInventory) {
+            if (ownedItem.itemDuration === 'PERMANENT') {
+                return { success: false, message: 'Você já possui este item permanentemente.' };
+            }
+            if (ownedItem.itemDuration === 'MONTHLY' && ownedItem.expiresAt && new Date(ownedItem.expiresAt) > new Date()) {
+                const expiryDate = new Date(ownedItem.expiresAt).toLocaleDateString('pt-BR');
+                return { success: false, message: `Você já possui uma assinatura ativa para este item, que expira em ${expiryDate}.` };
+            }
+        }
+    }
+
+
+    const finalPrice = isVip && item.type !== 'ROLE' ? item.price * VIP_DISCOUNT_MULTIPLIER : item.price;
 
     const mongoSession = client.startSession();
 
@@ -113,10 +149,17 @@ export async function purchaseItem(itemId: string): Promise<PurchaseResult> {
                     itemId: item._id,
                     itemName: item.name,
                     itemType: item.type,
+                    itemDuration: item.duration,
                     redemptionCode: redemptionCode,
                     isRedeemed: false,
                     purchasedAt: new Date(),
                 };
+
+                if (item.duration === 'MONTHLY') {
+                    const expiryDate = new Date();
+                    expiryDate.setDate(expiryDate.getDate() + 30);
+                    newInventoryItem.expiresAt = expiryDate;
+                }
 
                 await inventoryCollection.insertOne(newInventoryItem as any, { session: mongoSession });
                 
