@@ -228,7 +228,7 @@ export function Header() {
               </Link>
             </DropdownMenuItem>
              <DropdownMenuItem asChild>
-                <Link href="/cassino">
+                <Link href="/cassino/foguetinho">
                   <Gamepad2 className="mr-2 h-4 w-4" />
                   <span>Cassino</span>
                 </Link>

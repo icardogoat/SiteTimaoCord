@@ -55,7 +55,7 @@ export function AppLayout({ children, availableLeagues }: AppLayoutProps) {
                                 <SidebarMenu>
                                     <SidebarMenuItem>
                                         <SidebarMenuButton asChild isActive={pathname?.startsWith('/cassino')}>
-                                            <Link href="/cassino"><Gamepad2 /><span>Cassino</span></Link>
+                                            <Link href="/cassino/foguetinho"><Gamepad2 /><span>Cassino</span></Link>
                                         </SidebarMenuButton>
                                     </SidebarMenuItem>
                                     <SidebarMenuItem>

@@ -19,16 +19,40 @@ type GameState = 'idle' | 'betting' | 'playing' | 'crashed';
 const PRE_GAME_DELAY = 3000; // 3 seconds before game starts
 
 const RocketSvg = () => (
-    <svg width="80" height="120" viewBox="0 0 24 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <svg
+        width="80"
+        height="120"
+        viewBox="0 0 100 150"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+        className="drop-shadow-lg"
+    >
         <title>Rocket</title>
-        <path d="M18 36C18 36 24 21 12 15C0 21 6 36 6 36H18Z" fill="#F97316"/>
-        <path d="M21 23C21 23 23 20 19.5 17.5C16 15 12 15 12 15V26C12 26 17 29 21 23Z" fill="#EAB308"/>
-        <path d="M3 23C3 23 1 20 4.5 17.5C8 15 12 15 12 15V26C12 26 7 29 3 23Z" fill="#EAB308"/>
-        <path d="M19 18L12 13L5 18V2C5 2 5 0 12 0C19 0 19 2 19 2V18Z" fill="#E2E8F0"/>
-        <path d="M12 13L16 18H8L12 13Z" fill="#94A3B8"/>
-        <circle cx="12" cy="8" r="3" fill="#3B82F6" stroke="#E2E8F0" strokeWidth="1"/>
+        {/* Flames */}
+        <path
+            d="M30 140 C 40 125, 60 125, 70 140 L 50 165 Z"
+            fill="url(#flameGradient)"
+            transform="translate(0, 5)"
+        />
+        <path d="M50 120 L 35 145 L 65 145 Z" fill="#94A3B8" />
+        {/* Body */}
+        <path d="M35 50 C 35 30, 65 30, 65 50 V 120 H 35 V 50 Z" fill="#E2E8F0" />
+        {/* Tip */}
+        <path d="M50 0 L 35 50 H 65 Z" fill="#3B82F6" />
+        {/* Window */}
+        <circle cx="50" cy="70" r="12" fill="#3B82F6" stroke="#94A3B8" strokeWidth="2" />
+        {/* Fins */}
+        <path d="M35 120 L 15 140 V 90 Z" fill="#94A3B8" />
+        <path d="M65 120 L 85 140 V 90 Z" fill="#94A3B8" />
+        <defs>
+            <linearGradient id="flameGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" style={{ stopColor: '#FBBF24', stopOpacity: 1 }} />
+            <stop offset="100%" style={{ stopColor: '#F97316', stopOpacity: 1 }} />
+            </linearGradient>
+        </defs>
     </svg>
 );
+
 
 const Explosion = ({ position }: { position: number }) => (
     <div className="absolute left-1/2 -translate-x-1/2" style={{ bottom: `${position}%` }}>
