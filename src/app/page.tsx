@@ -21,10 +21,10 @@ export default async function TimaocordHome() {
       <header className="px-4 lg:px-6 h-16 flex items-center justify-between">
         <Link href="/" className="flex items-center justify-center" prefetch={false}>
           <Image
-            src="https://i.imgur.com/gK9x2oF.png"
+            src="https://i.imgur.com/xD76hcl.png"
             alt="TimãoCord Logo"
-            width={189}
-            height={48}
+            width={500}
+            height={127}
             className="h-12 w-auto"
             priority
             data-ai-hint="logo"
