@@ -23,6 +23,8 @@ export async function getBotConfig(): Promise<Partial<BotConfig>> {
                 logChannelId: '',
                 bettingChannelId: '',
                 winnersChannelId: '',
+                bolaoChannelId: '',
+                mvpChannelId: '',
                 adminRoleId: '',
                 vipRoleIds: [],
             };
@@ -35,6 +37,8 @@ export async function getBotConfig(): Promise<Partial<BotConfig>> {
             logChannelId: config.logChannelId || '',
             bettingChannelId: config.bettingChannelId || '',
             winnersChannelId: config.winnersChannelId || '',
+            bolaoChannelId: config.bolaoChannelId || '',
+            mvpChannelId: config.mvpChannelId || '',
             adminRoleId: config.adminRoleId || '',
             vipRoleIds: config.vipRoleIds || [],
         };
@@ -46,6 +50,8 @@ export async function getBotConfig(): Promise<Partial<BotConfig>> {
             logChannelId: '',
             bettingChannelId: '',
             winnersChannelId: '',
+            bolaoChannelId: '',
+            mvpChannelId: '',
             adminRoleId: '',
             vipRoleIds: [],
         };
@@ -58,6 +64,8 @@ type UpdateConfigData = {
     logChannelId: string;
     bettingChannelId: string;
     winnersChannelId: string;
+    bolaoChannelId: string;
+    mvpChannelId: string;
     adminRoleId: string;
     vipRoleIds: string[];
 };

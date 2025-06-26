@@ -49,6 +49,8 @@ const formSchema = z.object({
   logChannelId: z.string().optional(),
   bettingChannelId: z.string().optional(),
   winnersChannelId: z.string().optional(),
+  bolaoChannelId: z.string().optional(),
+  mvpChannelId: z.string().optional(),
   adminRoleId: z.string().optional(),
   vipRoleIds: z.array(z.string()).max(3, { message: "Você pode selecionar no máximo 3 cargos VIP." }).optional(),
 });
@@ -77,6 +79,8 @@ export default function AdminBotConfigClient({ initialConfig, initialChannels, i
             logChannelId: initialConfig.logChannelId || "",
             bettingChannelId: initialConfig.bettingChannelId || "",
             winnersChannelId: initialConfig.winnersChannelId || "",
+            bolaoChannelId: initialConfig.bolaoChannelId || "",
+            mvpChannelId: initialConfig.mvpChannelId || "",
             adminRoleId: initialConfig.adminRoleId || "",
             vipRoleIds: initialConfig.vipRoleIds || [],
         },
@@ -98,6 +102,8 @@ export default function AdminBotConfigClient({ initialConfig, initialChannels, i
             logChannelId: '',
             bettingChannelId: '',
             winnersChannelId: '',
+            bolaoChannelId: '',
+            mvpChannelId: '',
             adminRoleId: '',
             vipRoleIds: [],
         });
@@ -122,7 +128,7 @@ export default function AdminBotConfigClient({ initialConfig, initialChannels, i
         setIsLoadingDetails(false);
     };
 
-    const handleTest = async (channelType: 'welcome' | 'log' | 'betting' | 'winners') => {
+    const handleTest = async (channelType: 'welcome' | 'log' | 'betting' | 'winners' | 'bolao' | 'mvp') => {
         const channelId = form.getValues(`${channelType}ChannelId` as keyof FormValues);
         if (!channelId) {
             toast({ title: "Nenhum canal selecionado", variant: "destructive" });
@@ -151,6 +157,28 @@ export default function AdminBotConfigClient({ initialConfig, initialChannels, i
                     }]
                 };
                 break;
+            case 'bolao':
+                payload = {
+                    embeds: [{
+                        color: 0x2563eb, // blue-600
+                        title: '✅ Teste do Canal de Bolão ✅',
+                        description: 'Se você pode ver esta mensagem, as notificações de novos bolões funcionarão corretamente!',
+                        footer: { text: 'Teste enviado pelo Painel Admin' },
+                        timestamp: new Date().toISOString(),
+                    }]
+                };
+                break;
+            case 'mvp':
+                payload = {
+                    embeds: [{
+                        color: 0xf97316, // orange-500
+                        title: '✅ Teste do Canal de MVP ✅',
+                        description: 'Se você pode ver esta mensagem, as notificações de novas votações MVP funcionarão corretamente!',
+                        footer: { text: 'Teste enviado pelo Painel Admin' },
+                        timestamp: new Date().toISOString(),
+                    }]
+                };
+                break;
         }
         
         setIsTesting(channelType);
@@ -171,6 +199,8 @@ export default function AdminBotConfigClient({ initialConfig, initialChannels, i
             logChannelId: values.logChannelId || '',
             bettingChannelId: values.bettingChannelId || '',
             winnersChannelId: values.winnersChannelId || '',
+            bolaoChannelId: values.bolaoChannelId || '',
+            mvpChannelId: values.mvpChannelId || '',
             adminRoleId: values.adminRoleId || '',
             vipRoleIds: values.vipRoleIds || [],
         });
@@ -349,7 +379,85 @@ export default function AdminBotConfigClient({ initialConfig, initialChannels, i
                                         </Button>
                                     </div>
                                     <FormDescription>
-                                       O canal principal onde as apostas são anunciadas ou permitidas.
+                                       O canal onde as notificações de novas partidas são anunciadas.
+                                    </FormDescription>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                        <FormField
+                            control={form.control}
+                            name="bolaoChannelId"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Canal do Bolão</FormLabel>
+                                    <div className="flex items-center gap-2">
+                                        <Select onValueChange={field.onChange} value={field.value} disabled={channels.length === 0}>
+                                            <FormControl>
+                                                <SelectTrigger>
+                                                    <SelectValue placeholder="Selecione um canal" />
+                                                </SelectTrigger>
+                                            </FormControl>
+                                            <SelectContent>
+                                                {channels.map(channel => (
+                                                    <SelectItem key={channel.id} value={channel.id}>
+                                                        #{channel.name}
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                        <Button 
+                                            type="button" 
+                                            variant="outline" 
+                                            size="icon"
+                                            onClick={() => handleTest('bolao')}
+                                            disabled={!field.value || isTesting !== null}
+                                            aria-label="Testar canal do bolão"
+                                        >
+                                            {isTesting === 'bolao' ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Testar'}
+                                        </Button>
+                                    </div>
+                                    <FormDescription>
+                                       Canal para anunciar os novos bolões abertos.
+                                    </FormDescription>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                         <FormField
+                            control={form.control}
+                            name="mvpChannelId"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Canal de Votação MVP</FormLabel>
+                                    <div className="flex items-center gap-2">
+                                        <Select onValueChange={field.onChange} value={field.value} disabled={channels.length === 0}>
+                                            <FormControl>
+                                                <SelectTrigger>
+                                                    <SelectValue placeholder="Selecione um canal" />
+                                                </SelectTrigger>
+                                            </FormControl>
+                                            <SelectContent>
+                                                {channels.map(channel => (
+                                                    <SelectItem key={channel.id} value={channel.id}>
+                                                        #{channel.name}
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                        <Button 
+                                            type="button" 
+                                            variant="outline" 
+                                            size="icon"
+                                            onClick={() => handleTest('mvp')}
+                                            disabled={!field.value || isTesting !== null}
+                                            aria-label="Testar canal de votação MVP"
+                                        >
+                                            {isTesting === 'mvp' ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Testar'}
+                                        </Button>
+                                    </div>
+                                    <FormDescription>
+                                       Canal para anunciar as novas votações de MVP.
                                     </FormDescription>
                                     <FormMessage />
                                 </FormItem>

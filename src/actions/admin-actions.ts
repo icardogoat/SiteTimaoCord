@@ -992,10 +992,10 @@ async function getMatchLineups(fixtureId: number): Promise<{ success: boolean; d
 async function sendNewMvpNotification(voting: Omit<MvpVoting, '_id'>) {
     const config = await getBotConfig();
     const botToken = process.env.DISCORD_BOT_TOKEN;
-    const channelId = config.bettingChannelId;
+    const channelId = config.mvpChannelId;
 
     if (!channelId || !botToken || botToken === 'YOUR_BOT_TOKEN_HERE') {
-        console.log('Discord betting channel or bot token not configured. Skipping MVP notification.');
+        console.log('Discord MVP channel or bot token not configured. Skipping MVP notification.');
         return;
     }
 
@@ -1139,14 +1139,14 @@ export async function finalizeMvpVoting(votingId: string, mvpPlayerId: number): 
 }
 
 export async function cancelMvpVoting(votingId: string): Promise<{ success: boolean; message: string }> {
-     try {
-        const client = await clientPromise;
-        const db = client.db('timaocord');
-        const mongoSession = client.startSession();
-        const VOTE_REWARD = 100;
+    const client = await clientPromise;
+    const db = client.db('timaocord');
+    const mongoSession = client.startSession();
+    const VOTE_REWARD = 100;
 
-        let result: { success: boolean; message: string } | undefined;
+    let result: { success: boolean; message: string } | undefined;
 
+    try {
         await mongoSession.withTransaction(async () => {
             const mvpVotingsCollection = db.collection<MvpVoting>('mvp_votings');
             const walletsCollection = db.collection('wallets');
@@ -1195,7 +1195,7 @@ export async function cancelMvpVoting(votingId: string): Promise<{ success: bool
 
             result = { success: true, message: `Votação cancelada e o bônus de ${voting.votes.length} participante(s) foi revertido.` };
         });
-        
+
         await mongoSession.endSession();
 
         if (result?.success) {

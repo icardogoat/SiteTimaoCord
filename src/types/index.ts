@@ -187,6 +187,8 @@ export type BotConfig = {
   logChannelId: string;
   bettingChannelId: string;
   winnersChannelId: string;
+  bolaoChannelId: string;
+  mvpChannelId: string;
   adminRoleId: string;
   vipRoleIds: string[];
 };
@@ -238,7 +240,6 @@ export type Bolao = {
 export type MvpPlayer = {
   id: number;
   name: string;
-  number: number;
   photo: string;
 };
 

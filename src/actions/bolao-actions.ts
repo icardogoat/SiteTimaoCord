@@ -14,10 +14,10 @@ const ENTRY_FEE = 5;
 async function sendNewBolaoNotification(bolao: Omit<Bolao, '_id'>) {
     const config = await getBotConfig();
     const botToken = process.env.DISCORD_BOT_TOKEN;
-    const channelId = config.bettingChannelId;
+    const channelId = config.bolaoChannelId;
 
     if (!channelId || !botToken || botToken === 'YOUR_BOT_TOKEN_HERE') {
-        console.log('Discord betting channel or bot token not configured. Skipping Bolão notification.');
+        console.log('Discord bolão channel or bot token not configured. Skipping Bolão notification.');
         return;
     }
 
