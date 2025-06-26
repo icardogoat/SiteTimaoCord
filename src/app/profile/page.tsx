@@ -4,7 +4,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { Trophy, DollarSign, TrendingUp, TrendingDown, Ticket, Medal, Wallet, Gem, CheckCircle, XCircle } from "lucide-react";
+import { Trophy, DollarSign, TrendingUp, TrendingDown, Ticket, Medal, Wallet, Gem, CheckCircle, XCircle, Package } from "lucide-react";
 import Link from 'next/link';
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -16,6 +16,7 @@ import { redirect } from "next/navigation";
 import { getAllAchievements, getUserAchievements } from "@/actions/achievement-actions";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { AvatarFallbackText } from "@/components/avatar-fallback-text";
+import { getUserInventory } from "@/actions/store-actions";
 
 
 interface StatCardProps {
@@ -54,6 +55,7 @@ export default async function ProfilePage() {
         availableLeagues,
         allAchievements,
         unlockedAchievementIds,
+        userInventory,
     ] = await Promise.all([
         getUserStats(discordId),
         getTopWinners(),
@@ -62,6 +64,7 @@ export default async function ProfilePage() {
         getAvailableLeagues(),
         getAllAchievements(),
         getUserAchievements(discordId),
+        getUserInventory(discordId),
     ]);
 
     const unlockedSet = new Set(unlockedAchievementIds);
@@ -232,6 +235,44 @@ export default async function ProfilePage() {
                                     </div>
                                 </TooltipProvider>
                             </CardContent>
+                        </Card>
+                        <Card>
+                            <CardHeader>
+                                <CardTitle className="flex items-center gap-2">
+                                    <Package className="h-6 w-6" />
+                                    Meu Inventário
+                                </CardTitle>
+                                <CardDescription>Itens comprados na loja e seus códigos de resgate.</CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                {userInventory.length > 0 ? (
+                                    <div className="space-y-4">
+                                        {userInventory.map(item => (
+                                            <div key={item._id.toString()} className="flex items-center justify-between rounded-lg border bg-card-foreground/5 p-3">
+                                                <div className="space-y-1">
+                                                    <p className="font-semibold">{item.itemName}</p>
+                                                    {item.redemptionCode && 
+                                                        <p className="text-xs text-muted-foreground">Código: <span className="font-mono">{item.redemptionCode}</span></p>
+                                                    }
+                                                    <p className="text-xs text-muted-foreground">
+                                                        Comprado em: {new Date(item.purchasedAt).toLocaleDateString('pt-BR', { timeZone: 'UTC' })}
+                                                    </p>
+                                                </div>
+                                                <Badge variant={item.isRedeemed ? "secondary" : "default"}>
+                                                    {item.isRedeemed ? "Resgatado" : "Aguardando Resgate"}
+                                                </Badge>
+                                            </div>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <p className="text-center text-muted-foreground py-4">Você ainda não comprou nenhum item na loja.</p>
+                                )}
+                            </CardContent>
+                             <CardFooter>
+                                <Link href="/store" className={cn(buttonVariants({ variant: "outline" }), "w-full")}>
+                                    Ir para a Loja
+                                </Link>
+                            </CardFooter>
                         </Card>
                     </main>
 
