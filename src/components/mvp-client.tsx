@@ -1,7 +1,6 @@
-
 'use client';
 
-import type { MvpVoting } from '@/types';
+import type { MvpVoting, MvpVote } from '@/types';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from './ui/card';
 import Image from 'next/image';
 import { Button } from './ui/button';
@@ -16,7 +15,7 @@ import { Badge } from './ui/badge';
 interface MvpCardProps {
     voting: MvpVoting;
     sessionUser: Session['user'] | null;
-    onVote: () => void;
+    onVote: (votingId: string, playerId: number) => void;
 }
 
 function MvpCard({ voting, sessionUser, onVote }: MvpCardProps) {
@@ -31,7 +30,7 @@ function MvpCard({ voting, sessionUser, onVote }: MvpCardProps) {
         const result = await castVote(voting._id.toString(), playerId);
         if (result.success) {
             toast({ title: "Sucesso!", description: result.message });
-            onVote();
+            onVote(voting._id.toString(), playerId);
         } else {
             toast({ title: "Erro", description: result.message, variant: "destructive" });
         }
@@ -118,10 +117,25 @@ interface MvpClientProps {
 export function MvpClient({ activeVotings, sessionUser }: MvpClientProps) {
     const [votings, setVotings] = useState(activeVotings);
 
-    const handleVoteSuccess = () => {
-        // A simple way to refresh data without a full page reload is just to re-set it from props
-        // A more complex app might refetch just the one item.
-        setVotings(activeVotings);
+    const handleVoteSuccess = (votingId: string, playerId: number) => {
+        if (!sessionUser) return;
+
+        setVotings(prevVotings => {
+            return prevVotings.map(voting => {
+                if (voting._id.toString() === votingId) {
+                    const newVote: MvpVote = {
+                        userId: sessionUser.discordId,
+                        playerId: playerId,
+                        votedAt: new Date().toISOString(),
+                    };
+                    return {
+                        ...voting,
+                        votes: [...voting.votes, newVote]
+                    };
+                }
+                return voting;
+            });
+        });
     };
     
     const openVotings = votings.filter(v => v.status === 'Aberto');
