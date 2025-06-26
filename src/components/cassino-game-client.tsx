@@ -38,7 +38,7 @@ const Explosion = ({ position }: { position: number }) => (
     </div>
 );
 
-const RocketAnimation = ({ gameState, multiplier }: { gameState: GameState; multiplier: number }) => {
+const RocketAnimation = ({ gameState, multiplier, crashPoint }: { gameState: GameState; multiplier: number; crashPoint: number | null }) => {
     const [stars, setStars] = useState<{ top: string; left: string; size: string; delay: string; duration: string }[]>([]);
 
     useEffect(() => {
@@ -78,6 +78,20 @@ const RocketAnimation = ({ gameState, multiplier }: { gameState: GameState; mult
                 />
             ))}
             
+            {/* Display Text */}
+            <div className="absolute inset-0 flex items-center justify-center z-20 pointer-events-none">
+                {gameState === 'playing' && (
+                     <div className="text-6xl font-bold text-primary drop-shadow-lg transition-opacity">
+                        {multiplier.toFixed(2)}x
+                     </div>
+                )}
+                 {gameState === 'crashed' && crashPoint && (
+                     <div className="text-6xl font-bold text-destructive drop-shadow-lg transition-opacity">
+                        {crashPoint.toFixed(2)}x
+                     </div>
+                )}
+            </div>
+
             {gameState !== 'crashed' && (
                 <div
                     className={cn(
@@ -295,19 +309,11 @@ export function CassinoGameClient({ initialRecentGames }: { initialRecentGames: 
                             <GameHistory games={recentGames} />
                             <Separator />
                             <div className="aspect-[16/10] bg-muted/50 rounded-lg flex items-center justify-center p-4 relative overflow-hidden">
-                                <div className={cn(
-                                    "absolute inset-0 flex items-center justify-center transition-opacity z-20",
-                                    gameState === 'playing' ? 'opacity-0' : 'opacity-100'
-                                )}>
-                                    {gameState === 'crashed' && <div className="text-6xl font-bold text-destructive drop-shadow-lg">{crashPoint?.toFixed(2)}x</div>}
-                                </div>
-                                <div className={cn(
-                                    "absolute inset-0 flex items-center justify-center transition-opacity z-20",
-                                    gameState !== 'playing' ? 'opacity-0' : 'opacity-100'
-                                )}>
-                                    <div className="text-6xl font-bold text-primary drop-shadow-lg">{multiplier.toFixed(2)}x</div>
-                                </div>
-                                <RocketAnimation gameState={gameState} multiplier={multiplier}/>
+                                <RocketAnimation 
+                                    gameState={gameState} 
+                                    multiplier={multiplier}
+                                    crashPoint={crashPoint}
+                                />
                             </div>
                         </CardContent>
                     </Card>
