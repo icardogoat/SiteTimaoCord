@@ -1,3 +1,4 @@
+
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { DiscordLogo } from '@/components/icons';
@@ -19,7 +20,7 @@ export default async function TimaocordHome() {
   return (
     <div className="flex flex-col min-h-screen bg-background text-foreground relative">
       {/* Background Grid */}
-      <div className="absolute inset-0 z-0 bg-[radial-gradient(#262626_1px,transparent_1px)] [background-size:16px_16px] [mask-image:radial-gradient(ellipse_50%_50%_at_50%_50%,#000_60%,transparent_100%)]"></div>
+      <div className="absolute inset-0 z-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px]"></div>
 
       <main className="flex-1 flex flex-col items-center justify-center text-center p-4 -mt-16 z-10">
         <div className="mb-8">
