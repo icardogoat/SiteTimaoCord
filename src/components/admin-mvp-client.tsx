@@ -60,7 +60,7 @@ export default function AdminMvpClient({ initialVotings }: AdminMvpClientProps) 
         if (result.success) {
             toast({ title: "Sucesso!", description: result.message });
             // Update local state to reflect the change
-            setVotings(votings.map(v => v._id === dialogState.voting!._id ? { ...v, status: 'Finalizado', mvpPlayerId: dialogState.selectedPlayerId! } : v));
+            setVotings(votings.map(v => v._id === dialogState.voting!._id ? { ...v, status: 'Finalizado', mvpPlayerIds: [dialogState.selectedPlayerId!] } : v));
             setDialogState({ open: false, voting: null, selectedPlayerId: null });
         } else {
             toast({ title: "Erro", description: result.message, variant: "destructive" });
@@ -80,7 +80,7 @@ export default function AdminMvpClient({ initialVotings }: AdminMvpClientProps) 
             voteCount: voteCounts.get(player.id) || 0,
         })).sort((a, b) => b.voteCount - a.voteCount);
 
-        const mvpPlayer = voting.status === 'Finalizado' ? allPlayers.find(p => p.id === voting.mvpPlayerId) : null;
+        const mvpPlayerIds = voting.status === 'Finalizado' ? voting.mvpPlayerIds || [] : [];
 
         return (
             <Card key={voting._id.toString()}>
@@ -98,7 +98,7 @@ export default function AdminMvpClient({ initialVotings }: AdminMvpClientProps) 
                                         <div className="overflow-hidden">
                                             <p className="text-sm font-medium truncate flex items-center gap-1">
                                                 {player.name}
-                                                {mvpPlayer?.id === player.id && <Crown className="h-4 w-4 text-yellow-500 shrink-0" />}
+                                                {mvpPlayerIds.includes(player.id) && <Crown className="h-4 w-4 text-yellow-500 shrink-0" />}
                                             </p>
                                         </div>
                                     </div>

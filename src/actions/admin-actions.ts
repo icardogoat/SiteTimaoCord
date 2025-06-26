@@ -1269,6 +1269,7 @@ export async function createMvpVoting(matchId: number): Promise<{ success: boole
             lineups: lineups,
             votes: [],
             createdAt: new Date(),
+            endsAt: new Date(Date.now() + 10 * 60 * 1000), // Ends in 10 minutes
         };
 
         await mvpVotingsCollection.insertOne(newVoting as any);
@@ -1312,7 +1313,7 @@ export async function finalizeMvpVoting(votingId: string, mvpPlayerId: number): 
             {
                 $set: {
                     status: 'Finalizado',
-                    mvpPlayerId: mvpPlayerId,
+                    mvpPlayerIds: [mvpPlayerId],
                     finalizedAt: new Date(),
                 }
             }
@@ -1407,6 +1408,138 @@ export async function cancelMvpVoting(votingId: string): Promise<{ success: bool
         return { success: false, message: error.message || 'Ocorreu um erro ao cancelar a votação.' };
     }
 }
+
+async function sendMvpWinnerNotification(voting: MvpVoting, winners: (MvpPlayer & { voteCount: number })[]) {
+    const config = await getBotConfig();
+    const botToken = process.env.DISCORD_BOT_TOKEN;
+    const channelId = config.mvpChannelId;
+
+    if (!channelId || !botToken || botToken === 'YOUR_BOT_TOKEN_HERE' || winners.length === 0) {
+        console.log('Discord MVP channel, bot token not configured, or no winners. Skipping MVP winner notification.');
+        return;
+    }
+    
+    const winnerNames = winners.map(w => `**${w.name}**`).join(' e ');
+    const voteCount = winners[0]?.voteCount ?? 0;
+
+    const embed = {
+        color: 0xfacc15, // yellow-400
+        title: '🏆 Votação MVP Encerrada! 🏆',
+        description: `A votação para **${voting.homeTeam} vs ${voting.awayTeam}** foi finalizada!\n\nCom ${voteCount} voto(s), o(s) MVP(s) da partida é/são: ${winnerNames}!`,
+        thumbnail: {
+            url: winners[0].photo,
+        },
+        footer: {
+            text: `Total de ${voting.votes.length} votos.`,
+        },
+        timestamp: new Date().toISOString(),
+    };
+
+     try {
+        const response = await fetch(`https://discord.com/api/v10/channels/${channelId}/messages`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bot ${botToken}`,
+            },
+            body: JSON.stringify({ embeds: [embed] }),
+            cache: 'no-store'
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            console.error(`Failed to send MVP winner notification for match ${voting.matchId}:`, JSON.stringify(errorData, null, 2));
+        } else {
+            console.log(`Successfully sent MVP winner notification for match ${voting.matchId}`);
+        }
+    } catch (error) {
+        console.error('Error sending MVP winner notification to Discord:', error);
+    }
+}
+
+
+export async function processMvpVotings(): Promise<{ success: boolean; message: string; details: string[] }> {
+    console.log('Starting to process MVP votings...');
+    const client = await clientPromise;
+    const db = client.db('timaocord');
+    const mvpVotingsCollection = db.collection<MvpVoting>('mvp_votings');
+    
+    const votingsToProcess = await mvpVotingsCollection.find({
+        status: 'Aberto',
+        endsAt: { $lt: new Date() }
+    }).toArray();
+    
+    if (votingsToProcess.length === 0) {
+        const msg = 'No expired MVP votings to process.';
+        console.log(msg);
+        return { success: true, message: msg, details: [] };
+    }
+
+    console.log(`Found ${votingsToProcess.length} MVP votings to process.`);
+    const results: string[] = [];
+    let successCount = 0;
+    let failureCount = 0;
+
+    for (const voting of votingsToProcess) {
+        try {
+            const voteCounts = new Map<number, number>();
+            voting.votes.forEach(vote => {
+                voteCounts.set(vote.playerId, (voteCounts.get(vote.playerId) || 0) + 1);
+            });
+
+            if (voteCounts.size === 0) {
+                 await mvpVotingsCollection.updateOne(
+                    { _id: voting._id },
+                    { $set: { status: 'Finalizado', finalizedAt: new Date(), mvpPlayerIds: [] } }
+                );
+                results.push(`Voting ${voting._id} finalized with no votes.`);
+                successCount++;
+                continue;
+            }
+
+            const maxVotes = Math.max(...Array.from(voteCounts.values()));
+            const winnerIds = Array.from(voteCounts.entries())
+                .filter(([_, count]) => count === maxVotes)
+                .map(([playerId, _]) => playerId);
+
+            await mvpVotingsCollection.updateOne(
+                { _id: voting._id },
+                { $set: { status: 'Finalizado', finalizedAt: new Date(), mvpPlayerIds: winnerIds } }
+            );
+            
+            const allPlayers = voting.lineups.flatMap(l => l.players);
+            const winnerPlayers = allPlayers
+                .filter(p => winnerIds.includes(p.id))
+                .map(p => ({ ...p, voteCount: maxVotes }));
+
+            await sendMvpWinnerNotification(voting, winnerPlayers);
+
+            results.push(`Successfully finalized voting ${voting._id} with ${winnerIds.length} winner(s).`);
+            successCount++;
+
+        } catch (error) {
+            failureCount++;
+            const errorMessage = (error instanceof Error) ? error.message : String(error);
+            results.push(`Error processing voting ${voting._id}: ${errorMessage}`);
+            console.error(`Error processing voting ${voting._id}:`, error);
+        }
+    }
+    
+     if (successCount > 0) {
+        revalidatePath('/admin/mvp');
+        revalidatePath('/mvp');
+    }
+
+    const summaryMessage = `Processed ${votingsToProcess.length} MVP votings. Success: ${successCount}, Failure: ${failureCount}.`;
+    console.log(summaryMessage);
+
+    return {
+        success: failureCount === 0,
+        message: summaryMessage,
+        details: results
+    };
+}
+
 
 // ---- ADMIN STORE ACTIONS ----
 

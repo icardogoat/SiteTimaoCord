@@ -296,8 +296,9 @@ export type MvpVoting = {
   status: 'Aberto' | 'Finalizado' | 'Cancelado';
   lineups: MvpTeamLineup[];
   votes: MvpVote[];
-  mvpPlayerId?: number;
+  mvpPlayerIds?: number[];
   createdAt: Date | string;
+  endsAt?: Date | string;
   finalizedAt?: Date | string;
 };
 

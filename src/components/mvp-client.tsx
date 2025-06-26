@@ -1,6 +1,7 @@
+
 'use client';
 
-import type { MvpVoting, MvpVote } from '@/types';
+import type { MvpVoting, MvpVote, MvpPlayer } from '@/types';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from './ui/card';
 import Image from 'next/image';
 import { Button } from './ui/button';
@@ -26,7 +27,8 @@ function MvpCard({ voting, sessionUser, onVote }: MvpCardProps) {
     const [expandedTeams, setExpandedTeams] = useState<number[]>([]);
 
     const userVote = sessionUser ? voting.votes.find(v => v.userId === sessionUser.discordId) : null;
-    const mvpPlayer = voting.status === 'Finalizado' ? voting.lineups.flatMap(l => l.players).find(p => p.id === voting.mvpPlayerId) : null;
+    const mvpPlayerIds = voting.status === 'Finalizado' ? voting.mvpPlayerIds || [] : [];
+    const winnerPlayers = mvpPlayerIds.map(id => voting.lineups.flatMap(l => l.players).find(p => p.id === id)).filter(Boolean) as MvpPlayer[];
 
     const handleVote = async (playerId: number) => {
         setIsSubmitting(playerId);
@@ -90,7 +92,7 @@ function MvpCard({ voting, sessionUser, onVote }: MvpCardProps) {
                                         {userVote?.playerId === player.id && (
                                             <Star className="h-5 w-5 text-yellow-400" title="Seu voto" />
                                         )}
-                                        {mvpPlayer?.id === player.id && (
+                                        {mvpPlayerIds.includes(player.id) && (
                                             <Crown className="h-5 w-5 text-yellow-500" title="MVP" />
                                         )}
                                     </div>
@@ -115,11 +117,14 @@ function MvpCard({ voting, sessionUser, onVote }: MvpCardProps) {
                     <p className="text-xs text-muted-foreground">Vote no seu jogador preferido e ganhe R$ 100,00 de bônus!</p>
                 </CardFooter>
             )}
-             {voting.status === 'Finalizado' && mvpPlayer && (
+             {voting.status === 'Finalizado' && winnerPlayers.length > 0 && (
                  <CardFooter className="bg-primary/10 rounded-b-lg p-4">
                     <div className="flex items-center gap-3">
                         <Crown className="h-6 w-6 text-yellow-500" />
-                        <p className="font-semibold">O MVP da partida foi: {mvpPlayer.name}!</p>
+                        <p className="font-semibold">
+                            {winnerPlayers.length > 1 ? 'Os MVPs da partida foram: ' : 'O MVP da partida foi: '}
+                            {winnerPlayers.map(p => p.name).join(' & ')}!
+                        </p>
                     </div>
                 </CardFooter>
             )}
