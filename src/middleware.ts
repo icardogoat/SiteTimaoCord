@@ -46,7 +46,6 @@ export const config = {
     "/bolao",
     "/mvp",
     "/advertise",
-    "/cassino/:path*",
     "/admin/:path*",
     "/join-server",
   ],

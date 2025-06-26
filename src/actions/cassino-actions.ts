@@ -9,7 +9,7 @@ import { revalidatePath } from 'next/cache';
 import { ObjectId, WithId } from 'mongodb';
 
 // --- Game Constants ---
-const BETTING_DURATION_MS = 7000; // 7 seconds to place bets
+const BETTING_DURATION_MS = 10000; // 10 seconds to place bets
 const POST_CRASH_DELAY_MS = 4000; // 4 seconds to show crash result
 
 function calculateCrashPoint(): number {
@@ -28,18 +28,15 @@ async function getCurrentGameRound(): Promise<WithId<CassinoGameRound>> {
     const db = client.db('timaocord');
     const roundsCollection = db.collection<CassinoGameRound>('cassino_game_round');
 
-    const lastRound = await roundsCollection.findOne({}, { sort: { roundNumber: -1 } });
+    let lastRound = await roundsCollection.findOne({}, { sort: { roundNumber: -1 } });
     const now = new Date();
 
-    // If a round is currently in betting or playing state, return it
     if (lastRound && (lastRound.status === 'betting' || lastRound.status === 'playing')) {
-        // If a "playing" round has passed its crash time, mark it as crashed
-        if (lastRound.status === 'playing' && lastRound.startedAt) {
-            // This calculation is an approximation of the time it takes to reach the crash point
-            const timeToCrash = (Math.log(lastRound.crashPoint) / Math.log(1.06)) * 100;
-            const timeSinceStart = now.getTime() - new Date(lastRound.startedAt).getTime();
-            
-            if (timeSinceStart > timeToCrash + 500) { // Add a small buffer
+        if (lastRound.status === 'playing' && lastRound.crashPoint) {
+            const timeSinceStart = now.getTime() - new Date(lastRound.startedAt!).getTime();
+            const timeToCrash = (Math.log(lastRound.crashPoint) / Math.log(1.00008)) / 0.95; 
+
+            if (timeSinceStart > timeToCrash + 500) {
                  await roundsCollection.updateOne(
                     { _id: lastRound._id },
                     { $set: { status: 'crashed', settledAt: now } }
@@ -54,8 +51,17 @@ async function getCurrentGameRound(): Promise<WithId<CassinoGameRound>> {
         }
     }
     
-    // If last round is crashed and post-crash delay has passed, or if no round exists, create a new one.
     if (!lastRound || (lastRound.status === 'crashed' && lastRound.settledAt && now.getTime() > new Date(lastRound.settledAt).getTime() + POST_CRASH_DELAY_MS)) {
+        
+        // Settle any bets from the previous crashed round that might have been missed
+        if (lastRound) {
+            const betsCollection = db.collection<CassinoBet>('cassino_bets');
+            await betsCollection.updateMany(
+                { roundId: lastRound._id, status: 'playing' },
+                { $set: { status: 'cashed_out', winnings: 0, cashOutMultiplier: 0 } }
+            );
+        }
+
         const newRoundData: Omit<CassinoGameRound, '_id'> = {
             roundNumber: (lastRound?.roundNumber || 0) + 1,
             status: 'betting',
@@ -66,7 +72,6 @@ async function getCurrentGameRound(): Promise<WithId<CassinoGameRound>> {
         return { ...newRoundData, _id: result.insertedId };
     }
 
-    // Otherwise, the last round is still in its post-crash display phase
     return lastRound;
 }
 
@@ -223,12 +228,14 @@ export async function cashOutCassino(betId: string, cashOutMultiplier: number): 
             
             const round = await roundsCollection.findOne({ _id: bet.roundId }, { session: mongoSession });
             if (!round) throw new Error('Rodada do jogo não encontrada.');
-            if (round.status !== 'playing') throw new Error('A rodada não está mais em jogo.');
-
-            if (cashOutMultiplier >= round.crashPoint) {
-                // This is a safety check, but the client should prevent this.
-                result = { success: false, message: `O jogo parou em ${round.crashPoint.toFixed(2)}x. Você não sacou a tempo!` };
-                return;
+            
+            if (round.status === 'crashed' || cashOutMultiplier >= round.crashPoint) {
+                 await betsCollection.updateOne(
+                    { _id: bet._id },
+                    { $set: { status: 'cashed_out', winnings: 0, cashOutMultiplier: 0 } },
+                    { session: mongoSession }
+                );
+                throw new Error(`O jogo parou em ${round.crashPoint.toFixed(2)}x. Você não sacou a tempo!`);
             }
             
             const winnings = bet.stake * cashOutMultiplier;
