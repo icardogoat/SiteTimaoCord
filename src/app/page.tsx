@@ -19,7 +19,7 @@ export default async function TimaocordHome() {
   return (
     <div className="flex flex-col min-h-screen bg-background text-foreground">
       <main className="flex-1 flex flex-col items-center justify-center text-center p-4">
-        <div className="mb-10">
+        <div className="mb-8">
           <Image
             src="https://i.imgur.com/xD76hcl.png"
             alt="TimãoCord Logo"
