@@ -3,21 +3,12 @@
 import { signIn, useSession } from 'next-auth/react';
 import { Button } from '@/components/ui/button';
 import { DiscordLogo } from '@/components/icons';
-import { useSearchParams } from 'next/navigation';
-import { Suspense } from 'react';
 
 export function LoginButtons() {
-  return (
-    <Suspense fallback={null}>
-      <LoginButtonsInner />
-    </Suspense>
-  );
-}
-
-function LoginButtonsInner() {
   const { status } = useSession();
-  const searchParams = useSearchParams();
-  const callbackUrl = searchParams.get('callbackUrl') || '/bet';
+  
+  // Hardcoded callbackUrl to always redirect to the main betting page, ensuring consistent behavior.
+  const callbackUrl = '/bet';
 
   return (
     <Button
