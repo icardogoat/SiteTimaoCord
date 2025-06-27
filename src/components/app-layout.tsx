@@ -73,11 +73,6 @@ export function AppLayout({ children, availableLeagues }: AppLayoutProps) {
                                             <Link href="/standings"><Table /><span>Tabela</span></Link>
                                         </SidebarMenuButton>
                                     </SidebarMenuItem>
-                                    <SidebarMenuItem>
-                                        <SidebarMenuButton asChild isActive={pathname?.startsWith('/advertise')}>
-                                            <Link href="/advertise"><Megaphone /><span>Anuncie Conosco</span></Link>
-                                        </SidebarMenuButton>
-                                    </SidebarMenuItem>
                                 </SidebarMenu>
                             </SidebarGroupContent>
                         </SidebarGroup>

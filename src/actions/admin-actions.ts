@@ -1655,13 +1655,20 @@ export async function getAdminAdvertisements(): Promise<Advertisement[]> {
     }
 }
 
-export async function upsertAdvertisement(data: Omit<Advertisement, '_id' | 'createdAt' | 'owner' | 'userId' | 'startDate' | 'endDate'> & {id?: string}): Promise<{ success: boolean; message: string }> {
+export async function upsertAdvertisement(data: {
+    id?: string;
+    title: string;
+    description: string;
+    imageUrl: string;
+    linkUrl: string;
+    status: 'active' | 'inactive';
+    endDate?: Date | null;
+}): Promise<{ success: boolean; message: string }> {
     const { id, ...adData } = data;
 
-    const adToSave: Omit<Advertisement, '_id' | 'userId' | 'startDate' | 'endDate'> = {
+    const adToSave: Partial<Advertisement> = {
         ...adData,
         owner: 'system',
-        createdAt: new Date(),
     };
 
     try {
@@ -1670,15 +1677,27 @@ export async function upsertAdvertisement(data: Omit<Advertisement, '_id' | 'cre
         const collection = db.collection<Advertisement>('advertisements');
 
         if (id) {
-            // Update
-            await collection.updateOne(
-                { _id: new ObjectId(id) },
-                { $set: adData }
-            );
+            // Update logic
+            const existingAd = await collection.findOne({ _id: new ObjectId(id) });
+            if (!existingAd) throw new Error("Anúncio não encontrado.");
+            
+            // Set start date only when it becomes active for the first time
+            if (adData.status === 'active' && existingAd.status !== 'active') {
+                adToSave.startDate = new Date();
+            } else {
+                adToSave.startDate = existingAd.startDate; 
+            }
+            
+            await collection.updateOne({ _id: new ObjectId(id) }, { $set: adToSave });
         } else {
-            // Insert
+            // Insert logic
+            adToSave.createdAt = new Date();
+            if (adData.status === 'active') {
+                adToSave.startDate = new Date();
+            }
             await collection.insertOne(adToSave as any);
         }
+
         revalidatePath('/admin/ads');
         return { success: true, message: `Anúncio ${id ? 'atualizado' : 'criado'} com sucesso!` };
     } catch (error) {
@@ -1686,7 +1705,6 @@ export async function upsertAdvertisement(data: Omit<Advertisement, '_id' | 'cre
         return { success: false, message: "Ocorreu um erro ao salvar o anúncio." };
     }
 }
-
 
 export async function deleteAdvertisement(adId: string): Promise<{ success: boolean; message: string }> {
      try {
@@ -1701,134 +1719,6 @@ export async function deleteAdvertisement(adId: string): Promise<{ success: bool
     } catch (error) {
         console.error("Error deleting advertisement:", error);
         return { success: false, message: "Ocorreu um erro ao excluir o anúncio." };
-    }
-}
-
-export async function approveAdvertisement(adId: string): Promise<{ success: boolean; message: string }> {
-    try {
-        const client = await clientPromise;
-        const db = client.db('timaocord');
-        const adsCollection = db.collection<Advertisement>('advertisements');
-        const notificationsCollection = db.collection('notifications');
-
-        const ad = await adsCollection.findOne({ _id: new ObjectId(adId) });
-        if (!ad) {
-            return { success: false, message: 'Anúncio não encontrado.' };
-        }
-
-        const startDate = new Date();
-        const endDate = new Date();
-        endDate.setDate(startDate.getDate() + AD_DURATION_DAYS);
-
-        await adsCollection.updateOne(
-            { _id: new ObjectId(adId) },
-            { $set: { 
-                status: 'active',
-                startDate: startDate,
-                endDate: endDate,
-            } }
-        );
-
-        // Notify user if it's a user-submitted ad
-        if (ad.owner === 'user' && ad.userId) {
-            const newNotification: Omit<Notification, '_id'> = {
-                userId: ad.userId,
-                title: '✅ Anúncio Aprovado!',
-                description: `Seu anúncio "${ad.title}" foi aprovado e ficará ativo por ${AD_DURATION_DAYS} dias.`,
-                date: new Date(),
-                read: false,
-                link: '/advertise'
-            };
-            await notificationsCollection.insertOne(newNotification as any);
-            revalidatePath('/notifications');
-        }
-
-        revalidatePath('/admin/ads');
-        return { success: true, message: 'Anúncio aprovado com sucesso!' };
-
-    } catch (error) {
-        console.error("Error approving advertisement:", error);
-        return { success: false, message: "Ocorreu um erro ao aprovar o anúncio." };
-    }
-}
-
-
-export async function rejectAndRefundAdvertisement(adId: string): Promise<{ success: boolean; message: string }> {
-    const client = await clientPromise;
-    const db = client.db('timaocord');
-    const mongoSession = client.startSession();
-
-    try {
-        let result: { success: boolean, message: string } | undefined;
-
-        await mongoSession.withTransaction(async () => {
-            const adsCollection = db.collection<Advertisement>('advertisements');
-            const walletsCollection = db.collection('wallets');
-            const notificationsCollection = db.collection('notifications');
-
-            const ad = await adsCollection.findOne({ _id: new ObjectId(adId) }, { session: mongoSession });
-
-            if (!ad) {
-                throw new Error('Anúncio não encontrado.');
-            }
-            if (ad.owner !== 'user' || !ad.userId) {
-                throw new Error('Este anúncio não é de um usuário e não pode ser reembolsado.');
-            }
-
-            // Refund the user
-            await walletsCollection.updateOne(
-                { userId: ad.userId },
-                { $inc: { balance: AD_PRICE } },
-                { session: mongoSession }
-            );
-
-            // Add a transaction for the refund
-            const refundTransaction: Transaction = {
-                id: new ObjectId().toString(),
-                type: 'Ajuste',
-                description: `Reembolso de anúncio rejeitado: ${ad.title}`,
-                amount: AD_PRICE,
-                date: new Date().toISOString(),
-                status: 'Concluído',
-            };
-            await walletsCollection.updateOne(
-                { userId: ad.userId },
-                { $push: { transactions: { $each: [refundTransaction], $sort: { date: -1 } } } },
-                { session: mongoSession }
-            );
-            
-            // Add notification for the user
-             const newNotification: Omit<Notification, '_id'> = {
-                userId: ad.userId,
-                title: '❌ Anúncio Rejeitado',
-                description: `Seu anúncio "${ad.title}" foi rejeitado. O valor de R$ ${AD_PRICE.toFixed(2)} foi reembolsado.`,
-                date: new Date(),
-                read: false,
-                link: '/wallet'
-            };
-            await notificationsCollection.insertOne(newNotification as any, { session: mongoSession });
-
-            // Delete the ad record
-            await adsCollection.deleteOne({ _id: new ObjectId(adId) }, { session: mongoSession });
-
-            result = { success: true, message: `Anúncio rejeitado e usuário reembolsado.` };
-        });
-        
-        await mongoSession.endSession();
-
-        if (result?.success) {
-            revalidatePath('/admin/ads');
-            revalidatePath('/wallet');
-            revalidatePath('/notifications');
-            return result;
-        }
-
-        return { success: false, message: 'A transação falhou.' };
-
-    } catch (error: any) {
-        await mongoSession.endSession();
-        console.error("Error rejecting and refunding advertisement:", error);
-        return { success: false, message: error.message || 'Ocorreu um erro ao processar a rejeição.' };
     }
 }
 

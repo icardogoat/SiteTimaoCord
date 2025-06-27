@@ -45,7 +45,6 @@ export const config = {
     "/standings",
     "/bolao",
     "/mvp",
-    "/advertise",
     "/admin/:path*",
   ],
 }

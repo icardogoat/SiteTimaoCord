@@ -257,12 +257,6 @@ export function Header() {
                 <span>Tabela</span>
               </Link>
             </DropdownMenuItem>
-            <DropdownMenuItem asChild>
-              <Link href="/advertise">
-                <Megaphone className="mr-2 h-4 w-4" />
-                <span>Anunciar</span>
-              </Link>
-            </DropdownMenuItem>
             {user?.admin && (
                 <DropdownMenuItem asChild>
                     <Link href="/admin">

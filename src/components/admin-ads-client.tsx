@@ -10,24 +10,26 @@ import {
     upsertAdvertisement, 
     deleteAdvertisement, 
     getAdminAdvertisements,
-    approveAdvertisement,
-    rejectAndRefundAdvertisement
 } from '@/actions/admin-actions';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { Loader2, PlusCircle, Trash2, Edit, CheckCircle, XCircle } from 'lucide-react';
+import { Loader2, PlusCircle, Trash2, Edit, CalendarIcon } from 'lucide-react';
 import type { Advertisement } from '@/types';
 import Image from 'next/image';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from './ui/badge';
-import Link from 'next/link';
+import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
+import { cn } from '@/lib/utils';
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
+import { Calendar } from './ui/calendar';
 
 const formSchema = z.object({
   id: z.string().optional(),
@@ -36,12 +38,9 @@ const formSchema = z.object({
   imageUrl: z.string().url({ message: "Por favor, insira uma URL de imagem válida." }),
   linkUrl: z.string().url({ message: "Por favor, insira uma URL de link válida." }),
   status: z.enum(['active', 'inactive']).default('active'),
+  endDate: z.date().optional().nullable(),
 });
 
-type RejectionDialogState = {
-    open: boolean;
-    ad: Advertisement | null;
-}
 
 export default function AdminAdsClient({ initialAds }: { initialAds: Advertisement[] }) {
     const { toast } = useToast();
@@ -51,7 +50,6 @@ export default function AdminAdsClient({ initialAds }: { initialAds: Advertiseme
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [submittingId, setSubmittingId] = useState<string | null>(null);
     const [currentAd, setCurrentAd] = useState<Advertisement | null>(null);
-    const [rejectionDialogState, setRejectionDialogState] = useState<RejectionDialogState>({ open: false, ad: null });
 
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
@@ -60,7 +58,10 @@ export default function AdminAdsClient({ initialAds }: { initialAds: Advertiseme
     
     const handleOpenDialog = (ad: Advertisement | null) => {
         setCurrentAd(ad);
-        form.reset(ad ? { ...ad, id: ad._id.toString() } : { title: '', description: '', imageUrl: '', linkUrl: '', status: 'active' });
+        const defaultValues = ad 
+            ? { ...ad, id: ad._id.toString(), endDate: ad.endDate ? new Date(ad.endDate) : null } 
+            : { title: '', description: '', imageUrl: '', linkUrl: '', status: 'active' as 'active' | 'inactive', endDate: null };
+        form.reset(defaultValues);
         setIsDialogOpen(true);
     };
 
@@ -91,163 +92,76 @@ export default function AdminAdsClient({ initialAds }: { initialAds: Advertiseme
         setSubmittingId(null);
     };
     
-    const handleApprove = async (adId: string) => {
-        setSubmittingId(adId);
-        const result = await approveAdvertisement(adId);
-        if (result.success) {
-            toast({ title: "Sucesso!", description: result.message });
-            setAds(await getAdminAdvertisements());
-        } else {
-            toast({ title: "Erro", description: result.message, variant: "destructive" });
-        }
-        setSubmittingId(null);
-    };
-
-    const handleRejectAndRefund = async () => {
-        if (!rejectionDialogState.ad) return;
-        setSubmittingId(rejectionDialogState.ad._id.toString());
-        const result = await rejectAndRefundAdvertisement(rejectionDialogState.ad._id.toString());
-        if (result.success) {
-            toast({ title: "Sucesso!", description: result.message });
-            setAds(await getAdminAdvertisements());
-            setRejectionDialogState({ open: false, ad: null });
-        } else {
-            toast({ title: "Erro", description: result.message, variant: "destructive" });
-        }
-        setSubmittingId(null);
-    };
-
-    const handleRejectAndDelete = async () => {
-        if (!rejectionDialogState.ad) return;
-        setSubmittingId(rejectionDialogState.ad._id.toString());
-        const result = await deleteAdvertisement(rejectionDialogState.ad._id.toString());
-        if (result.success) {
-            toast({ title: "Sucesso!", description: "Anúncio rejeitado e excluído." });
-            setAds(await getAdminAdvertisements());
-            setRejectionDialogState({ open: false, ad: null });
-        } else {
-            toast({ title: "Erro", description: result.message, variant: "destructive" });
-        }
-        setSubmittingId(null);
-    };
-    
-    const pendingAds = ads.filter(ad => ad.status === 'pending');
     const activeAds = ads.filter(ad => ad.status === 'active');
-    const inactiveSystemAds = ads.filter(ad => ad.status === 'inactive');
+    const inactiveAds = ads.filter(ad => ad.status !== 'active');
+
+    const renderTable = (data: Advertisement[]) => (
+         <Table>
+            <TableHeader>
+                <TableRow>
+                    <TableHead>Anúncio</TableHead>
+                    <TableHead className="hidden md:table-cell">Início</TableHead>
+                    <TableHead className="hidden md:table-cell">Fim</TableHead>
+                    <TableHead className="hidden sm:table-cell">Status</TableHead>
+                    <TableHead className="w-24 text-right">Ações</TableHead>
+                </TableRow>
+            </TableHeader>
+            <TableBody>
+                {data.length > 0 ? data.map(ad => (
+                    <TableRow key={ad._id as string}>
+                        <TableCell>
+                            <div className="flex items-center gap-4">
+                                <Image src={ad.imageUrl} alt={ad.title} width={40} height={40} className="rounded-md" data-ai-hint="advertisement banner"/>
+                                <div>
+                                    <p className="font-medium">{ad.title}</p>
+                                    <p className="text-xs text-muted-foreground truncate max-w-xs">{ad.description}</p>
+                                </div>
+                            </div>
+                        </TableCell>
+                        <TableCell className="hidden md:table-cell">
+                            {ad.startDate ? new Date(ad.startDate).toLocaleDateString('pt-BR') : 'N/A'}
+                        </TableCell>
+                        <TableCell className="hidden md:table-cell">
+                            {ad.endDate ? new Date(ad.endDate).toLocaleDateString('pt-BR') : 'Indefinido'}
+                        </TableCell>
+                        <TableCell className="hidden sm:table-cell"><Badge variant={ad.status === 'active' ? 'default' : 'secondary'}>{ad.status}</Badge></TableCell>
+                        <TableCell className="text-right">
+                            <div className="flex gap-2 justify-end">
+                                <Button variant="outline" size="icon" onClick={() => handleOpenDialog(ad)}><Edit className="h-4 w-4" /></Button>
+                                <Button variant="destructive" size="icon" onClick={() => setIsDeleteDialogOpen(ad._id.toString())}><Trash2 className="h-4 w-4" /></Button>
+                            </div>
+                        </TableCell>
+                    </TableRow>
+                )) : <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground h-24">Nenhum anúncio encontrado.</TableCell></TableRow>}
+            </TableBody>
+        </Table>
+    );
 
     return (
         <>
-            <Tabs defaultValue="pending">
+            <Tabs defaultValue="active">
                 <div className="flex justify-between items-center mb-4">
                     <TabsList>
-                        <TabsTrigger value="pending">Pendentes <Badge variant="secondary" className="ml-2">{pendingAds.length}</Badge></TabsTrigger>
                         <TabsTrigger value="active">Ativos</TabsTrigger>
                         <TabsTrigger value="inactive">Inativos</TabsTrigger>
                     </TabsList>
                     <Button onClick={() => handleOpenDialog(null)}><PlusCircle className="mr-2 h-4 w-4" /> Novo Anúncio</Button>
                 </div>
 
-                <TabsContent value="pending">
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Anúncios Pendentes</CardTitle>
-                            <CardDescription>Anúncios enviados por usuários que precisam de aprovação.</CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <Table>
-                                <TableHeader><TableRow><TableHead>Anúncio</TableHead><TableHead className="hidden sm:table-cell">Link</TableHead><TableHead className="w-40 text-center">Ações</TableHead></TableRow></TableHeader>
-                                <TableBody>
-                                    {pendingAds.length > 0 ? pendingAds.map(ad => (
-                                        <TableRow key={ad._id as string}>
-                                            <TableCell>
-                                                <div className="flex items-center gap-4">
-                                                    <Image src={ad.imageUrl} alt={ad.title} width={40} height={40} className="rounded-md" data-ai-hint="advertisement banner"/>
-                                                    <div>
-                                                        <p className="font-medium">{ad.title}</p>
-                                                        <p className="text-xs text-muted-foreground truncate max-w-xs">{ad.description}</p>
-                                                    </div>
-                                                </div>
-                                            </TableCell>
-                                            <TableCell className="hidden sm:table-cell"><Link href={ad.linkUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-400 hover:underline">{ad.linkUrl}</Link></TableCell>
-                                            <TableCell className="flex gap-2 justify-center">
-                                                <Button variant="outline" size="sm" onClick={() => handleApprove(ad._id.toString())} disabled={!!submittingId}>
-                                                    {submittingId === ad._id.toString() ? <Loader2 className="h-4 w-4 animate-spin"/> : <CheckCircle className="h-4 w-4 mr-1"/>} Aprovar
-                                                </Button>
-                                                <Button variant="destructive" size="sm" onClick={() => setRejectionDialogState({ open: true, ad })} disabled={!!submittingId}>
-                                                    <XCircle className="h-4 w-4 mr-1"/> Rejeitar
-                                                </Button>
-                                            </TableCell>
-                                        </TableRow>
-                                    )) : <TableRow><TableCell colSpan={3} className="text-center text-muted-foreground h-24">Nenhum anúncio pendente.</TableCell></TableRow>}
-                                </TableBody>
-                            </Table>
-                        </CardContent>
-                    </Card>
-                </TabsContent>
-                
                 <TabsContent value="active">
                     <Card>
                         <CardHeader><CardTitle>Anúncios Ativos</CardTitle><CardDescription>Todos os anúncios que estão sendo exibidos no site.</CardDescription></CardHeader>
-                        <CardContent>
-                             <Table>
-                                <TableHeader><TableRow><TableHead>Anúncio</TableHead><TableHead className="hidden sm:table-cell">Proprietário</TableHead><TableHead className="w-24">Ações</TableHead></TableRow></TableHeader>
-                                <TableBody>
-                                    {activeAds.length > 0 ? activeAds.map(ad => (
-                                        <TableRow key={ad._id as string}>
-                                            <TableCell>
-                                                <div className="flex items-center gap-4">
-                                                    <Image src={ad.imageUrl} alt={ad.title} width={40} height={40} className="rounded-md" data-ai-hint="advertisement banner"/>
-                                                    <div>
-                                                        <p className="font-medium">{ad.title}</p>
-                                                        <p className="text-xs text-muted-foreground truncate max-w-xs">{ad.description}</p>
-                                                    </div>
-                                                </div>
-                                            </TableCell>
-                                            <TableCell className="hidden sm:table-cell"><Badge variant={ad.owner === 'user' ? 'outline' : 'secondary'}>{ad.owner === 'user' ? 'Usuário' : 'Sistema'}</Badge></TableCell>
-                                            <TableCell className="flex gap-2">
-                                                <Button variant="outline" size="icon" onClick={() => handleOpenDialog(ad)}><Edit className="h-4 w-4" /></Button>
-                                                <Button variant="destructive" size="icon" onClick={() => setIsDeleteDialogOpen(ad._id.toString())}><Trash2 className="h-4 w-4" /></Button>
-                                            </TableCell>
-                                        </TableRow>
-                                    )) : <TableRow><TableCell colSpan={3} className="text-center text-muted-foreground h-24">Nenhum anúncio ativo.</TableCell></TableRow>}
-                                </TableBody>
-                            </Table>
-                        </CardContent>
+                        <CardContent>{renderTable(activeAds)}</CardContent>
                     </Card>
                 </TabsContent>
 
-                 <TabsContent value="inactive">
+                <TabsContent value="inactive">
                     <Card>
-                        <CardHeader><CardTitle>Anúncios Inativos do Sistema</CardTitle><CardDescription>Anúncios criados por você que não estão ativos.</CardDescription></CardHeader>
-                        <CardContent>
-                             <Table>
-                                <TableHeader><TableRow><TableHead>Anúncio</TableHead><TableHead className="hidden sm:table-cell">Proprietário</TableHead><TableHead className="w-24">Ações</TableHead></TableRow></TableHeader>
-                                <TableBody>
-                                    {inactiveSystemAds.length > 0 ? inactiveSystemAds.map(ad => (
-                                        <TableRow key={ad._id as string}>
-                                            <TableCell>
-                                                <div className="flex items-center gap-4">
-                                                    <Image src={ad.imageUrl} alt={ad.title} width={40} height={40} className="rounded-md" data-ai-hint="advertisement banner"/>
-                                                    <div>
-                                                        <p className="font-medium">{ad.title}</p>
-                                                        <p className="text-xs text-muted-foreground truncate max-w-xs">{ad.description}</p>
-                                                    </div>
-                                                </div>
-                                            </TableCell>
-                                            <TableCell className="hidden sm:table-cell"><Badge variant={ad.owner === 'user' ? 'outline' : 'secondary'}>{ad.owner === 'user' ? 'Usuário' : 'Sistema'}</Badge></TableCell>
-                                            <TableCell className="flex gap-2">
-                                                <Button variant="outline" size="icon" onClick={() => handleOpenDialog(ad)}><Edit className="h-4 w-4" /></Button>
-                                                <Button variant="destructive" size="icon" onClick={() => setIsDeleteDialogOpen(ad._id.toString())}><Trash2 className="h-4 w-4" /></Button>
-                                            </TableCell>
-                                        </TableRow>
-                                    )) : <TableRow><TableCell colSpan={3} className="text-center text-muted-foreground h-24">Nenhum anúncio inativo do sistema.</TableCell></TableRow>}
-                                </TableBody>
-                            </Table>
-                        </CardContent>
+                        <CardHeader><CardTitle>Anúncios Inativos</CardTitle><CardDescription>Anúncios que não estão ativos no momento.</CardDescription></CardHeader>
+                        <CardContent>{renderTable(inactiveAds)}</CardContent>
                     </Card>
                 </TabsContent>
             </Tabs>
-
 
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                 <DialogContent className="sm:max-w-2xl">
@@ -268,6 +182,50 @@ export default function AdminAdsClient({ initialAds }: { initialAds: Advertiseme
                             <FormField control={form.control} name="linkUrl" render={({ field }) => (
                                 <FormItem><FormLabel>URL do Link</FormLabel><FormControl><Input {...field} placeholder="https://exemplo.com" /></FormControl><FormMessage /></FormItem>
                             )}/>
+                             <FormField
+                                control={form.control}
+                                name="endDate"
+                                render={({ field }) => (
+                                    <FormItem className="flex flex-col">
+                                    <FormLabel>Data de Término (Opcional)</FormLabel>
+                                    <Popover>
+                                        <PopoverTrigger asChild>
+                                        <FormControl>
+                                            <Button
+                                            variant={"outline"}
+                                            className={cn(
+                                                "w-full pl-3 text-left font-normal",
+                                                !field.value && "text-muted-foreground"
+                                            )}
+                                            >
+                                            {field.value ? (
+                                                format(field.value, "PPP", { locale: ptBR })
+                                            ) : (
+                                                <span>Escolha uma data</span>
+                                            )}
+                                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                            </Button>
+                                        </FormControl>
+                                        </PopoverTrigger>
+                                        <PopoverContent className="w-auto p-0" align="start">
+                                        <Calendar
+                                            mode="single"
+                                            selected={field.value ?? undefined}
+                                            onSelect={(date) => field.onChange(date)}
+                                            disabled={(date) =>
+                                                date < new Date(new Date().setHours(0, 0, 0, 0))
+                                            }
+                                            initialFocus
+                                        />
+                                        </PopoverContent>
+                                    </Popover>
+                                    <FormDescription>
+                                        O anúncio será desativado após esta data. Deixe em branco para rodar indefinidamente.
+                                    </FormDescription>
+                                    <FormMessage />
+                                    </FormItem>
+                                )}
+                                />
                             <FormField control={form.control} name="status" render={({ field }) => (
                                 <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
                                     <div className="space-y-0.5">
@@ -299,28 +257,6 @@ export default function AdminAdsClient({ initialAds }: { initialAds: Advertiseme
                         <AlertDialogAction onClick={handleDelete} disabled={!!submittingId} className="bg-destructive hover:bg-destructive/90">
                             {submittingId === isDeleteDialogOpen && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Excluir
                         </AlertDialogAction>
-                    </AlertDialogFooter>
-                </AlertDialogContent>
-            </AlertDialog>
-            
-            <AlertDialog open={rejectionDialogState.open} onOpenChange={(isOpen) => !isOpen && setRejectionDialogState({ open: false, ad: null })}>
-                <AlertDialogContent>
-                    <AlertDialogHeader>
-                        <AlertDialogTitle>Rejeitar Anúncio</AlertDialogTitle>
-                        <AlertDialogDescription>
-                            O que você gostaria de fazer com o anúncio "{rejectionDialogState.ad?.title}"?
-                        </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter className="sm:justify-center flex-col sm:flex-col sm:space-x-0 gap-2">
-                        <Button onClick={handleRejectAndRefund} disabled={!!submittingId} variant="destructive">
-                            {submittingId === rejectionDialogState.ad?._id.toString() ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                            Rejeitar e Reembolsar (R$ 500,00)
-                        </Button>
-                        <Button onClick={handleRejectAndDelete} disabled={!!submittingId} variant="outline">
-                             {submittingId === rejectionDialogState.ad?._id.toString() ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                            Rejeitar e Excluir (Sem reembolso)
-                        </Button>
-                        <AlertDialogCancel disabled={!!submittingId}>Cancelar</AlertDialogCancel>
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
