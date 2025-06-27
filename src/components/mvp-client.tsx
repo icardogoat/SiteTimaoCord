@@ -12,6 +12,7 @@ import { Loader2, Crown, Star, XCircle, ChevronDown, ChevronUp } from 'lucide-re
 import { Session } from 'next-auth';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { Badge } from './ui/badge';
+import { cn } from '@/lib/utils';
 
 const PLAYERS_PER_TEAM_LIMIT = 5;
 
@@ -49,13 +50,24 @@ function MvpCard({ voting, sessionUser, onVote }: MvpCardProps) {
                 : [...prev, teamId]
         );
     };
+    
+    const getTeamName = (name: string) => {
+        if (name === 'Palmeiras') return 'Peppa Pig';
+        if (name === 'São Paulo') return 'Bambi';
+        return name;
+    };
+
+    const getLogoClass = (name: string) => {
+        if (name === 'Palmeiras' || name === 'São Paulo') return 'rotate-180';
+        return '';
+    };
 
     return (
         <Card>
             <CardHeader>
                 <div className="flex justify-between items-start">
                     <div>
-                        <CardTitle className="text-xl">{voting.homeTeam} vs {voting.awayTeam}</CardTitle>
+                        <CardTitle className="text-xl">{getTeamName(voting.homeTeam)} vs {getTeamName(voting.awayTeam)}</CardTitle>
                         <CardDescription>{voting.league}</CardDescription>
                     </div>
                      <Badge variant={voting.status === 'Aberto' ? 'default' : voting.status === 'Cancelado' ? 'destructive' : 'secondary'}>
@@ -68,12 +80,14 @@ function MvpCard({ voting, sessionUser, onVote }: MvpCardProps) {
                     const isExpanded = expandedTeams.includes(lineup.teamId);
                     const playersToShow = isExpanded ? lineup.players : lineup.players.slice(0, PLAYERS_PER_TEAM_LIMIT);
                     const hasMorePlayers = lineup.players.length > PLAYERS_PER_TEAM_LIMIT;
+                    const lineupTeamName = getTeamName(lineup.teamName);
+                    const lineupLogoClass = getLogoClass(lineup.teamName);
 
                     return (
                         <div key={lineup.teamId}>
                             <div className="flex items-center gap-2 mb-3">
-                                <Image src={lineup.teamLogo} alt={`${lineup.teamName} logo`} width={24} height={24} className="rounded-full" data-ai-hint="team logo" />
-                                <h3 className="font-semibold">{lineup.teamName}</h3>
+                                <Image src={lineup.teamLogo} alt={`${lineupTeamName} logo`} width={24} height={24} className={cn("rounded-full", lineupLogoClass)} data-ai-hint="team logo" />
+                                <h3 className="font-semibold">{lineupTeamName}</h3>
                             </div>
                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                                 {playersToShow.map(player => (

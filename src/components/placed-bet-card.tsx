@@ -14,6 +14,12 @@ interface PlacedBetCardProps {
     bet: PlacedBet;
 }
 
+const getTeamName = (name: string) => {
+    if (name === 'Palmeiras') return 'Peppa Pig';
+    if (name === 'São Paulo') return 'Bambi';
+    return name;
+};
+
 export function PlacedBetCard({ bet }: PlacedBetCardProps) {
     const [isExpanded, setIsExpanded] = useState(false);
 
@@ -46,6 +52,9 @@ export function PlacedBetCard({ bet }: PlacedBetCardProps) {
         day: '2-digit', month: '2-digit', year: 'numeric',
         timeZone: 'UTC'
     });
+    
+    const singleTeamAName = isSingleBet ? getTeamName(single!.teamA) : '';
+    const singleTeamBName = isSingleBet ? getTeamName(single!.teamB) : '';
 
     return (
         <Card className="flex flex-col">
@@ -53,7 +62,7 @@ export function PlacedBetCard({ bet }: PlacedBetCardProps) {
                 <div className="flex justify-between items-start">
                     <div>
                         <CardTitle className="text-base">
-                            {isSingleBet ? `${single!.teamA} vs ${single!.teamB}` : `Aposta Múltipla (${bet.bets.length} seleções)`}
+                            {isSingleBet ? `${singleTeamAName} vs ${singleTeamBName}` : `Aposta Múltipla (${bet.bets.length} seleções)`}
                         </CardTitle>
                         <CardDescription>
                             {isSingleBet ? `${single!.league} - ${single!.matchTime}` : `Realizada em: ${formattedDate}`}
@@ -72,7 +81,7 @@ export function PlacedBetCard({ bet }: PlacedBetCardProps) {
                             <p className="font-semibold text-primary">{selection.oddValue}</p>
                         </div>
                         <p className="text-xs text-muted-foreground">{selection.marketName}</p>
-                        <p className="text-xs text-muted-foreground">{selection.teamA} vs {selection.teamB}</p>
+                        <p className="text-xs text-muted-foreground">{getTeamName(selection.teamA)} vs {getTeamName(selection.teamB)}</p>
                     </div>
                 ))}
 

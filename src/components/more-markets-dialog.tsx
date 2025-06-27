@@ -43,12 +43,20 @@ const allowedMarkets = [
   'Cartões Acima/Abaixo'
 ];
 
+const getTeamName = (name: string) => {
+    if (name === 'Palmeiras') return 'Peppa Pig';
+    if (name === 'São Paulo') return 'Bambi';
+    return name;
+};
 
 export function MoreMarketsDialog({ match, children, isBettingDisabled }: MoreMarketsDialogProps) {
   const { toggleBet, isBetSelected } = useBetSlip();
   
   const filteredMarkets = match.markets.filter(market => allowedMarkets.includes(market.name));
   const defaultValues = filteredMarkets.map(m => m.name);
+  
+  const teamAName = getTeamName(match.teamA.name);
+  const teamBName = getTeamName(match.teamB.name);
 
   return (
     <Dialog>
@@ -57,7 +65,7 @@ export function MoreMarketsDialog({ match, children, isBettingDisabled }: MoreMa
         <DialogHeader>
           <DialogTitle>Mais Mercados</DialogTitle>
           <DialogDescription>
-            {match.teamA.name} vs {match.teamB.name} - {match.league}
+            {teamAName} vs {teamBName} - {match.league}
           </DialogDescription>
         </DialogHeader>
         <ScrollArea className="flex-grow pr-6 -mr-6">

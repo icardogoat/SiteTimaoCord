@@ -18,6 +18,7 @@ import { Loader2, Users } from 'lucide-react';
 import { Session } from 'next-auth';
 import { AvatarFallbackText } from './avatar-fallback-text';
 import { Separator } from './ui/separator';
+import { cn } from '@/lib/utils';
 
 const bolaoSchema = z.object({
     home: z.coerce.number().int().min(0, 'Placar não pode ser negativo.'),
@@ -57,6 +58,15 @@ function BolaoCard({ bolao, sessionUser }: BolaoCardProps) {
     
     const formatCurrency = (value: number) => `R$ ${value.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
+    const getTeamCustomization = (teamName: string) => {
+        if (teamName === 'Palmeiras') return { name: 'Peppa Pig', logoClass: 'rotate-180' };
+        if (teamName === 'São Paulo') return { name: 'Bambi', logoClass: 'rotate-180' };
+        return { name: teamName, logoClass: '' };
+    };
+
+    const homeTeamCustom = getTeamCustomization(bolao.homeTeam);
+    const awayTeamCustom = getTeamCustomization(bolao.awayTeam);
+
     return (
         <Card className="flex flex-col">
             <CardHeader>
@@ -68,13 +78,13 @@ function BolaoCard({ bolao, sessionUser }: BolaoCardProps) {
             <CardContent className="space-y-6 flex-grow">
                  <div className="flex items-center justify-around">
                     <div className="flex flex-col items-center gap-2 w-1/3">
-                        <Image src={bolao.homeLogo} alt={`${bolao.homeTeam} logo`} width={64} height={64} className="rounded-full" data-ai-hint="team logo" />
-                        <span className="font-bold text-lg text-center">{bolao.homeTeam}</span>
+                        <Image src={bolao.homeLogo} alt={`${homeTeamCustom.name} logo`} width={64} height={64} className={cn("rounded-full", homeTeamCustom.logoClass)} data-ai-hint="team logo" />
+                        <span className="font-bold text-lg text-center">{homeTeamCustom.name}</span>
                     </div>
                     <span className="text-4xl font-bold text-muted-foreground">vs</span>
                     <div className="flex flex-col items-center gap-2 w-1/3">
-                        <Image src={bolao.awayLogo} alt={`${bolao.awayTeam} logo`} width={64} height={64} className="rounded-full" data-ai-hint="team logo" />
-                        <span className="font-bold text-lg text-center">{bolao.awayTeam}</span>
+                        <Image src={bolao.awayLogo} alt={`${awayTeamCustom.name} logo`} width={64} height={64} className={cn("rounded-full", awayTeamCustom.logoClass)} data-ai-hint="team logo" />
+                        <span className="font-bold text-lg text-center">{awayTeamCustom.name}</span>
                     </div>
                 </div>
                 

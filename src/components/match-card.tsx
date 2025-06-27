@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -13,6 +14,12 @@ import { cn } from '@/lib/utils';
 interface MatchCardProps {
   match: Match;
 }
+
+const getTeamCustomization = (teamName: string) => {
+    if (teamName === 'Palmeiras') return { name: 'Peppa Pig', logoClass: 'rotate-180' };
+    if (teamName === 'São Paulo') return { name: 'Bambi', logoClass: 'rotate-180' };
+    return { name: teamName, logoClass: '' };
+};
 
 export function MatchCard({ match }: MatchCardProps) {
   const mainMarket = match.markets.find(m => m.name === 'Vencedor da Partida' || m.name === 'Match Winner');
@@ -106,6 +113,8 @@ export function MatchCard({ match }: MatchCardProps) {
     badgeVariant = 'outline';
   }
 
+  const teamACustom = getTeamCustomization(match.teamA.name);
+  const teamBCustom = getTeamCustomization(match.teamB.name);
 
   return (
     <Card className={cn("flex flex-col", isCorinthiansMatch && "border-primary/50 shadow-lg shadow-primary/10")}>
@@ -120,13 +129,13 @@ export function MatchCard({ match }: MatchCardProps) {
           <div className="flex flex-col items-center gap-2 w-1/3">
             <Image
               src={match.teamA.logo}
-              alt={`${match.teamA.name} logo`}
+              alt={`${teamACustom.name} logo`}
               width={48}
               height={48}
-              className="rounded-full"
+              className={cn("rounded-full", teamACustom.logoClass)}
               data-ai-hint="team logo"
             />
-            <span className="font-semibold truncate w-full">{match.teamA.name}</span>
+            <span className="font-semibold truncate w-full">{teamACustom.name}</span>
           </div>
 
           {showScore ? (
@@ -142,13 +151,13 @@ export function MatchCard({ match }: MatchCardProps) {
           <div className="flex flex-col items-center gap-2 w-1/3">
             <Image
               src={match.teamB.logo}
-              alt={`${match.teamB.name} logo`}
+              alt={`${teamBCustom.name} logo`}
               width={48}
               height={48}
-              className="rounded-full"
+              className={cn("rounded-full", teamBCustom.logoClass)}
               data-ai-hint="team logo"
             />
-            <span className="font-semibold truncate w-full">{match.teamB.name}</span>
+            <span className="font-semibold truncate w-full">{teamBCustom.name}</span>
           </div>
         </div>
       </CardContent>
