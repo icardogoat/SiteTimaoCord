@@ -1,7 +1,7 @@
-
 'use client';
 
 import type { ReactNode } from 'react';
+import { Suspense } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
@@ -26,7 +26,6 @@ import { BetSlipProvider } from '@/context/bet-slip-context';
 import { BetSlip } from '@/components/bet-slip';
 import { Store, ShieldCheck, Swords, Star, Megaphone } from 'lucide-react';
 import { AdBanner } from './ad-banner';
-import { Suspense } from 'react';
 
 interface AppLayoutProps {
     children: ReactNode;
