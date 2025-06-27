@@ -1,9 +1,8 @@
-
 'use server';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { FielBetLogo } from '@/components/icons';
 import { LoginButtons } from '@/components/login-buttons';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertTriangle, ServerCrash, XCircle } from 'lucide-react';
@@ -42,9 +41,16 @@ export default async function LoginPage({ searchParams }: { searchParams?: { err
 
     return (
         <div className="flex min-h-screen w-full flex-col items-center justify-center bg-background p-4">
-             <Link href="/" className="flex items-center justify-center mb-8" prefetch={false}>
-              <FielBetLogo className="h-8 w-8 text-primary" />
-              <span className="ml-3 text-2xl font-bold font-headline text-primary">Timaocord</span>
+            <Link href="/" className="flex items-center justify-center mb-8" prefetch={false}>
+                <Image
+                    src="https://i.imgur.com/xD76hcl.png"
+                    alt="Timaocord Logo"
+                    width={500}
+                    height={127}
+                    className="h-20 w-auto"
+                    priority
+                    data-ai-hint="logo"
+                />
             </Link>
             <Card className="w-full max-w-sm shadow-lg">
                 <CardHeader className="text-center">

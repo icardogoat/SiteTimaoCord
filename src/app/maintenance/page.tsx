@@ -1,7 +1,6 @@
-
 import { getSiteSettings } from '@/actions/settings-actions';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { FielBetLogo } from '@/components/icons';
+import Image from 'next/image';
 import { HardHat, Clock } from 'lucide-react';
 import Link from 'next/link';
 
@@ -11,8 +10,15 @@ export default async function MaintenancePage() {
     return (
         <div className="flex min-h-screen w-full flex-col items-center justify-center bg-background p-4">
              <Link href="/" className="flex items-center justify-center mb-8">
-              <FielBetLogo className="h-8 w-8 text-primary" />
-              <span className="ml-3 text-2xl font-bold font-headline text-primary">FielBet</span>
+                <Image
+                    src="https://i.imgur.com/xD76hcl.png"
+                    alt="Timaocord Logo"
+                    width={500}
+                    height={127}
+                    className="h-20 w-auto"
+                    priority
+                    data-ai-hint="logo"
+                />
             </Link>
             <Card className="w-full max-w-lg shadow-lg">
                 <CardHeader className="text-center">
@@ -37,5 +43,3 @@ export default async function MaintenancePage() {
         </div>
     );
 }
-
-    
