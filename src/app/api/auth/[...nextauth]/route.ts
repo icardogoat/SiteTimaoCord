@@ -254,12 +254,15 @@ export const authOptions: AuthOptions = {
             return token;
         }
 
-        // VIP status is now synced only on sign-in, making this callback much faster.
         token.isVip = dbUser.isVip ?? false;
         token.admin = dbUser.admin ?? false;
-        token.adRemovalExpiresAt = dbUser.adRemovalExpiresAt ? (dbUser.adRemovalExpiresAt as Date).toISOString() : null;
-        token.dailyRewardLastClaimed = dbUser.dailyRewardLastClaimed ? (dbUser.dailyRewardLastClaimed as Date).toISOString() : null;
+        
+        // Robust date handling
+        const adRemovalDate = dbUser.adRemovalExpiresAt;
+        token.adRemovalExpiresAt = adRemovalDate ? new Date(adRemovalDate).toISOString() : null;
 
+        const dailyRewardDate = dbUser.dailyRewardLastClaimed;
+        token.dailyRewardLastClaimed = dailyRewardDate ? new Date(dailyRewardDate).toISOString() : null;
 
       } catch (error) {
         console.error("Error in JWT callback, returning existing token to avoid session loss:", error);
