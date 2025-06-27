@@ -50,7 +50,8 @@ export async function middleware(req: NextRequest) {
   // Se o usuário não está autenticado e a página não é pública, redireciona para o login
   if (!token && !isPublicPage) {
     const loginUrl = new URL('/login', req.url);
-    loginUrl.searchParams.set("callbackUrl", pathname);
+    // O callbackUrl foi removido para garantir que o redirecionamento pós-login seja sempre para /bet,
+    // conforme definido nos botões de login, proporcionando uma experiência consistente.
     return NextResponse.redirect(loginUrl);
   }
 
