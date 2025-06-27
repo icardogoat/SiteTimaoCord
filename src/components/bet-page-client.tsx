@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import type { Match, Advertisement } from '@/types';
 import { MatchCard } from '@/components/match-card';
 import { InFeedAdCard } from '@/components/in-feed-ad-card';
@@ -45,7 +45,15 @@ interface BetPageClientProps {
 
 const MATCHES_PER_PAGE = 6;
 
-export function BetPageClient({ initialMatches, availableLeagues, ads }: BetPageClientProps) {
+export function BetPageClient(props: BetPageClientProps) {
+    return (
+        <Suspense fallback={null}>
+            <BetPageClientInner {...props} />
+        </Suspense>
+    );
+}
+
+function BetPageClientInner({ initialMatches, availableLeagues, ads }: BetPageClientProps) {
     const searchParams = useSearchParams();
     const selectedLeague = searchParams.get('league');
 
@@ -124,9 +132,9 @@ export function BetPageClient({ initialMatches, availableLeagues, ads }: BetPage
                             <section>
                                 {corinthiansMatches.length > 0 && <h2 className="text-2xl font-bold font-headline tracking-tight border-b pb-2 mb-6">Outras Partidas</h2>}
                                 <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
-                                    {otherItemsWithAds.map((item, index) => (
+                                    {otherItemsWithAds.map((item) => (
                                         isAdvertisement(item)
-                                            ? <InFeedAdCard key={`ad-${item._id.toString()}-${index}`} ad={item} />
+                                            ? <InFeedAdCard key={`ad-${item._id.toString()}`} ad={item} />
                                             : <MatchCard key={`match-${item.id}`} match={item} />
                                     ))}
                                 </div>

@@ -1,7 +1,6 @@
-
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import {
@@ -82,6 +81,14 @@ interface ChampionshipSidebarMenuProps {
 }
 
 export function ChampionshipSidebarMenu({ availableLeagues }: ChampionshipSidebarMenuProps) {
+  return (
+    <Suspense fallback={null}>
+      <ChampionshipSidebarMenuInner availableLeagues={availableLeagues} />
+    </Suspense>
+  );
+}
+
+function ChampionshipSidebarMenuInner({ availableLeagues }: ChampionshipSidebarMenuProps) {
   const searchParams = useSearchParams();
   const selectedLeague = searchParams.get('league');
 
