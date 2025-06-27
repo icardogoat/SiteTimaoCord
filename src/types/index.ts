@@ -292,3 +292,12 @@ export type PurchaseAdminView = {
   redemptionCode?: string;
   userId: string;
 };
+
+export type SiteSettings = {
+  maintenanceMode: boolean;
+  maintenanceMessage: string;
+  maintenanceExpectedReturn: string;
+  welcomeBonus: number;
+};
+
+    
