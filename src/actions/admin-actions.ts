@@ -1927,12 +1927,13 @@ export async function updateAllStandings(): Promise<{ success: boolean; message:
             }
 
             const data = await response.json();
-            if (!data.response || data.response.length === 0 || !data.response[0].league) {
-                throw new Error(`Nenhum dado de classificação retornado da API para a liga ${leagueId}.`);
+            const apiResponseLeague = data.response?.[0]?.league;
+
+            if (!apiResponseLeague) {
+                throw new Error(`Nenhum dado de liga retornado da API para o ID ${leagueId}.`);
             }
             
-            const apiResponseLeague = data.response[0].league;
-            const leagueName = apiResponseLeague.name;
+            const standingsData = apiResponseLeague.standings;
 
             const documentToUpsert = {
                 league: {
@@ -1943,7 +1944,8 @@ export async function updateAllStandings(): Promise<{ success: boolean; message:
                     flag: apiResponseLeague.flag,
                     season: apiResponseLeague.season,
                 },
-                standings: apiResponseLeague.standings,
+                // If standings are empty or malformed, save an empty array.
+                standings: (standingsData && standingsData.length > 0 && standingsData[0].length > 0) ? standingsData : [],
                 lastUpdated: new Date()
             };
 
@@ -1953,7 +1955,11 @@ export async function updateAllStandings(): Promise<{ success: boolean; message:
                 { upsert: true }
             );
 
-            results.push(`Atualizado com sucesso ${leagueName}.`);
+            if (documentToUpsert.standings.length > 0) {
+                results.push(`Atualizado com sucesso ${apiResponseLeague.name}.`);
+            } else {
+                 results.push(`Tabela para ${apiResponseLeague.name} salva como mata-mata (sem classificação).`);
+            }
             successCount++;
 
         } catch (error: any) {
