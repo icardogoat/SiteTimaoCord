@@ -2,12 +2,13 @@
 'use server';
 
 import clientPromise from '@/lib/mongodb';
-import type { PlacedBet, Transaction, UserRanking, MvpVoting, MvpPlayer, MvpTeamLineup, Notification, StoreItem, Bolao, Advertisement, UserInventoryItem, PurchaseAdminView } from '@/types';
+import type { PlacedBet, Transaction, UserRanking, MvpVoting, MvpPlayer, MvpTeamLineup, Notification, StoreItem, Bolao, Advertisement, UserInventoryItem, PurchaseAdminView, NewsArticle } from '@/types';
 import { ObjectId, WithId } from 'mongodb';
 import { revalidatePath } from 'next/cache';
 import { getBotConfig } from './bot-config-actions';
 import { grantAchievement } from './achievement-actions';
 import { getApiSettings, getAvailableApiKey } from './settings-actions';
+import { sendDiscordNewsNotification } from './news-actions';
 
 // Base type for a match in the DB (for admin list view)
 type MatchFromDb = {
@@ -1889,5 +1890,78 @@ export async function sendAnnouncement(data: {
     } catch (error) {
         console.error("Error sending announcement:", error);
         return { success: false, message: 'Ocorreu um erro ao enviar o comunicado.', userCount: 0 };
+    }
+}
+
+
+const NEWS_API_URL = 'https://newsapi.org/v2/everything';
+
+export async function forceFetchNews(): Promise<{ success: boolean; message: string }> {
+    console.log('Admin action: Forcing news fetch...');
+    const { newsApiKey } = await getApiSettings();
+
+    if (!newsApiKey) {
+        const message = 'NewsAPI key not configured in settings.';
+        console.log(message);
+        return { success: false, message };
+    }
+
+    const client = await clientPromise;
+    const db = client.db('timaocord');
+    const articlesCollection = db.collection<NewsArticle>('news_articles');
+    
+    // Fetch only the 3 most recent articles
+    const url = `${NEWS_API_URL}?q=Corinthians&sortBy=publishedAt&language=pt&pageSize=3&apiKey=${newsApiKey}`;
+
+    try {
+        const response = await fetch(url, { cache: 'no-store' });
+        const data = await response.json();
+
+        if (data.status !== 'ok') {
+            console.error('NewsAPI fetch error:', data.message);
+            return { success: false, message: `NewsAPI Error: ${data.message}` };
+        }
+        
+        if (!data.articles || data.articles.length === 0) {
+            return { success: true, message: 'Nenhuma notícia encontrada pela API.' };
+        }
+
+        let newArticlesCount = 0;
+        // Process only up to 3 articles from the API response
+        for (const article of data.articles.slice(0, 3)) {
+            const existingArticle = await articlesCollection.findOne({ url: article.url });
+            if (existingArticle) {
+                continue; // Skip if already in DB
+            }
+            
+            const newArticle: Omit<NewsArticle, '_id'> = {
+                title: article.title,
+                description: article.description,
+                url: article.url,
+                imageUrl: article.urlToImage,
+                source: article.source.name,
+                publishedAt: new Date(article.publishedAt),
+                fetchedAt: new Date(),
+            };
+
+            await articlesCollection.insertOne(newArticle as any);
+            await sendDiscordNewsNotification(newArticle);
+            newArticlesCount++;
+        }
+
+        if (newArticlesCount > 0) {
+            revalidatePath('/news');
+        }
+
+        const message = newArticlesCount > 0 
+            ? `Busca concluída. ${newArticlesCount} nova(s) notícia(s) adicionada(s).`
+            : 'Nenhuma notícia nova encontrada. O feed já está atualizado.';
+        console.log(message);
+        return { success: true, message };
+
+    } catch (error) {
+        const message = `Failed to fetch or store news: ${(error as Error).message}`;
+        console.error(message, error);
+        return { success: false, message };
     }
 }

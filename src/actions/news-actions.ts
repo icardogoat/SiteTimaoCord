@@ -9,7 +9,7 @@ import { revalidatePath } from 'next/cache';
 
 const NEWS_API_URL = 'https://newsapi.org/v2/everything';
 
-async function sendDiscordNewsNotification(article: Omit<NewsArticle, '_id' | 'fetchedAt'>) {
+export async function sendDiscordNewsNotification(article: Omit<NewsArticle, '_id' | 'fetchedAt'>) {
     const { newsChannelId } = await getBotConfig();
     const botToken = process.env.DISCORD_BOT_TOKEN;
 

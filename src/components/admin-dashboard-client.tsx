@@ -1,8 +1,9 @@
 
 'use client'
 
-import { Activity, CreditCard, DollarSign, Users } from "lucide-react"
+import { Activity, CreditCard, DollarSign, Users, Newspaper, Loader2 } from "lucide-react"
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts"
+import { useState } from "react"
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
@@ -15,6 +16,9 @@ import {
 } from "@/components/ui/chart"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import type { DashboardStats, TopBettor, RecentBet, WeeklyBetVolume } from "@/actions/admin-actions"
+import { forceFetchNews } from "@/actions/admin-actions"
+import { useToast } from "@/hooks/use-toast"
+import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 
 const chartConfig = {
@@ -32,6 +36,28 @@ interface AdminDashboardClientProps {
 }
 
 export function AdminDashboardClient({ stats, weeklyVolume, topBettors, recentBets }: AdminDashboardClientProps) {
+    const { toast } = useToast();
+    const [isFetchingNews, setIsFetchingNews] = useState(false);
+    
+    const handleForceFetchNews = async () => {
+        setIsFetchingNews(true);
+        toast({ title: "Iniciando busca manual de notícias..." });
+        const result = await forceFetchNews();
+        if (result.success) {
+            toast({
+                title: "Busca de Notícias Concluída",
+                description: result.message,
+            })
+        } else {
+            toast({
+                title: "Erro na Busca de Notícias",
+                description: result.message,
+                variant: "destructive"
+            })
+        }
+        setIsFetchingNews(false);
+    }
+    
     const formatCurrency = (value: number) => `R$ ${value.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
     const getChangeColor = (value: number) => value >= 0 ? "text-green-500" : "text-red-500";
@@ -129,36 +155,51 @@ export function AdminDashboardClient({ stats, weeklyVolume, topBettors, recentBe
                   </ChartContainer>
               </CardContent>
           </Card>
-          <Card>
-            <CardHeader>
-              <CardTitle>Top Apostadores</CardTitle>
-              <CardDescription>
-                Usuários com maior volume de apostas.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="grid gap-8">
-              {topBettors.map(user => (
-                  <div className="flex items-center gap-4" key={user.email}>
-                    <Avatar className={cn("hidden h-9 w-9 sm:flex", user.isVip && "ring-2 ring-vip")}>
-                      <AvatarImage src={user.avatar} alt="Avatar" data-ai-hint="user avatar" />
-                      <AvatarFallback>{user.name.substring(0, 2).toUpperCase()}</AvatarFallback>
-                    </Avatar>
-                    <div className="grid gap-1">
-                      <p className="text-sm font-medium leading-none">
-                        {user.name}
-                      </p>
-                      <p className="text-sm text-muted-foreground">
-                        {user.email}
-                      </p>
+          <div className="lg:col-span-1 grid auto-rows-max gap-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Top Apostadores</CardTitle>
+                <CardDescription>
+                  Usuários com maior volume de apostas.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="grid gap-8">
+                {topBettors.map(user => (
+                    <div className="flex items-center gap-4" key={user.email}>
+                      <Avatar className={cn("hidden h-9 w-9 sm:flex", user.isVip && "ring-2 ring-vip")}>
+                        <AvatarImage src={user.avatar} alt="Avatar" data-ai-hint="user avatar" />
+                        <AvatarFallback>{user.name.substring(0, 2).toUpperCase()}</AvatarFallback>
+                      </Avatar>
+                      <div className="grid gap-1">
+                        <p className="text-sm font-medium leading-none">
+                          {user.name}
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          {user.email}
+                        </p>
+                      </div>
+                      <div className="ml-auto font-medium">{formatCurrency(user.totalWagered)}</div>
                     </div>
-                    <div className="ml-auto font-medium">{formatCurrency(user.totalWagered)}</div>
-                  </div>
-              ))}
-              {topBettors.length === 0 && (
-                <p className="text-sm text-center text-muted-foreground">Nenhum apostador encontrado.</p>
-              )}
-            </CardContent>
-          </Card>
+                ))}
+                {topBettors.length === 0 && (
+                  <p className="text-sm text-center text-muted-foreground">Nenhum apostador encontrado.</p>
+                )}
+              </CardContent>
+            </Card>
+
+             <Card>
+                <CardHeader>
+                    <CardTitle>Ações Rápidas</CardTitle>
+                    <CardDescription>Execute tarefas manuais importantes.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <Button className="w-full" onClick={handleForceFetchNews} disabled={isFetchingNews}>
+                        {isFetchingNews ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Newspaper className="mr-2 h-4 w-4" />}
+                        Forçar Busca de Notícias
+                    </Button>
+                </CardContent>
+            </Card>
+          </div>
       </div>
 
       <div className="lg:col-span-3">
