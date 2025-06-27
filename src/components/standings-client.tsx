@@ -114,6 +114,41 @@ function StandingsTable({ group }: { group: StandingEntry[] }) {
   );
 }
 
+function EmptyStandingsTable({ leagueName }: { leagueName: string }) {
+    return (
+        <Table>
+            <TableHeader>
+                <TableRow>
+                    <TableHead className="w-12 text-center">#</TableHead>
+                    <TableHead>Time</TableHead>
+                    <TableHead className="text-center">P</TableHead>
+                    <TableHead className="text-center hidden sm:table-cell">J</TableHead>
+                    <TableHead className="text-center hidden sm:table-cell">V</TableHead>
+                    <TableHead className="text-center hidden sm:table-cell">E</TableHead>
+                    <TableHead className="text-center hidden sm:table-cell">D</TableHead>
+                    <TableHead className="text-center hidden md:table-cell">SG</TableHead>
+                    <TableHead className="text-center hidden md:table-cell">Forma</TableHead>
+                </TableRow>
+            </TableHeader>
+            <TableBody>
+                <TableRow>
+                    <TableCell colSpan={9} className="h-48">
+                        <div className="flex flex-col items-center justify-center gap-4 text-center">
+                            <p className="text-muted-foreground">Este campeonato está em fase de mata-mata ou não possui uma tabela de classificação tradicional.</p>
+                             <Link 
+                                href={`/bet?league=${encodeURIComponent(leagueName)}`} 
+                                className={buttonVariants({ variant: "outline" })}
+                            >
+                                Ver jogos disponíveis para este campeonato
+                            </Link>
+                        </div>
+                    </TableCell>
+                </TableRow>
+            </TableBody>
+        </Table>
+    );
+}
+
 export function StandingsClient({ standings }: StandingsClientProps) {
   if (!standings || standings.length === 0) {
     return (
@@ -178,15 +213,7 @@ export function StandingsClient({ standings }: StandingsClientProps) {
                                     </div>
                                 ))
                             ) : (
-                                <div className="p-8 text-center text-muted-foreground flex flex-col items-center gap-4">
-                                    <p>Este campeonato está em fase de mata-mata ou não possui uma tabela de classificação tradicional.</p>
-                                    <Link 
-                                        href={`/bet?league=${encodeURIComponent(s.league.name)}`} 
-                                        className={buttonVariants({ variant: "outline" })}
-                                    >
-                                        Ver jogos disponíveis para este campeonato
-                                    </Link>
-                                </div>
+                                <EmptyStandingsTable leagueName={s.league.name} />
                             )}
                         </CardContent>
                     </Card>
