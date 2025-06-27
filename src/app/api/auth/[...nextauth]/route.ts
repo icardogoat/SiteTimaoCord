@@ -177,6 +177,7 @@ export const authOptions: AuthOptions = {
             const isVip = await checkUserVipStatus(userId);
             const updateOps: any = {};
             if (dbUser.isVip !== isVip) updateOps.isVip = isVip;
+            if (typeof dbUser.emailVerified === 'undefined') updateOps.emailVerified = null;
             if (typeof dbUser.level === 'undefined') updateOps.level = 1;
             if (typeof dbUser.xp === 'undefined') updateOps.xp = 0;
             if (typeof dbUser.unlockedAchievements === 'undefined') updateOps.unlockedAchievements = [];
