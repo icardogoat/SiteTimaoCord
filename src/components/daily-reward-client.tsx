@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useSession } from "next-auth/react";
@@ -87,6 +88,10 @@ export function DailyRewardClient() {
                 );
             case 'video1':
             case 'video2':
+                const videoSrc = adStep === 'video1'
+                    ? "https://www.w3schools.com/html/mov_bbb.mp4"
+                    : "https://www.w3schools.com/tags/movie.mp4";
+
                 return (
                     <div className="text-center">
                         <p className="mb-2 text-sm text-muted-foreground">Assistindo anúncio {adStep === 'video1' ? '1' : '2'} de 2...</p>
@@ -101,7 +106,7 @@ export function DailyRewardClient() {
                             playsInline
                             className="w-full aspect-video bg-black rounded-md"
                         >
-                            <source src="https://www.w3schools.com/html/mov_bbb.mp4" type="video/mp4" />
+                            <source src={videoSrc} type="video/mp4" />
                             Seu navegador não suporta a tag de vídeo.
                         </video>
                     </div>
