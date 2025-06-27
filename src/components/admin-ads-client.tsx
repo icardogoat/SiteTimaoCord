@@ -38,6 +38,7 @@ const formSchema = z.object({
   imageUrl: z.string().url({ message: "Por favor, insira uma URL de imagem válida." }),
   linkUrl: z.string().url({ message: "Por favor, insira uma URL de link válida." }),
   status: z.enum(['active', 'inactive']).default('active'),
+  startDate: z.date().optional().nullable(),
   endDate: z.date().optional().nullable(),
 });
 
@@ -59,8 +60,8 @@ export default function AdminAdsClient({ initialAds }: { initialAds: Advertiseme
     const handleOpenDialog = (ad: Advertisement | null) => {
         setCurrentAd(ad);
         const defaultValues = ad 
-            ? { ...ad, id: ad._id.toString(), endDate: ad.endDate ? new Date(ad.endDate) : null } 
-            : { title: '', description: '', imageUrl: '', linkUrl: '', status: 'active' as 'active' | 'inactive', endDate: null };
+            ? { ...ad, id: ad._id.toString(), startDate: ad.startDate ? new Date(ad.startDate) : null, endDate: ad.endDate ? new Date(ad.endDate) : null } 
+            : { title: '', description: '', imageUrl: '', linkUrl: '', status: 'active' as 'active' | 'inactive', startDate: null, endDate: null };
         form.reset(defaultValues);
         setIsDialogOpen(true);
     };
@@ -182,50 +183,93 @@ export default function AdminAdsClient({ initialAds }: { initialAds: Advertiseme
                             <FormField control={form.control} name="linkUrl" render={({ field }) => (
                                 <FormItem><FormLabel>URL do Link</FormLabel><FormControl><Input {...field} placeholder="https://exemplo.com" /></FormControl><FormMessage /></FormItem>
                             )}/>
-                             <FormField
-                                control={form.control}
-                                name="endDate"
-                                render={({ field }) => (
-                                    <FormItem className="flex flex-col">
-                                    <FormLabel>Data de Término (Opcional)</FormLabel>
-                                    <Popover>
-                                        <PopoverTrigger asChild>
-                                        <FormControl>
-                                            <Button
-                                            variant={"outline"}
-                                            className={cn(
-                                                "w-full pl-3 text-left font-normal",
-                                                !field.value && "text-muted-foreground"
-                                            )}
-                                            >
-                                            {field.value ? (
-                                                format(field.value, "PPP", { locale: ptBR })
-                                            ) : (
-                                                <span>Escolha uma data</span>
-                                            )}
-                                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                                            </Button>
-                                        </FormControl>
-                                        </PopoverTrigger>
-                                        <PopoverContent className="w-auto p-0" align="start">
-                                        <Calendar
-                                            mode="single"
-                                            selected={field.value ?? undefined}
-                                            onSelect={(date) => field.onChange(date)}
-                                            disabled={(date) =>
-                                                date < new Date(new Date().setHours(0, 0, 0, 0))
-                                            }
-                                            initialFocus
-                                        />
-                                        </PopoverContent>
-                                    </Popover>
-                                    <FormDescription>
-                                        O anúncio será desativado após esta data. Deixe em branco para rodar indefinidamente.
-                                    </FormDescription>
-                                    <FormMessage />
-                                    </FormItem>
-                                )}
+                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <FormField
+                                    control={form.control}
+                                    name="startDate"
+                                    render={({ field }) => (
+                                        <FormItem className="flex flex-col">
+                                        <FormLabel>Data de Início (Opcional)</FormLabel>
+                                        <Popover>
+                                            <PopoverTrigger asChild>
+                                            <FormControl>
+                                                <Button
+                                                variant={"outline"}
+                                                className={cn(
+                                                    "w-full pl-3 text-left font-normal",
+                                                    !field.value && "text-muted-foreground"
+                                                )}
+                                                >
+                                                {field.value ? (
+                                                    format(field.value, "PPP", { locale: ptBR })
+                                                ) : (
+                                                    <span>Escolha uma data</span>
+                                                )}
+                                                <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                                </Button>
+                                            </FormControl>
+                                            </PopoverTrigger>
+                                            <PopoverContent className="w-auto p-0" align="start">
+                                            <Calendar
+                                                mode="single"
+                                                selected={field.value ?? undefined}
+                                                onSelect={(date) => field.onChange(date)}
+                                                initialFocus
+                                            />
+                                            </PopoverContent>
+                                        </Popover>
+                                        <FormDescription>
+                                            O anúncio começa nesta data. Deixe em branco para iniciar imediatamente.
+                                        </FormDescription>
+                                        <FormMessage />
+                                        </FormItem>
+                                    )}
                                 />
+                                <FormField
+                                    control={form.control}
+                                    name="endDate"
+                                    render={({ field }) => (
+                                        <FormItem className="flex flex-col">
+                                        <FormLabel>Data de Término (Opcional)</FormLabel>
+                                        <Popover>
+                                            <PopoverTrigger asChild>
+                                            <FormControl>
+                                                <Button
+                                                variant={"outline"}
+                                                className={cn(
+                                                    "w-full pl-3 text-left font-normal",
+                                                    !field.value && "text-muted-foreground"
+                                                )}
+                                                >
+                                                {field.value ? (
+                                                    format(field.value, "PPP", { locale: ptBR })
+                                                ) : (
+                                                    <span>Escolha uma data</span>
+                                                )}
+                                                <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                                </Button>
+                                            </FormControl>
+                                            </PopoverTrigger>
+                                            <PopoverContent className="w-auto p-0" align="start">
+                                            <Calendar
+                                                mode="single"
+                                                selected={field.value ?? undefined}
+                                                onSelect={(date) => field.onChange(date)}
+                                                disabled={(date) =>
+                                                    date < new Date(new Date().setHours(0, 0, 0, 0))
+                                                }
+                                                initialFocus
+                                            />
+                                            </PopoverContent>
+                                        </Popover>
+                                        <FormDescription>
+                                            O anúncio será desativado após esta data. Deixe em branco para rodar indefinidamente.
+                                        </FormDescription>
+                                        <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                            </div>
                             <FormField control={form.control} name="status" render={({ field }) => (
                                 <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
                                     <div className="space-y-0.5">

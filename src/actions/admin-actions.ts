@@ -1662,6 +1662,7 @@ export async function upsertAdvertisement(data: {
     imageUrl: string;
     linkUrl: string;
     status: 'active' | 'inactive';
+    startDate?: Date | null;
     endDate?: Date | null;
 }): Promise<{ success: boolean; message: string }> {
     const { id, ...adData } = data;
@@ -1678,21 +1679,12 @@ export async function upsertAdvertisement(data: {
 
         if (id) {
             // Update logic
-            const existingAd = await collection.findOne({ _id: new ObjectId(id) });
-            if (!existingAd) throw new Error("Anúncio não encontrado.");
-            
-            // Set start date only when it becomes active for the first time
-            if (adData.status === 'active' && existingAd.status !== 'active') {
-                adToSave.startDate = new Date();
-            } else {
-                adToSave.startDate = existingAd.startDate; 
-            }
-            
             await collection.updateOne({ _id: new ObjectId(id) }, { $set: adToSave });
         } else {
             // Insert logic
             adToSave.createdAt = new Date();
-            if (adData.status === 'active') {
+            // If start date is not provided but status is active, set it to now.
+            if (adData.status === 'active' && !adData.startDate) {
                 adToSave.startDate = new Date();
             }
             await collection.insertOne(adToSave as any);

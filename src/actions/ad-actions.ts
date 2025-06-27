@@ -17,12 +17,23 @@ export async function getDisplayAdvertisements(): Promise<Advertisement[]> {
         const adsCollection = db.collection<Advertisement>('advertisements');
 
         const now = new Date();
-        const ads = await adsCollection.find({ 
+        const ads = await adsCollection.find({
             status: 'active',
-            $or: [
-                { endDate: { $gt: now } },
-                { endDate: { $exists: false } },
-                { endDate: null }
+            $and: [
+                {
+                    $or: [
+                        { startDate: { $lte: now } },
+                        { startDate: { $exists: false } },
+                        { startDate: null }
+                    ]
+                },
+                {
+                     $or: [
+                        { endDate: { $gt: now } },
+                        { endDate: { $exists: false } },
+                        { endDate: null }
+                    ]
+                }
             ]
         }).toArray();
 
