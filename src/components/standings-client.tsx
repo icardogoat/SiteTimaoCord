@@ -1,4 +1,3 @@
-
 'use client';
 
 import type { Standing, StandingEntry } from '@/types';
@@ -79,16 +78,21 @@ function StandingsTable({ group }: { group: StandingEntry[] }) {
         </TableRow>
       </TableHeader>
       <TableBody>
-        {group.map((entry) => (
+        {group.map((entry) => {
+          const isPalmeiras = entry.team.name === 'Palmeiras';
+          const teamName = isPalmeiras ? 'Peppa Pig' : entry.team.name;
+          const logoClassName = isPalmeiras ? 'rotate-180' : '';
+
+          return (
           <TableRow key={entry.team.id} className={cn(getRankClass(entry.description), entry.team.name === 'Corinthians' && 'bg-primary/10')}>
             <TableCell className="text-center font-medium">{entry.rank}</TableCell>
             <TableCell>
               <div className="flex items-center gap-3">
                 <Avatar className="h-6 w-6">
-                  <AvatarImage src={entry.team.logo} alt={entry.team.name} data-ai-hint="team logo"/>
-                  <AvatarFallback>{entry.team.name.substring(0, 2).toUpperCase()}</AvatarFallback>
+                  <AvatarImage src={entry.team.logo} alt={teamName} data-ai-hint="team logo" className={logoClassName}/>
+                  <AvatarFallback>{teamName.substring(0, 2).toUpperCase()}</AvatarFallback>
                 </Avatar>
-                <span className={cn("font-medium truncate", entry.team.name === 'Corinthians' && 'font-bold text-primary')}>{entry.team.name}</span>
+                <span className={cn("font-medium truncate", entry.team.name === 'Corinthians' && 'font-bold text-primary')}>{teamName}</span>
               </div>
             </TableCell>
             <TableCell className="text-center font-bold">{entry.points}</TableCell>
@@ -101,7 +105,7 @@ function StandingsTable({ group }: { group: StandingEntry[] }) {
                 <FormIcons form={entry.form} />
             </TableCell>
           </TableRow>
-        ))}
+        )})}
       </TableBody>
     </Table>
   );
