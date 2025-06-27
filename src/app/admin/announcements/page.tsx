@@ -1,7 +1,6 @@
-
 'use server';
 
-import AdminPostsClient from "@/components/admin-posts-client";
+import AdminPostsClient from "@/components/admin-announcements-client";
 import { getAdminPosts, getAuthors } from "@/actions/admin-actions";
 
 export default async function AdminPostsPage() {
