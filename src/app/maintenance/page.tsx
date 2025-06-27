@@ -13,19 +13,19 @@ export default async function MaintenancePage() {
 
     return (
         <div className="flex min-h-screen w-full flex-col items-center justify-center bg-background p-4">
-             <Link href="/" className="flex items-center justify-center mb-8">
-                <Image
-                    src="https://i.imgur.com/xD76hcl.png"
-                    alt="Timaocord Logo"
-                    width={500}
-                    height={127}
-                    className="h-20 w-auto"
-                    priority
-                    data-ai-hint="logo"
-                />
-            </Link>
             <Card className="w-full max-w-lg shadow-lg">
                 <CardHeader className="text-center">
+                    <Link href="/" className="flex items-center justify-center mb-6">
+                        <Image
+                            src="https://i.imgur.com/xD76hcl.png"
+                            alt="Timaocord Logo"
+                            width={500}
+                            height={127}
+                            className="h-16 w-auto"
+                            priority
+                            data-ai-hint="logo"
+                        />
+                    </Link>
                     <div className="mx-auto bg-primary/10 p-4 rounded-full w-fit">
                         <HardHat className="h-10 w-10 text-primary" />
                     </div>
