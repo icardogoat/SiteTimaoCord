@@ -1,7 +1,7 @@
 
 'use client';
 
-import type { TimaoData } from '@/actions/timao-actions';
+import type { TimaoData } from '@/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { MatchCard } from './match-card';
 import { Separator } from './ui/separator';
