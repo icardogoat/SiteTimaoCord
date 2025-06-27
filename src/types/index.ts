@@ -292,3 +292,33 @@ export type PurchaseAdminView = {
   redemptionCode?: string;
   userId: string;
 };
+
+export type PlayerStat = {
+    id: number;
+    name: string;
+    photo: string;
+    position: string;
+    appearences: number;
+    goals: number;
+    assists: number | null;
+};
+
+export type TimaoData = {
+    upcomingMatches: Match[];
+    recentMatches: Match[];
+    stats: {
+        totalMatches: number;
+        wins: number;
+        draws: number;
+        losses: number;
+    };
+    topPlayers: PlayerStat[];
+};
+
+export type PlayerStatsData = {
+    _id: ObjectId | string;
+    teamId: number;
+    season: number;
+    players: PlayerStat[];
+    lastUpdated: Date;
+}
