@@ -39,7 +39,7 @@ export async function getApiSettings(): Promise<Partial<ApiSettings>> {
         return {
             siteUrl: settings?.siteUrl || process.env.NEXTAUTH_URL || '',
             apiKeys: apiKeys,
-            xApiBearerToken: settings?.xApiBearerToken || '',
+            xApiBearerToken: settings?.xApiBearerToken || process.env.X_API_BEARER_TOKEN || '',
             xUsernames: settings?.xUsernames || [],
         };
     } catch (error) {
@@ -47,7 +47,7 @@ export async function getApiSettings(): Promise<Partial<ApiSettings>> {
         return {
             siteUrl: process.env.NEXTAUTH_URL || '',
             apiKeys: [],
-            xApiBearerToken: '',
+            xApiBearerToken: process.env.X_API_BEARER_TOKEN || '',
             xUsernames: [],
         };
     }
