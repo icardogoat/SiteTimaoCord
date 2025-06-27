@@ -1,15 +1,13 @@
 
 'use client';
 
-import type { TimaoData } from '@/types';
+import type { TimaoData, SquadPlayer } from '@/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { MatchCard } from './match-card';
 import { Separator } from './ui/separator';
-import { ShieldCheck, Calendar, ChevronsRight, Trophy, Minus, ShieldX, Shirt, Target, Star as StarIcon } from 'lucide-react';
-import type { Match, SquadPlayer } from '@/types';
-import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
-
+import { ShieldCheck, Calendar, ChevronsRight, Trophy, Minus, ShieldX, Plus } from 'lucide-react';
+import type { Match } from '@/types';
+import Image from 'next/image';
 
 const StatCard = ({ title, value, icon: Icon, colorClass }: { title: string; value: string | number; icon: React.ElementType; colorClass?: string }) => (
   <Card className="text-center">
@@ -21,16 +19,15 @@ const StatCard = ({ title, value, icon: Icon, colorClass }: { title: string; val
   </Card>
 );
 
-
 const RecentMatchItem = ({ match }: { match: Match }) => {
-    const isCorinthiansHome = match.teamA.name === 'Corinthians';
-    const corinthiansScore = isCorinthiansHome ? match.goals.home : match.goals.away;
-    const opponentScore = isCorinthiansHome ? match.goals.away : match.goals.home;
+    const isFlamengoHome = match.teamA.name === 'Flamengo';
+    const flamengoScore = isFlamengoHome ? match.goals.home : match.goals.away;
+    const opponentScore = isFlamengoHome ? match.goals.away : match.goals.home;
 
     let result: 'W' | 'D' | 'L' | null = null;
-    if (corinthiansScore !== null && opponentScore !== null) {
-        if (corinthiansScore > opponentScore) result = 'W';
-        else if (corinthiansScore < opponentScore) result = 'L';
+    if (flamengoScore !== null && opponentScore !== null) {
+        if (flamengoScore > opponentScore) result = 'W';
+        else if (flamengoScore < opponentScore) result = 'L';
         else result = 'D';
     }
 
@@ -66,6 +63,28 @@ const RecentMatchItem = ({ match }: { match: Match }) => {
     );
 };
 
+const PlayerCard = ({ player }: { player: SquadPlayer }) => {
+    return (
+        <div className="group relative w-full aspect-[2/3] overflow-hidden rounded-lg bg-card border border-border">
+            <Image
+                src={player.photo}
+                alt={player.name}
+                fill
+                sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw"
+                className="object-cover object-top transition-transform duration-300 group-hover:scale-105"
+                data-ai-hint="player photo"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/60" />
+            <div className="absolute top-0 left-0 right-0 p-3">
+                 <div className="flex items-center justify-between">
+                    <h3 className="font-bold text-white drop-shadow-md text-base">{player.name}</h3>
+                    <Plus className="w-5 h-5 text-white/70" />
+                </div>
+            </div>
+        </div>
+    );
+};
+
 interface TimaoClientProps {
     initialData: TimaoData;
 }
@@ -73,14 +92,36 @@ interface TimaoClientProps {
 export function TimaoClient({ initialData }: TimaoClientProps) {
     const { upcomingMatches, recentMatches, stats, squad } = initialData;
 
+    const positionTranslations: { [key: string]: string } = {
+        'Goalkeeper': 'GOLEIROS',
+        'Defender': 'ZAGUEIROS',
+        'Midfielder': 'MEIO-CAMPISTAS',
+        'Attacker': 'ATACANTES',
+        'Desconhecido': 'OUTROS'
+    };
+
+    const groupedSquad = squad.reduce((acc, player) => {
+        const position = positionTranslations[player.position] || 'OUTROS';
+        if (!acc[position]) {
+            acc[position] = [];
+        }
+        acc[position].push(player);
+        return acc;
+    }, {} as Record<string, SquadPlayer[]>);
+
+    const positionOrder = ['GOLEIROS', 'ZAGUEIROS', 'MEIO-CAMPISTAS', 'ATACANTES', 'OUTROS'];
+    const sortedGroupedSquadKeys = Object.keys(groupedSquad).sort((a, b) => {
+        return positionOrder.indexOf(a) - positionOrder.indexOf(b);
+    });
+
     return (
         <div className="flex-1 p-4 sm:p-6 lg:p-8">
             <div className="mb-8">
                 <h1 className="text-3xl font-bold font-headline tracking-tight flex items-center gap-3">
                     <ShieldCheck className="h-8 w-8 text-primary" />
-                    Espaço do Timão
+                    Espaço do Mengão
                 </h1>
-                <p className="text-muted-foreground">Tudo sobre o Corinthians: próximos jogos, resultados e elenco.</p>
+                <p className="text-muted-foreground">Tudo sobre o Flamengo: próximos jogos, resultados e elenco.</p>
             </div>
 
             <div className="space-y-8">
@@ -97,44 +138,26 @@ export function TimaoClient({ initialData }: TimaoClientProps) {
                         </CardContent>
                     </Card>
                 </section>
-
+                
                 <section>
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Elenco</CardTitle>
-                            <CardDescription>Jogadores do elenco principal do Corinthians na temporada atual.</CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            {squad.length > 0 ? (
-                                <Table>
-                                    <TableHeader>
-                                        <TableRow>
-                                            <TableHead>Jogador</TableHead>
-                                            <TableHead className="hidden sm:table-cell">Posição</TableHead>
-                                        </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                        {squad.map((player) => (
-                                            <TableRow key={player.id}>
-                                                <TableCell>
-                                                    <div className="flex items-center gap-3">
-                                                        <Avatar className="h-9 w-9">
-                                                            <AvatarImage src={player.photo} alt={player.name} data-ai-hint="player photo" />
-                                                            <AvatarFallback>{player.name.substring(0,2).toUpperCase()}</AvatarFallback>
-                                                        </Avatar>
-                                                        <span className="font-medium">{player.name}</span>
-                                                    </div>
-                                                </TableCell>
-                                                <TableCell className="hidden sm:table-cell">{player.position}</TableCell>
-                                            </TableRow>
+                    <h2 className="text-2xl font-bold font-headline mb-4">Elenco</h2>
+                    <div className="space-y-8">
+                        {sortedGroupedSquadKeys.map(position => {
+                            if (groupedSquad[position].length === 0) return null;
+                            return (
+                                <div key={position}>
+                                    <h3 className="text-xl font-bold uppercase tracking-wider text-muted-foreground mb-4 border-b border-border pb-2">
+                                        {position}
+                                    </h3>
+                                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                                        {groupedSquad[position].map(player => (
+                                            <PlayerCard key={player.id} player={player} />
                                         ))}
-                                    </TableBody>
-                                </Table>
-                            ) : (
-                                <p className="text-muted-foreground text-center py-4">Não foi possível carregar o elenco.</p>
-                            )}
-                        </CardContent>
-                    </Card>
+                                    </div>
+                                </div>
+                            )
+                        })}
+                    </div>
                 </section>
 
                 <Separator />
@@ -148,7 +171,7 @@ export function TimaoClient({ initialData }: TimaoClientProps) {
                             ))}
                         </div>
                     ) : (
-                        <p className="text-muted-foreground">Nenhum próximo jogo do Corinthians encontrado.</p>
+                        <p className="text-muted-foreground">Nenhum próximo jogo do Flamengo encontrado.</p>
                     )}
                 </section>
 
@@ -163,7 +186,7 @@ export function TimaoClient({ initialData }: TimaoClientProps) {
                             ))}
                         </div>
                     ) : (
-                        <p className="text-muted-foreground">Nenhum resultado recente do Corinthians encontrado.</p>
+                        <p className="text-muted-foreground">Nenhum resultado recente do Flamengo encontrado.</p>
                     )}
                 </section>
             </div>

@@ -1917,7 +1917,7 @@ async function fetchSquadFromApi(teamId: number): Promise<SquadPlayer[]> {
 }
 
 export async function updateCorinthiansSquad(): Promise<{ success: boolean; message: string }> {
-    const teamId = 127; // Corinthians ID
+    const teamId = 131; // Flamengo ID
     try {
         const players = await fetchSquadFromApi(teamId);
 
@@ -1946,7 +1946,7 @@ export async function updateCorinthiansSquad(): Promise<{ success: boolean; mess
         return { success: true, message: `Elenco de ${players.length} jogadores atualizado com sucesso.` };
 
     } catch (error) {
-        console.error("Error updating Corinthians squad:", error);
+        console.error("Error updating squad:", error);
         return { success: false, message: "Ocorreu um erro ao atualizar o elenco." };
     }
 }

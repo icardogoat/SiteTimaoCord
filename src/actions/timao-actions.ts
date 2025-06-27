@@ -63,8 +63,8 @@ export async function getTimaoData(): Promise<TimaoData> {
         const matchesCollection = db.collection<DbMatch>('matches');
         const statsCollection = db.collection<SquadData>('player_stats');
 
-        const teamName = 'Corinthians';
-        const teamId = 127;
+        const teamName = 'Flamengo';
+        const teamId = 131;
         const nowTimestamp = Math.floor(Date.now() / 1000);
 
         const [allMatches, squadDoc] = await Promise.all([
@@ -120,7 +120,7 @@ export async function getTimaoData(): Promise<TimaoData> {
             squad
         };
     } catch (error) {
-        console.error('Error fetching Timão data:', error);
+        console.error('Error fetching Team data:', error);
         return {
             upcomingMatches: [],
             recentMatches: [],
