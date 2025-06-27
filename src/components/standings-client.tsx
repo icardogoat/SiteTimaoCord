@@ -80,8 +80,9 @@ function StandingsTable({ group }: { group: StandingEntry[] }) {
       <TableBody>
         {group.map((entry) => {
           const isPalmeiras = entry.team.name === 'Palmeiras';
-          const teamName = isPalmeiras ? 'Peppa Pig' : entry.team.name;
-          const logoClassName = isPalmeiras ? 'rotate-180' : '';
+          const isSaoPaulo = entry.team.name === 'São Paulo';
+          const teamName = isPalmeiras ? 'Peppa Pig' : isSaoPaulo ? 'Bambi' : entry.team.name;
+          const logoClassName = isPalmeiras || isSaoPaulo ? 'rotate-180' : '';
 
           return (
           <TableRow key={entry.team.id} className={cn(getRankClass(entry.description), entry.team.name === 'Corinthians' && 'bg-primary/10')}>
