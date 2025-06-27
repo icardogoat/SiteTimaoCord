@@ -16,9 +16,9 @@ export const metadata: Metadata = {
   description: siteDescription,
   metadataBase: new URL(siteUrl),
   icons: {
-    icon: 'https://i.imgur.com/RocHctJ.png',
-    shortcut: 'https://i.imgur.com/RocHctJ.png',
-    apple: 'https://i.imgur.com/RocHctJ.png',
+    icon: { url: 'https://i.imgur.com/RocHctJ.png', type: 'image/png' },
+    shortcut: { url: 'https://i.imgur.com/RocHctJ.png', type: 'image/png' },
+    apple: { url: 'https://i.imgur.com/RocHctJ.png', type: 'image/png' },
   },
   openGraph: {
     title: siteTitle,
