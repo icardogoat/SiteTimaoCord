@@ -1,10 +1,10 @@
-
 'use server';
 
 import { AppLayout } from "@/components/app-layout";
 import { getAvailableLeagues } from "@/actions/bet-actions";
 import { getTopWinners, getMostActiveBettors, getTopLevelUsers, getRichestUsers } from "@/actions/user-actions";
 import { RankingClient } from "@/components/ranking-client";
+import { Suspense } from "react";
 
 export default async function RankingPage() {
   const [
@@ -22,13 +22,15 @@ export default async function RankingPage() {
   ]);
 
   return (
-    <AppLayout availableLeagues={availableLeagues}>
-        <RankingClient
-            topWinners={topWinners}
-            mostActiveBettors={mostActiveBettors}
-            topLevelUsers={topLevelUsers}
-            richestUsers={richestUsers}
-        />
-    </AppLayout>
+    <Suspense>
+      <AppLayout availableLeagues={availableLeagues}>
+          <RankingClient
+              topWinners={topWinners}
+              mostActiveBettors={mostActiveBettors}
+              topLevelUsers={topLevelUsers}
+              richestUsers={richestUsers}
+          />
+      </AppLayout>
+    </Suspense>
   );
 }
