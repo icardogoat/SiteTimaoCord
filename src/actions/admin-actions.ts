@@ -1856,3 +1856,59 @@ export async function deletePurchase(inventoryId: string): Promise<{ success: bo
         return { success: false, message: "Ocorreu um erro ao excluir o registro." };
     }
 }
+
+// ---- ANNOUNCEMENT ACTIONS ----
+export async function sendAnnouncement(data: {
+    title: string;
+    description: string;
+    target: 'all' | 'vip' | 'normal';
+    link?: string;
+}): Promise<{ success: boolean; message: string; userCount: number }> {
+    try {
+        const client = await clientPromise;
+        const db = client.db('timaocord');
+        const usersCollection = db.collection('users');
+        const notificationsCollection = db.collection('notifications');
+
+        let userQuery = {};
+        if (data.target === 'vip') {
+            userQuery = { isVip: true };
+        } else if (data.target === 'normal') {
+            userQuery = { isVip: { $ne: true } };
+        }
+        
+        const targetUsers = await usersCollection.find(userQuery, { projection: { discordId: 1 } }).toArray();
+
+        if (targetUsers.length === 0) {
+            return { success: false, message: 'Nenhum usuário encontrado para o público alvo selecionado.', userCount: 0 };
+        }
+
+        const newNotifications = targetUsers.map(user => ({
+            insertOne: {
+                document: {
+                    userId: user.discordId,
+                    title: `📢 ${data.title}`,
+                    description: data.description,
+                    date: new Date(),
+                    read: false,
+                    link: data.link || '/notifications'
+                }
+            }
+        }));
+
+        const result = await notificationsCollection.bulkWrite(newNotifications);
+        
+        const insertedCount = result.insertedCount;
+
+        if (insertedCount > 0) {
+            revalidatePath('/notifications');
+            return { success: true, message: `Comunicado enviado com sucesso para ${insertedCount} usuário(s).`, userCount: insertedCount };
+        } else {
+             return { success: false, message: 'Nenhuma notificação foi enviada.', userCount: 0 };
+        }
+
+    } catch (error) {
+        console.error("Error sending announcement:", error);
+        return { success: false, message: 'Ocorreu um erro ao enviar o comunicado.', userCount: 0 };
+    }
+}
