@@ -52,10 +52,10 @@ async function checkUserInGuild(discordId: string): Promise<boolean> {
     }
 }
 
-async function checkUserVipStatus(discordId: string): Promise<boolean> {
-    try {
+async function checkUserHasRoles(discordId: string, roleIds: string[]): Promise<boolean> {
+     try {
         const config = await getBotConfig();
-        if (!config.guildId || !config.vipRoleIds || config.vipRoleIds.length === 0) {
+        if (!config.guildId || !roleIds || roleIds.length === 0) {
             return false;
         }
 
@@ -68,7 +68,6 @@ async function checkUserVipStatus(discordId: string): Promise<boolean> {
         });
 
         if (!response.ok) {
-            // User might not be in the server, or other API error
             console.warn(`Could not fetch member data for ${discordId} from guild ${config.guildId}. Status: ${response.status}`);
             return false;
         }
@@ -78,9 +77,9 @@ async function checkUserVipStatus(discordId: string): Promise<boolean> {
         
         const userRoleIds = new Set(member.roles);
         
-        return config.vipRoleIds.some(vipRoleId => userRoleIds.has(vipRoleId));
+        return roleIds.some(vipRoleId => userRoleIds.has(vipRoleId));
     } catch (error) {
-        console.error(`Failed to check VIP status for user ${discordId}:`, error);
+        console.error(`Failed to check roles for user ${discordId}:`, error);
         return false;
     }
 }
@@ -100,6 +99,7 @@ const discordProfile = (profile: any) => {
             discordId: profile.id,
             admin: false,
             isVip: false,
+            canPost: false,
         };
     }
     
@@ -120,6 +120,7 @@ const discordProfile = (profile: any) => {
       discordId: profile.id,
       admin: false,
       isVip: false,
+      canPost: false,
     }
 };
 
@@ -173,8 +174,8 @@ export const authOptions: AuthOptions = {
         const dbUser = await usersCollection.findOne({ discordId: userId });
         
         if (dbUser) {
-            // Sync VIP status on every sign-in for existing users
-            const isVip = await checkUserVipStatus(userId);
+            const config = await getBotConfig();
+            const isVip = await checkUserHasRoles(userId, config.vipRoleIds || []);
             const updateOps: any = {};
             if (dbUser.isVip !== isVip) updateOps.isVip = isVip;
             if (typeof dbUser.emailVerified === 'undefined') updateOps.emailVerified = null;
@@ -255,8 +256,15 @@ export const authOptions: AuthOptions = {
             return token;
         }
 
-        token.isVip = dbUser.isVip ?? false;
+        const config = await getBotConfig();
+        const [isVip, canPost] = await Promise.all([
+             checkUserHasRoles(discordId, config.vipRoleIds || []),
+             checkUserHasRoles(discordId, config.postCreatorRoleId ? [config.postCreatorRoleId] : [])
+        ]);
+
+        token.isVip = isVip;
         token.admin = dbUser.admin ?? false;
+        token.canPost = canPost;
         
         // Robust date handling
         const adRemovalDate = dbUser.adRemovalExpiresAt;
@@ -277,6 +285,7 @@ export const authOptions: AuthOptions = {
         session.user.discordId = token.discordId as string;
         session.user.admin = token.admin as boolean;
         session.user.isVip = token.isVip as boolean;
+        session.user.canPost = token.canPost as boolean;
         session.user.adRemovalExpiresAt = token.adRemovalExpiresAt as string | null;
         session.user.dailyRewardLastClaimed = token.dailyRewardLastClaimed as string | null;
         

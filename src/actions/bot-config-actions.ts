@@ -30,6 +30,7 @@ export async function getBotConfig(): Promise<Partial<BotConfig>> {
                 newsMentionRoleId: '',
                 adminRoleId: '',
                 vipRoleIds: [],
+                postCreatorRoleId: '',
             };
         }
 
@@ -47,6 +48,7 @@ export async function getBotConfig(): Promise<Partial<BotConfig>> {
             newsMentionRoleId: config.newsMentionRoleId || '',
             adminRoleId: config.adminRoleId || '',
             vipRoleIds: config.vipRoleIds || [],
+            postCreatorRoleId: config.postCreatorRoleId || '',
         };
     } catch (error) {
         console.error("Error fetching bot config:", error);
@@ -63,6 +65,7 @@ export async function getBotConfig(): Promise<Partial<BotConfig>> {
             newsMentionRoleId: '',
             adminRoleId: '',
             vipRoleIds: [],
+            postCreatorRoleId: '',
         };
     }
 }
@@ -79,6 +82,7 @@ type UpdateConfigData = {
     newsChannelId: string;
     newsMentionRoleId: string;
     adminRoleId: string;
+    postCreatorRoleId: string;
     vipRoleIds: string[];
 };
 

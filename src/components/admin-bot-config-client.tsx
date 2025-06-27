@@ -41,6 +41,7 @@ import {
 } from "@/components/ui/command"
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "./ui/alert";
+import { Separator } from "./ui/separator";
 
 
 const formSchema = z.object({
@@ -55,6 +56,7 @@ const formSchema = z.object({
   newsChannelId: z.string().optional(),
   newsMentionRoleId: z.string().optional(),
   adminRoleId: z.string().optional(),
+  postCreatorRoleId: z.string().optional(),
   vipRoleIds: z.array(z.string()).max(3, { message: "Você pode selecionar no máximo 3 cargos VIP." }).optional(),
 });
 
@@ -88,6 +90,7 @@ export default function AdminBotConfigClient({ initialConfig, initialChannels, i
             newsChannelId: initialConfig.newsChannelId || "",
             newsMentionRoleId: initialConfig.newsMentionRoleId || "",
             adminRoleId: initialConfig.adminRoleId || "",
+            postCreatorRoleId: initialConfig.postCreatorRoleId || "",
             vipRoleIds: initialConfig.vipRoleIds || [],
         },
     });
@@ -113,6 +116,7 @@ export default function AdminBotConfigClient({ initialConfig, initialChannels, i
             newsChannelId: '',
             newsMentionRoleId: '',
             adminRoleId: '',
+            postCreatorRoleId: '',
             vipRoleIds: [],
         });
 
@@ -224,6 +228,7 @@ export default function AdminBotConfigClient({ initialConfig, initialChannels, i
             newsChannelId: values.newsChannelId || '',
             newsMentionRoleId: values.newsMentionRoleId || '',
             adminRoleId: values.adminRoleId || '',
+            postCreatorRoleId: values.postCreatorRoleId || '',
             vipRoleIds: values.vipRoleIds || [],
         });
 
@@ -307,400 +312,411 @@ export default function AdminBotConfigClient({ initialConfig, initialChannels, i
                             </Alert>
                         )}
 
-                        <FormField
-                            control={form.control}
-                            name="welcomeChannelId"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Canal de Boas-Vindas</FormLabel>
-                                    <div className="flex items-center gap-2">
-                                        <Select onValueChange={field.onChange} value={field.value} disabled={channels.length === 0}>
+                        <Separator />
+                        <h3 className="text-lg font-medium">Canais de Notificação</h3>
+                        
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
+                            <FormField
+                                control={form.control}
+                                name="welcomeChannelId"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Canal de Boas-Vindas</FormLabel>
+                                        <div className="flex items-center gap-2">
+                                            <Select onValueChange={field.onChange} value={field.value} disabled={channels.length === 0}>
+                                                <FormControl>
+                                                    <SelectTrigger>
+                                                        <SelectValue placeholder="Selecione um canal" />
+                                                    </SelectTrigger>
+                                                </FormControl>
+                                                <SelectContent>
+                                                    {channels.map(channel => (
+                                                        <SelectItem key={channel.id} value={channel.id}>
+                                                            #{channel.name}
+                                                        </SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
+                                            <Button 
+                                                type="button" 
+                                                variant="outline" 
+                                                onClick={() => handleTest('welcome')}
+                                                disabled={!field.value || isTesting !== null}
+                                                aria-label="Testar canal de boas-vindas"
+                                            >
+                                                {isTesting === 'welcome' ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Testar'}
+                                            </Button>
+                                        </div>
+                                    </FormItem>
+                                )}
+                            />
+                            <FormField
+                                control={form.control}
+                                name="logChannelId"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Canal de Logs</FormLabel>
+                                        <div className="flex items-center gap-2">
+                                            <Select onValueChange={field.onChange} value={field.value} disabled={channels.length === 0}>
+                                                <FormControl>
+                                                    <SelectTrigger>
+                                                        <SelectValue placeholder="Selecione um canal" />
+                                                    </SelectTrigger>
+                                                </FormControl>
+                                                <SelectContent>
+                                                    {channels.map(channel => (
+                                                        <SelectItem key={channel.id} value={channel.id}>
+                                                            #{channel.name}
+                                                        </SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
+                                            <Button 
+                                                type="button" 
+                                                variant="outline" 
+                                                onClick={() => handleTest('log')}
+                                                disabled={!field.value || isTesting !== null}
+                                                aria-label="Testar canal de logs"
+                                            >
+                                                {isTesting === 'log' ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Testar'}
+                                            </Button>
+                                        </div>
+                                    </FormItem>
+                                )}
+                            />
+                            <FormField
+                                control={form.control}
+                                name="bettingChannelId"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Canal de Apostas</FormLabel>
+                                        <div className="flex items-center gap-2">
+                                            <Select onValueChange={field.onChange} value={field.value} disabled={channels.length === 0}>
+                                                <FormControl>
+                                                    <SelectTrigger>
+                                                        <SelectValue placeholder="Selecione um canal" />
+                                                    </SelectTrigger>
+                                                </FormControl>
+                                                <SelectContent>
+                                                    {channels.map(channel => (
+                                                        <SelectItem key={channel.id} value={channel.id}>
+                                                            #{channel.name}
+                                                        </SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
+                                            <Button 
+                                                type="button" 
+                                                variant="outline" 
+                                                onClick={() => handleTest('betting')}
+                                                disabled={!field.value || isTesting !== null}
+                                                aria-label="Testar canal de apostas"
+                                            >
+                                                {isTesting === 'betting' ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Testar'}
+                                            </Button>
+                                        </div>
+                                    </FormItem>
+                                )}
+                            />
+                            <FormField
+                                control={form.control}
+                                name="bolaoChannelId"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Canal do Bolão</FormLabel>
+                                        <div className="flex items-center gap-2">
+                                            <Select onValueChange={field.onChange} value={field.value} disabled={channels.length === 0}>
+                                                <FormControl>
+                                                    <SelectTrigger>
+                                                        <SelectValue placeholder="Selecione um canal" />
+                                                    </SelectTrigger>
+                                                </FormControl>
+                                                <SelectContent>
+                                                    {channels.map(channel => (
+                                                        <SelectItem key={channel.id} value={channel.id}>
+                                                            #{channel.name}
+                                                        </SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
+                                            <Button 
+                                                type="button" 
+                                                variant="outline" 
+                                                onClick={() => handleTest('bolao')}
+                                                disabled={!field.value || isTesting !== null}
+                                                aria-label="Testar canal do bolão"
+                                            >
+                                                {isTesting === 'bolao' ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Testar'}
+                                            </Button>
+                                        </div>
+                                    </FormItem>
+                                )}
+                            />
+                            <FormField
+                                control={form.control}
+                                name="mvpChannelId"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Canal de Votação MVP</FormLabel>
+                                        <div className="flex items-center gap-2">
+                                            <Select onValueChange={field.onChange} value={field.value} disabled={channels.length === 0}>
+                                                <FormControl>
+                                                    <SelectTrigger>
+                                                        <SelectValue placeholder="Selecione um canal" />
+                                                    </SelectTrigger>
+                                                </FormControl>
+                                                <SelectContent>
+                                                    {channels.map(channel => (
+                                                        <SelectItem key={channel.id} value={channel.id}>
+                                                            #{channel.name}
+                                                        </SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
+                                            <Button 
+                                                type="button" 
+                                                variant="outline" 
+                                                onClick={() => handleTest('mvp')}
+                                                disabled={!field.value || isTesting !== null}
+                                                aria-label="Testar canal de votação MVP"
+                                            >
+                                                {isTesting === 'mvp' ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Testar'}
+                                            </Button>
+                                        </div>
+                                    </FormItem>
+                                )}
+                            />
+                            <FormField
+                                control={form.control}
+                                name="newsChannelId"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Canal de Posts</FormLabel>
+                                        <div className="flex items-center gap-2">
+                                            <Select onValueChange={field.onChange} value={field.value} disabled={channels.length === 0}>
+                                                <FormControl>
+                                                    <SelectTrigger>
+                                                        <SelectValue placeholder="Selecione um canal" />
+                                                    </SelectTrigger>
+                                                </FormControl>
+                                                <SelectContent>
+                                                    {channels.map(channel => (
+                                                        <SelectItem key={channel.id} value={channel.id}>
+                                                            #{channel.name}
+                                                        </SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
+                                            <Button 
+                                                type="button" 
+                                                variant="outline" 
+                                                onClick={() => handleTest('news')}
+                                                disabled={!field.value || isTesting !== null}
+                                                aria-label="Testar canal de posts"
+                                            >
+                                                {isTesting === 'news' ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Testar'}
+                                            </Button>
+                                        </div>
+                                    </FormItem>
+                                )}
+                            />
+                            <FormField
+                                control={form.control}
+                                name="winnersChannelId"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Canal de Vencedores</FormLabel>
+                                        <div className="flex items-center gap-2">
+                                            <Select onValueChange={field.onChange} value={field.value} disabled={channels.length === 0}>
+                                                <FormControl>
+                                                    <SelectTrigger>
+                                                        <SelectValue placeholder="Selecione um canal" />
+                                                    </SelectTrigger>
+                                                </FormControl>
+                                                <SelectContent>
+                                                    {channels.map(channel => (
+                                                        <SelectItem key={channel.id} value={channel.id}>
+                                                            #{channel.name}
+                                                        </SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
+                                            <Button 
+                                                type="button" 
+                                                variant="outline" 
+                                                onClick={() => handleTest('winners')}
+                                                disabled={!field.value || isTesting !== null}
+                                                aria-label="Testar canal de vencedores"
+                                            >
+                                                {isTesting === 'winners' ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Testar'}
+                                            </Button>
+                                        </div>
+                                    </FormItem>
+                                )}
+                            />
+                        </div>
+                        
+                        <Separator />
+                        <h3 className="text-lg font-medium">Cargos de Permissão</h3>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
+                             <FormField
+                                control={form.control}
+                                name="adminRoleId"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Cargo de Administrador</FormLabel>
+                                        <Select onValueChange={field.onChange} value={field.value} disabled={roles.length === 0}>
                                             <FormControl>
                                                 <SelectTrigger>
-                                                    <SelectValue placeholder="Selecione um canal" />
+                                                    <SelectValue placeholder="Selecione um cargo" />
                                                 </SelectTrigger>
                                             </FormControl>
                                             <SelectContent>
-                                                {channels.map(channel => (
-                                                    <SelectItem key={channel.id} value={channel.id}>
-                                                        #{channel.name}
+                                                {roles.map(role => (
+                                                    <SelectItem key={role.id} value={role.id}>
+                                                        {role.name}
                                                     </SelectItem>
                                                 ))}
                                             </SelectContent>
                                         </Select>
-                                         <Button 
-                                            type="button" 
-                                            variant="outline" 
-                                            onClick={() => handleTest('welcome')}
-                                            disabled={!field.value || isTesting !== null}
-                                            aria-label="Testar canal de boas-vindas"
-                                        >
-                                            {isTesting === 'welcome' ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Testar'}
-                                        </Button>
-                                    </div>
-                                    <FormDescription>
-                                        O canal onde as mensagens de boas-vindas serão enviadas.
-                                    </FormDescription>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                        <FormField
-                            control={form.control}
-                            name="logChannelId"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Canal de Logs</FormLabel>
-                                     <div className="flex items-center gap-2">
-                                        <Select onValueChange={field.onChange} value={field.value} disabled={channels.length === 0}>
+                                        <FormDescription>
+                                            O cargo que tem permissão para usar comandos de admin do bot.
+                                        </FormDescription>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                            <FormField
+                                control={form.control}
+                                name="postCreatorRoleId"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Cargo Criador de Posts</FormLabel>
+                                        <Select onValueChange={field.onChange} value={field.value} disabled={roles.length === 0}>
                                             <FormControl>
                                                 <SelectTrigger>
-                                                    <SelectValue placeholder="Selecione um canal" />
+                                                    <SelectValue placeholder="Selecione um cargo (opcional)" />
                                                 </SelectTrigger>
                                             </FormControl>
                                             <SelectContent>
-                                                {channels.map(channel => (
-                                                    <SelectItem key={channel.id} value={channel.id}>
-                                                        #{channel.name}
+                                                 <SelectItem value="">Nenhum</SelectItem>
+                                                {roles.map(role => (
+                                                    <SelectItem key={role.id} value={role.id}>
+                                                        {role.name}
                                                     </SelectItem>
                                                 ))}
                                             </SelectContent>
                                         </Select>
-                                        <Button 
-                                            type="button" 
-                                            variant="outline" 
-                                            onClick={() => handleTest('log')}
-                                            disabled={!field.value || isTesting !== null}
-                                            aria-label="Testar canal de logs"
-                                        >
-                                            {isTesting === 'log' ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Testar'}
-                                        </Button>
-                                    </div>
-                                    <FormDescription>
-                                        O canal para registrar logs de atividades importantes do bot.
-                                    </FormDescription>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                        <FormField
-                            control={form.control}
-                            name="bettingChannelId"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Canal de Apostas</FormLabel>
-                                    <div className="flex items-center gap-2">
-                                        <Select onValueChange={field.onChange} value={field.value} disabled={channels.length === 0}>
+                                        <FormDescription>
+                                            Membros com este cargo poderão criar/gerenciar posts no painel de admin.
+                                        </FormDescription>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                            <FormField
+                                control={form.control}
+                                name="newsMentionRoleId"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Cargo de Marcação para Posts</FormLabel>
+                                        <Select onValueChange={field.onChange} value={field.value} disabled={roles.length === 0}>
                                             <FormControl>
                                                 <SelectTrigger>
-                                                    <SelectValue placeholder="Selecione um canal" />
+                                                    <SelectValue placeholder="Selecione um cargo (opcional)" />
                                                 </SelectTrigger>
                                             </FormControl>
                                             <SelectContent>
-                                                {channels.map(channel => (
-                                                    <SelectItem key={channel.id} value={channel.id}>
-                                                        #{channel.name}
+                                                <SelectItem value="">Nenhum</SelectItem>
+                                                {roles.map(role => (
+                                                    <SelectItem key={role.id} value={role.id}>
+                                                        {role.name}
                                                     </SelectItem>
                                                 ))}
                                             </SelectContent>
                                         </Select>
-                                        <Button 
-                                            type="button" 
-                                            variant="outline" 
-                                            onClick={() => handleTest('betting')}
-                                            disabled={!field.value || isTesting !== null}
-                                            aria-label="Testar canal de apostas"
-                                        >
-                                            {isTesting === 'betting' ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Testar'}
-                                        </Button>
-                                    </div>
-                                    <FormDescription>
-                                       O canal onde as notificações de novas partidas são anunciadas.
-                                    </FormDescription>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                        <FormField
-                            control={form.control}
-                            name="bolaoChannelId"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Canal do Bolão</FormLabel>
-                                    <div className="flex items-center gap-2">
-                                        <Select onValueChange={field.onChange} value={field.value} disabled={channels.length === 0}>
-                                            <FormControl>
-                                                <SelectTrigger>
-                                                    <SelectValue placeholder="Selecione um canal" />
-                                                </SelectTrigger>
-                                            </FormControl>
-                                            <SelectContent>
-                                                {channels.map(channel => (
-                                                    <SelectItem key={channel.id} value={channel.id}>
-                                                        #{channel.name}
-                                                    </SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
-                                        <Button 
-                                            type="button" 
-                                            variant="outline" 
-                                            onClick={() => handleTest('bolao')}
-                                            disabled={!field.value || isTesting !== null}
-                                            aria-label="Testar canal do bolão"
-                                        >
-                                            {isTesting === 'bolao' ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Testar'}
-                                        </Button>
-                                    </div>
-                                    <FormDescription>
-                                       Canal para anunciar os novos bolões abertos.
-                                    </FormDescription>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                         <FormField
-                            control={form.control}
-                            name="mvpChannelId"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Canal de Votação MVP</FormLabel>
-                                    <div className="flex items-center gap-2">
-                                        <Select onValueChange={field.onChange} value={field.value} disabled={channels.length === 0}>
-                                            <FormControl>
-                                                <SelectTrigger>
-                                                    <SelectValue placeholder="Selecione um canal" />
-                                                </SelectTrigger>
-                                            </FormControl>
-                                            <SelectContent>
-                                                {channels.map(channel => (
-                                                    <SelectItem key={channel.id} value={channel.id}>
-                                                        #{channel.name}
-                                                    </SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
-                                        <Button 
-                                            type="button" 
-                                            variant="outline" 
-                                            onClick={() => handleTest('mvp')}
-                                            disabled={!field.value || isTesting !== null}
-                                            aria-label="Testar canal de votação MVP"
-                                        >
-                                            {isTesting === 'mvp' ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Testar'}
-                                        </Button>
-                                    </div>
-                                    <FormDescription>
-                                       Canal para anunciar as novas votações de MVP.
-                                    </FormDescription>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                         <FormField
-                            control={form.control}
-                            name="newsChannelId"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Canal de Posts</FormLabel>
-                                    <div className="flex items-center gap-2">
-                                        <Select onValueChange={field.onChange} value={field.value} disabled={channels.length === 0}>
-                                            <FormControl>
-                                                <SelectTrigger>
-                                                    <SelectValue placeholder="Selecione um canal" />
-                                                </SelectTrigger>
-                                            </FormControl>
-                                            <SelectContent>
-                                                {channels.map(channel => (
-                                                    <SelectItem key={channel.id} value={channel.id}>
-                                                        #{channel.name}
-                                                    </SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
-                                        <Button 
-                                            type="button" 
-                                            variant="outline" 
-                                            onClick={() => handleTest('news')}
-                                            disabled={!field.value || isTesting !== null}
-                                            aria-label="Testar canal de posts"
-                                        >
-                                            {isTesting === 'news' ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Testar'}
-                                        </Button>
-                                    </div>
-                                    <FormDescription>
-                                       O canal para postar automaticamente as novas notícias.
-                                    </FormDescription>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                        <FormField
-                            control={form.control}
-                            name="winnersChannelId"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Canal de Vencedores</FormLabel>
-                                    <div className="flex items-center gap-2">
-                                        <Select onValueChange={field.onChange} value={field.value} disabled={channels.length === 0}>
-                                            <FormControl>
-                                                <SelectTrigger>
-                                                    <SelectValue placeholder="Selecione um canal" />
-                                                </SelectTrigger>
-                                            </FormControl>
-                                            <SelectContent>
-                                                {channels.map(channel => (
-                                                    <SelectItem key={channel.id} value={channel.id}>
-                                                        #{channel.name}
-                                                    </SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
-                                         <Button 
-                                            type="button" 
-                                            variant="outline" 
-                                            onClick={() => handleTest('winners')}
-                                            disabled={!field.value || isTesting !== null}
-                                            aria-label="Testar canal de vencedores"
-                                        >
-                                            {isTesting === 'winners' ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Testar'}
-                                        </Button>
-                                    </div>
-                                    <FormDescription>
-                                       Canal para anunciar os grandes vencedores de apostas.
-                                    </FormDescription>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                        <FormField
-                            control={form.control}
-                            name="newsMentionRoleId"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Cargo de Marcação para Posts</FormLabel>
-                                    <Select onValueChange={field.onChange} value={field.value} disabled={roles.length === 0}>
-                                        <FormControl>
-                                            <SelectTrigger>
-                                                <SelectValue placeholder="Selecione um cargo para mencionar (opcional)" />
-                                            </SelectTrigger>
-                                        </FormControl>
-                                        <SelectContent>
-                                            <SelectItem value="">Nenhum</SelectItem>
-                                            {roles.map(role => (
-                                                <SelectItem key={role.id} value={role.id}>
-                                                    {role.name}
-                                                </SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                    <FormDescription>
-                                        Este cargo será mencionado (@) sempre que um novo post for criado.
-                                    </FormDescription>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                         <FormField
-                            control={form.control}
-                            name="adminRoleId"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Cargo de Administrador</FormLabel>
-                                    <Select onValueChange={field.onChange} value={field.value} disabled={roles.length === 0}>
-                                        <FormControl>
-                                            <SelectTrigger>
-                                                <SelectValue placeholder="Selecione um cargo" />
-                                            </SelectTrigger>
-                                        </FormControl>
-                                        <SelectContent>
-                                            {roles.map(role => (
-                                                <SelectItem key={role.id} value={role.id}>
-                                                    {role.name}
-                                                </SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                    <FormDescription>
-                                        O cargo que tem permissão para usar comandos de admin do bot.
-                                    </FormDescription>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                         <FormField
-                            control={form.control}
-                            name="vipRoleIds"
-                            render={({ field }) => (
-                                <FormItem className="flex flex-col">
-                                    <FormLabel>Cargos VIP</FormLabel>
-                                    <Popover>
-                                        <PopoverTrigger asChild>
-                                            <FormControl>
-                                                <Button
-                                                    variant="outline"
-                                                    role="combobox"
-                                                    className={cn(
-                                                        "w-full justify-between h-auto min-h-10",
-                                                        !field.value?.length && "text-muted-foreground"
-                                                    )}
-                                                    disabled={roles.length === 0}
-                                                >
-                                                    <div className="flex gap-1 flex-wrap">
-                                                        {field.value?.length ?
-                                                          roles
-                                                            .filter(role => field.value?.includes(role.id))
-                                                            .map(role => <Badge variant="secondary" key={role.id}>{role.name}</Badge>)
-                                                          : "Selecione até 3 cargos"
-                                                        }
-                                                    </div>
-                                                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                                                </Button>
-                                            </FormControl>
-                                        </PopoverTrigger>
-                                        <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
-                                            <Command>
-                                                <CommandInput placeholder="Pesquisar cargo..." />
-                                                <CommandList>
-                                                    <CommandEmpty>Nenhum cargo encontrado.</CommandEmpty>
-                                                    <CommandGroup>
-                                                        {roles.map((role) => {
-                                                            const isSelected = field.value?.includes(role.id) ?? false;
-                                                            return (
-                                                                <CommandItem
-                                                                    key={role.id}
-                                                                    onSelect={() => {
-                                                                        if (isSelected) {
-                                                                            field.onChange(field.value?.filter((id) => id !== role.id));
-                                                                        } else {
-                                                                            if ((field.value?.length ?? 0) < 3) {
-                                                                                field.onChange([...(field.value ?? []), role.id]);
+                                        <FormDescription>
+                                            Este cargo será mencionado (@) sempre que um novo post for criado.
+                                        </FormDescription>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                            <FormField
+                                control={form.control}
+                                name="vipRoleIds"
+                                render={({ field }) => (
+                                    <FormItem className="flex flex-col">
+                                        <FormLabel>Cargos VIP</FormLabel>
+                                        <Popover>
+                                            <PopoverTrigger asChild>
+                                                <FormControl>
+                                                    <Button
+                                                        variant="outline"
+                                                        role="combobox"
+                                                        className={cn(
+                                                            "w-full justify-between h-auto min-h-10",
+                                                            !field.value?.length && "text-muted-foreground"
+                                                        )}
+                                                        disabled={roles.length === 0}
+                                                    >
+                                                        <div className="flex gap-1 flex-wrap">
+                                                            {field.value?.length ?
+                                                            roles
+                                                                .filter(role => field.value?.includes(role.id))
+                                                                .map(role => <Badge variant="secondary" key={role.id}>{role.name}</Badge>)
+                                                            : "Selecione até 3 cargos"
+                                                            }
+                                                        </div>
+                                                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                                    </Button>
+                                                </FormControl>
+                                            </PopoverTrigger>
+                                            <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                                                <Command>
+                                                    <CommandInput placeholder="Pesquisar cargo..." />
+                                                    <CommandList>
+                                                        <CommandEmpty>Nenhum cargo encontrado.</CommandEmpty>
+                                                        <CommandGroup>
+                                                            {roles.map((role) => {
+                                                                const isSelected = field.value?.includes(role.id) ?? false;
+                                                                return (
+                                                                    <CommandItem
+                                                                        key={role.id}
+                                                                        onSelect={() => {
+                                                                            if (isSelected) {
+                                                                                field.onChange(field.value?.filter((id) => id !== role.id));
+                                                                            } else {
+                                                                                if ((field.value?.length ?? 0) < 3) {
+                                                                                    field.onChange([...(field.value ?? []), role.id]);
+                                                                                }
                                                                             }
-                                                                        }
-                                                                    }}
-                                                                >
-                                                                    <Check
-                                                                        className={cn(
-                                                                            "mr-2 h-4 w-4",
-                                                                            isSelected ? "opacity-100" : "opacity-0"
-                                                                        )}
-                                                                    />
-                                                                    {role.name}
-                                                                </CommandItem>
-                                                            );
-                                                        })}
-                                                    </CommandGroup>
-                                                </CommandList>
-                                            </Command>
-                                        </PopoverContent>
-                                    </Popover>
-                                    <FormDescription>
-                                        Selecione até 3 cargos que darão status VIP aos usuários (desconto na loja, 2x XP, etc).
-                                    </FormDescription>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
+                                                                        }}
+                                                                    >
+                                                                        <Check
+                                                                            className={cn(
+                                                                                "mr-2 h-4 w-4",
+                                                                                isSelected ? "opacity-100" : "opacity-0"
+                                                                            )}
+                                                                        />
+                                                                        {role.name}
+                                                                    </CommandItem>
+                                                                );
+                                                            })}
+                                                        </CommandGroup>
+                                                    </CommandList>
+                                                </Command>
+                                            </PopoverContent>
+                                        </Popover>
+                                        <FormDescription>
+                                            Selecione até 3 cargos que darão status VIP aos usuários.
+                                        </FormDescription>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                        </div>
                         <Button type="submit" disabled={isSubmitting}>
                             {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                             Salvar Configurações

@@ -59,9 +59,21 @@ export async function middleware(req: NextRequest) {
         return NextResponse.redirect(new URL('/bet', req.url));
     }
     // Protege as rotas de admin
-    if (pathname.startsWith('/admin') && !token.admin) {
-        // Redireciona usuários não-admin para fora do painel
-        return NextResponse.redirect(new URL('/bet', req.url));
+    if (pathname.startsWith('/admin')) {
+      if (token.admin) {
+        // Admins têm acesso a tudo
+        return NextResponse.next();
+      }
+      
+      // Permissões específicas para não-admins
+      const canAccessPosts = pathname.startsWith('/admin/announcements') && token.canPost;
+      
+      if (canAccessPosts) {
+        return NextResponse.next();
+      }
+
+      // Se não for admin e não tiver permissão específica, redireciona
+      return NextResponse.redirect(new URL('/bet', req.url));
     }
   }
 

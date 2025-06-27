@@ -15,6 +15,7 @@ declare module 'next-auth' {
       admin: boolean;
       level: UserLevel;
       isVip: boolean;
+      canPost: boolean;
       adRemovalExpiresAt: string | null;
       dailyRewardLastClaimed: string | null;
     } & DefaultSession['user'];
@@ -28,5 +29,6 @@ declare module 'next-auth' {
     discordId: string;
     admin: boolean;
     isVip: boolean;
+    canPost: boolean;
   }
 }

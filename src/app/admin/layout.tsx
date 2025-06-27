@@ -4,7 +4,7 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import type { ReactNode } from "react"
-import { Bot, Home, Megaphone, Menu, Receipt, Send, Server, Settings, ShoppingBag, Star, Ticket, Trophy, Users, FilePen } from "lucide-react"
+import { Bot, Home, Megaphone, Menu, Receipt, Server, Settings, ShoppingBag, Star, Ticket, Trophy, Users, FilePen } from "lucide-react"
 import { useSession, signOut } from "next-auth/react"
 
 import { Button } from "@/components/ui/button"
@@ -23,42 +23,42 @@ interface AdminLayoutProps {
     children: ReactNode;
 }
 
-const navGroups = [
+const allNavGroups = [
   {
     title: 'Principal',
     links: [
-      { href: "/admin/dashboard", label: "Dashboard", icon: Home },
+      { href: "/admin/dashboard", label: "Dashboard", icon: Home, adminOnly: true },
     ]
   },
   {
     title: 'Gerenciamento',
     links: [
-      { href: "/admin/matches", label: "Partidas", icon: Trophy },
-      { href: "/admin/bets", label: "Apostas", icon: Ticket },
-      { href: "/admin/users", label: "Usuários", icon: Users },
-      { href: "/admin/purchases", label: "Compras", icon: Receipt },
+      { href: "/admin/matches", label: "Partidas", icon: Trophy, adminOnly: true },
+      { href: "/admin/bets", label: "Apostas", icon: Ticket, adminOnly: true },
+      { href: "/admin/users", label: "Usuários", icon: Users, adminOnly: true },
+      { href: "/admin/purchases", label: "Compras", icon: Receipt, adminOnly: true },
     ]
   },
   {
     title: 'Comunidade & Eventos',
     links: [
-        { href: "/admin/mvp", label: "MVP Votação", icon: Star },
-        { href: "/admin/announcements", label: "Posts", icon: FilePen },
+        { href: "/admin/mvp", label: "MVP Votação", icon: Star, adminOnly: true },
+        { href: "/admin/announcements", label: "Posts", icon: FilePen, adminOnly: false }, // This can be seen by post creators
     ]
   },
   {
     title: 'Monetização',
     links: [
-        { href: "/admin/store", label: "Loja", icon: ShoppingBag },
-        { href: "/admin/ads", label: "Anúncios", icon: Megaphone },
+        { href: "/admin/store", label: "Loja", icon: ShoppingBag, adminOnly: true },
+        { href: "/admin/ads", label: "Anúncios", icon: Megaphone, adminOnly: true },
     ]
   },
   {
     title: 'Configuração',
     links: [
-        { href: "/admin/server", label: "Servidor", icon: Server },
-        { href: "/admin/bot", label: "Bot", icon: Bot },
-        { href: "/admin/settings", label: "Configurações", icon: Settings },
+        { href: "/admin/server", label: "Servidor", icon: Server, adminOnly: true },
+        { href: "/admin/bot", label: "Bot", icon: Bot, adminOnly: true },
+        { href: "/admin/settings", label: "Configurações", icon: Settings, adminOnly: true },
     ]
   }
 ];
@@ -93,6 +93,16 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       .join('')
       .substring(0, 2)
       .toUpperCase() || 'AD';
+
+  const navGroups = allNavGroups.map(group => ({
+      ...group,
+      links: group.links.filter(link => {
+        if (!link.adminOnly) {
+           return user?.admin || user?.canPost;
+        }
+        return user?.admin;
+      })
+  })).filter(group => group.links.length > 0);
 
   return (
     <div className="grid min-h-screen w-full md:grid-cols-[220px_1fr] lg:grid-cols-[280px_1fr]">
@@ -170,7 +180,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                 </Avatar>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem asChild><Link href="/admin/dashboard">Admin</Link></DropdownMenuItem>
+              {(user?.admin || user?.canPost) && <DropdownMenuItem asChild><Link href="/admin/announcements">Painel</Link></DropdownMenuItem>}
               <DropdownMenuItem asChild><Link href="/bet">Voltar ao App</Link></DropdownMenuItem>
               <DropdownMenuItem onClick={() => signOut({ callbackUrl: '/' })}>Sair</DropdownMenuItem>
             </DropdownMenuContent>

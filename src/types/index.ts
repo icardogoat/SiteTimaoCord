@@ -176,9 +176,10 @@ export type BotConfig = {
   bolaoChannelId: string;
   mvpChannelId: string;
   newsChannelId: string;
-  newsMentionRoleId: string; // New field for role to mention on new posts
+  newsMentionRoleId: string;
   adminRoleId: string;
   vipRoleIds: string[];
+  postCreatorRoleId?: string;
 };
 
 export type ApiKeyEntry = {
@@ -301,22 +302,21 @@ export type SiteSettings = {
   welcomeBonus: number;
 };
 
-// Types for the new manual post system
-export type PostAuthor = {
+// Simplified Author Info, populated from the User collection
+export type AuthorInfo = {
     _id: string | ObjectId;
     name: string;
     avatarUrl: string;
-    createdAt: Date | string;
 }
 
 export type Post = {
   _id: string | ObjectId;
-  authorId: string;
+  authorId: string; // This will now be the user's discordId
   title: string;
   content: string;
   imageUrl?: string | null;
   isPinned: boolean;
   publishedAt: Date | string;
-  author?: PostAuthor; // Populated field
+  author?: AuthorInfo; // Populated field from 'users' collection
 };
     

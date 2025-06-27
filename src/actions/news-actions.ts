@@ -4,11 +4,11 @@
 import clientPromise from '@/lib/mongodb';
 import { getApiSettings } from './settings-actions';
 import { getBotConfig } from './bot-config-actions';
-import type { Post, PostAuthor } from '@/types';
+import type { Post, AuthorInfo } from '@/types';
 import { revalidatePath } from 'next/cache';
 import { ObjectId } from 'mongodb';
 
-export async function sendDiscordPostNotification(post: Post, author: PostAuthor) {
+export async function sendDiscordPostNotification(post: Post, author: AuthorInfo) {
     const { newsChannelId, newsMentionRoleId } = await getBotConfig();
     const { siteUrl } = await getApiSettings();
     const botToken = process.env.DISCORD_BOT_TOKEN;
@@ -87,11 +87,9 @@ export async function getPublicPosts(): Promise<Post[]> {
             { $limit: 20 },
             {
                 $lookup: {
-                    from: 'authors',
-                    let: { authorId: { $toObjectId: "$authorId" } },
-                    pipeline: [
-                        { $match: { $expr: { $eq: [ "$_id", "$$authorId" ] } } }
-                    ],
+                    from: 'users',
+                    localField: 'authorId',
+                    foreignField: 'discordId',
                     as: 'authorDetails'
                 }
             },
@@ -109,7 +107,10 @@ export async function getPublicPosts(): Promise<Post[]> {
                     imageUrl: 1,
                     isPinned: 1,
                     publishedAt: 1,
-                    author: '$authorDetails'
+                    author: {
+                        name: '$authorDetails.name',
+                        avatarUrl: '$authorDetails.image'
+                    }
                 }
             }
         ]).toArray();
@@ -135,11 +136,9 @@ export async function getPostById(id: string): Promise<Post | null> {
              { $match: { _id: new ObjectId(id) } },
              {
                 $lookup: {
-                    from: 'authors',
-                    let: { authorId: { $toObjectId: "$authorId" } },
-                     pipeline: [
-                        { $match: { $expr: { $eq: [ "$_id", "$$authorId" ] } } }
-                    ],
+                    from: 'users',
+                    localField: 'authorId',
+                    foreignField: 'discordId',
                     as: 'authorDetails'
                 }
             },
@@ -157,7 +156,10 @@ export async function getPostById(id: string): Promise<Post | null> {
                     imageUrl: 1,
                     isPinned: 1,
                     publishedAt: 1,
-                    author: '$authorDetails'
+                    author: {
+                       name: '$authorDetails.name',
+                       avatarUrl: '$authorDetails.image'
+                    }
                 }
             }
         ]).toArray();
