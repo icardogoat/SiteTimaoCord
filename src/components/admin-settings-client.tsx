@@ -19,16 +19,18 @@ import {
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import type { ApiKeyEntry, SiteSettings } from "@/types";
+import type { ApiSettings, SiteSettings } from "@/types";
 import { updateApiSettings, updateGeneralSiteSettings } from "@/actions/settings-actions";
-import { Loader2, PlusCircle, Trash2 } from "lucide-react";
+import { Loader2, PlusCircle, Trash2, Rss } from "lucide-react";
 import { Switch } from "./ui/switch";
 import { Textarea } from "./ui/textarea";
+import { Separator } from "./ui/separator";
 
 const apiFormSchema = z.object({
   siteUrl: z.string().url({ message: "Por favor, insira uma URL válida." }).optional().or(z.literal('')),
   apiKeys: z.array(z.object({ key: z.string().min(1, 'A chave não pode estar vazia.') })),
-  newsApiKey: z.string().optional(),
+  xApiBearerToken: z.string().optional(),
+  xUsernames: z.array(z.object({ username: z.string() })).optional(),
 });
 
 const siteSettingsFormSchema = z.object({
@@ -41,11 +43,7 @@ type ApiFormValues = z.infer<typeof apiFormSchema>;
 type SiteSettingsFormValues = z.infer<typeof siteSettingsFormSchema>;
 
 interface AdminSettingsClientProps {
-    initialApiSettings: {
-        siteUrl?: string;
-        apiKeys?: ApiKeyEntry[];
-        newsApiKey?: string;
-    };
+    initialApiSettings: Partial<ApiSettings>;
     initialSiteSettings: SiteSettings;
 }
 
@@ -59,13 +57,19 @@ export default function AdminSettingsClient({ initialApiSettings, initialSiteSet
         defaultValues: {
             siteUrl: initialApiSettings.siteUrl || "",
             apiKeys: initialApiSettings.apiKeys?.map(k => ({ key: k.key })) || [{ key: '' }],
-            newsApiKey: initialApiSettings.newsApiKey || "",
+            xApiBearerToken: initialApiSettings.xApiBearerToken || "",
+            xUsernames: initialApiSettings.xUsernames?.map(u => ({ username: u })) || [{ username: '' }],
         },
     });
 
-    const { fields, append, remove } = useFieldArray({
+    const { fields: apiKeyFields, append: appendApiKey, remove: removeApiKey } = useFieldArray({
         control: apiForm.control,
         name: "apiKeys"
+    });
+    
+    const { fields: xUsernameFields, append: appendXUsername, remove: removeXUsername } = useFieldArray({
+        control: apiForm.control,
+        name: "xUsernames"
     });
     
     const siteSettingsForm = useForm<SiteSettingsFormValues>({
@@ -79,11 +83,7 @@ export default function AdminSettingsClient({ initialApiSettings, initialSiteSet
 
     async function onApiSubmit(values: ApiFormValues) {
         setIsApiSubmitting(true);
-        const result = await updateApiSettings({
-            siteUrl: values.siteUrl || '',
-            apiKeys: values.apiKeys,
-            newsApiKey: values.newsApiKey || '',
-        });
+        const result = await updateApiSettings(values);
 
         if (result.success) {
             toast({ title: "Sucesso!", description: result.message });
@@ -191,11 +191,70 @@ export default function AdminSettingsClient({ initialApiSettings, initialSiteSet
                                     </FormItem>
                                 )}
                             />
+                             <Separator />
+
+                            <div>
+                                <h3 className="text-lg font-medium flex items-center gap-2 mb-2"><Rss className="h-5 w-5"/>Feed do X (Twitter)</h3>
+                                <div className="space-y-4">
+                                     <FormField
+                                        control={apiForm.control}
+                                        name="xApiBearerToken"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>X API Bearer Token</FormLabel>
+                                                <FormControl>
+                                                    <Input type="password" placeholder="Seu Bearer Token da API do X" {...field} />
+                                                </FormControl>
+                                                <FormDescription>
+                                                    Token necessário para buscar posts do X.
+                                                </FormDescription>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                    <div className="space-y-4">
+                                        <FormLabel>Nomes de Usuário do X</FormLabel>
+                                        <FormDescription>Adicione os perfis do X (sem o @) dos quais deseja puxar os posts.</FormDescription>
+                                        {xUsernameFields.map((field, index) => (
+                                            <FormField
+                                                control={apiForm.control}
+                                                key={field.id}
+                                                name={`xUsernames.${index}.username`}
+                                                render={({ field: renderField }) => (
+                                                    <FormItem>
+                                                        <div className="flex items-center gap-2">
+                                                            <FormControl>
+                                                                <Input placeholder="Ex: Corinthians" {...renderField} />
+                                                            </FormControl>
+                                                            <Button type="button" variant="destructive" size="icon" onClick={() => removeXUsername(index)} disabled={xUsernameFields.length <= 1}>
+                                                                <Trash2 className="h-4 w-4" />
+                                                            </Button>
+                                                        </div>
+                                                        <FormMessage />
+                                                    </FormItem>
+                                                )}
+                                            />
+                                        ))}
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            size="sm"
+                                            className="mt-2"
+                                            onClick={() => appendXUsername({ username: '' })}
+                                        >
+                                            <PlusCircle className="mr-2 h-4 w-4" />
+                                            Adicionar Usuário
+                                        </Button>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <Separator />
                             
                             <div className="space-y-4">
                                 <FormLabel>Chaves da API-Football</FormLabel>
                                 <FormDescription>Adicione múltiplas chaves. O sistema rotacionará automaticamente para evitar o limite de 90 usos diários por chave.</FormDescription>
-                                {fields.map((field, index) => {
+                                {apiKeyFields.map((field, index) => {
                                     const currentKeyData = initialApiSettings.apiKeys?.find(k => k.key === apiForm.watch(`apiKeys.${index}.key`));
                                     return (
                                     <FormField
@@ -211,7 +270,7 @@ export default function AdminSettingsClient({ initialApiSettings, initialSiteSet
                                                     <div className="p-2 border rounded-md bg-muted text-muted-foreground text-sm font-mono whitespace-nowrap">
                                                         {currentKeyData?.usage ?? 0} / 90
                                                     </div>
-                                                    <Button type="button" variant="destructive" size="icon" onClick={() => remove(index)} disabled={fields.length <= 1}>
+                                                    <Button type="button" variant="destructive" size="icon" onClick={() => removeApiKey(index)} disabled={apiKeyFields.length <= 1}>
                                                         <Trash2 className="h-4 w-4" />
                                                     </Button>
                                                 </div>
@@ -225,29 +284,12 @@ export default function AdminSettingsClient({ initialApiSettings, initialSiteSet
                                     variant="outline"
                                     size="sm"
                                     className="mt-2"
-                                    onClick={() => append({ key: '' })}
+                                    onClick={() => appendApiKey({ key: '' })}
                                 >
                                     <PlusCircle className="mr-2 h-4 w-4" />
                                     Adicionar Chave
                                 </Button>
                             </div>
-
-                            <FormField
-                                control={apiForm.control}
-                                name="newsApiKey"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Chave da NewsAPI</FormLabel>
-                                        <FormControl>
-                                            <Input type="password" placeholder="Sua chave da NewsAPI" {...field} />
-                                        </FormControl>
-                                        <FormDescription>
-                                            Chave de API do serviço <a href="https://newsapi.org/" target="_blank" rel="noopener noreferrer" className="underline">NewsAPI</a> para buscar notícias.
-                                        </FormDescription>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
                             
                             <Button type="submit" disabled={isApiSubmitting}>
                                 {isApiSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
@@ -260,5 +302,3 @@ export default function AdminSettingsClient({ initialApiSettings, initialSiteSet
         </div>
     );
 }
-
-    

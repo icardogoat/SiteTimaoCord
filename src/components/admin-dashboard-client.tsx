@@ -1,7 +1,7 @@
 
 'use client'
 
-import { Activity, CreditCard, DollarSign, Users, Newspaper, Loader2 } from "lucide-react"
+import { Activity, CreditCard, DollarSign, Users, Rss, Loader2 } from "lucide-react"
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts"
 import { useState } from "react"
 
@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/chart"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import type { DashboardStats, TopBettor, RecentBet, WeeklyBetVolume } from "@/actions/admin-actions"
-import { forceFetchNews } from "@/actions/admin-actions"
+import { forceFetchXPosts } from "@/actions/admin-actions"
 import { useToast } from "@/hooks/use-toast"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
@@ -41,16 +41,16 @@ export function AdminDashboardClient({ stats, weeklyVolume, topBettors, recentBe
     
     const handleForceFetchNews = async () => {
         setIsFetchingNews(true);
-        toast({ title: "Iniciando busca manual de notícias..." });
-        const result = await forceFetchNews();
+        toast({ title: "Iniciando busca manual de posts..." });
+        const result = await forceFetchXPosts();
         if (result.success) {
             toast({
-                title: "Busca de Notícias Concluída",
+                title: "Busca Concluída",
                 description: result.message,
             })
         } else {
             toast({
-                title: "Erro na Busca de Notícias",
+                title: "Erro na Busca",
                 description: result.message,
                 variant: "destructive"
             })
@@ -194,7 +194,7 @@ export function AdminDashboardClient({ stats, weeklyVolume, topBettors, recentBe
                 </CardHeader>
                 <CardContent>
                     <Button className="w-full" onClick={handleForceFetchNews} disabled={isFetchingNews}>
-                        {isFetchingNews ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Newspaper className="mr-2 h-4 w-4" />}
+                        {isFetchingNews ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Rss className="mr-2 h-4 w-4" />}
                         Forçar Busca de Notícias
                     </Button>
                 </CardContent>

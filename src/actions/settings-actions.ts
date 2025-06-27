@@ -2,14 +2,14 @@
 'use server';
 
 import clientPromise from '@/lib/mongodb';
-import type { ApiKeyEntry, SiteSettings } from '@/types';
+import type { ApiKeyEntry, SiteSettings, ApiSettings } from '@/types';
 import { ObjectId } from 'mongodb';
 import { revalidatePath } from 'next/cache';
 import { randomBytes } from 'crypto';
 
 const SETTINGS_ID = '66a4f2b9a7c3d2e3c4f5b6a7'; // A fixed ID for the single settings document
 
-export async function getApiSettings(): Promise<{ siteUrl?: string; apiKeys?: ApiKeyEntry[]; newsApiKey?: string }> {
+export async function getApiSettings(): Promise<Partial<ApiSettings>> {
     try {
         const client = await clientPromise;
         const db = client.db('timaocord');
@@ -29,7 +29,7 @@ export async function getApiSettings(): Promise<{ siteUrl?: string; apiKeys?: Ap
             return k;
         });
 
-        if (keysWereReset) {
+        if (keysWereReset && settings) {
             await settingsCollection.updateOne(
                 { _id: new ObjectId(SETTINGS_ID) },
                 { $set: { apiKeys } }
@@ -39,14 +39,16 @@ export async function getApiSettings(): Promise<{ siteUrl?: string; apiKeys?: Ap
         return {
             siteUrl: settings?.siteUrl || process.env.NEXT_PUBLIC_SITE_URL || '',
             apiKeys: apiKeys,
-            newsApiKey: settings?.newsApiKey || '',
+            xApiBearerToken: settings?.xApiBearerToken || '',
+            xUsernames: settings?.xUsernames || [],
         };
     } catch (error) {
         console.error("Error fetching API settings:", error);
         return {
             siteUrl: process.env.NEXT_PUBLIC_SITE_URL || '',
             apiKeys: [],
-            newsApiKey: '',
+            xApiBearerToken: '',
+            xUsernames: [],
         };
     }
 }
@@ -54,7 +56,8 @@ export async function getApiSettings(): Promise<{ siteUrl?: string; apiKeys?: Ap
 type UpdateSettingsData = {
     siteUrl: string;
     apiKeys: { key: string }[];
-    newsApiKey: string;
+    xApiBearerToken: string;
+    xUsernames: { username: string }[];
 };
 
 export async function updateApiSettings(data: UpdateSettingsData): Promise<{ success: boolean; message: string }> {
@@ -79,10 +82,17 @@ export async function updateApiSettings(data: UpdateSettingsData): Promise<{ suc
                     lastReset: new Date(0).toISOString(),
                 };
             });
+            
+        const xUsernames = data.xUsernames.map(u => u.username).filter(Boolean);
 
         await settingsCollection.updateOne(
             { _id: new ObjectId(SETTINGS_ID) },
-            { $set: { siteUrl: data.siteUrl, apiKeys: newApiKeys, newsApiKey: data.newsApiKey } },
+            { $set: { 
+                siteUrl: data.siteUrl, 
+                apiKeys: newApiKeys, 
+                xApiBearerToken: data.xApiBearerToken,
+                xUsernames: xUsernames,
+            } },
             { upsert: true }
         );
 

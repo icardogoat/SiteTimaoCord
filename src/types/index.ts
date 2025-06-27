@@ -189,10 +189,10 @@ export type ApiKeyEntry = {
 
 export type ApiSettings = {
     _id: string | ObjectId;
-    apiKeys?: ApiKeyEntry[];
     siteUrl?: string;
-    newsApiKey?: string;
-    adNetworkScript?: string;
+    apiKeys?: ApiKeyEntry[];
+    xApiBearerToken?: string;
+    xUsernames?: string[];
 };
 
 export type Achievement = {
@@ -304,11 +304,16 @@ export type SiteSettings = {
 
 export type NewsArticle = {
   _id: string | ObjectId;
-  title: string;
-  description: string;
+  tweetId: string;
+  author: {
+    name: string;
+    username: string;
+    avatarUrl: string;
+  };
+  text: string;
   url: string;
-  imageUrl: string | null;
-  source: string;
+  mediaUrl?: string | null;
+  source: string; // "X (Twitter)"
   publishedAt: Date | string;
   fetchedAt: Date | string;
 };

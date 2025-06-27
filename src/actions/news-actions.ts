@@ -22,12 +22,15 @@ export async function sendDiscordNewsNotification(article: NewsArticle) {
 
     const embed = {
         color: 0x0ea5e9, // sky-500
-        title: article.title,
-        url: articleUrl,
-        description: article.description,
-        image: article.imageUrl ? { url: article.imageUrl } : undefined,
+        author: {
+            name: `${article.author.name} (@${article.author.username})`,
+            url: `https://x.com/${article.author.username}`,
+            icon_url: article.author.avatarUrl,
+        },
+        description: article.text,
+        image: article.mediaUrl ? { url: article.mediaUrl } : undefined,
         footer: {
-            text: `Fonte: ${article.source}`,
+            text: `Fonte: X (Twitter)`,
         },
         timestamp: new Date(article.publishedAt).toISOString(),
     };
@@ -44,7 +47,7 @@ export async function sendDiscordNewsNotification(article: NewsArticle) {
             const errorData = await response.json();
             console.error('Failed to send news notification to Discord:', JSON.stringify(errorData, null, 2));
         } else {
-            console.log(`Successfully sent news notification for article: "${article.title}"`);
+            console.log(`Successfully sent news notification for tweet: "${article.tweetId}"`);
         }
     } catch (error) {
         console.error('Error sending news notification to Discord:', error);
@@ -52,68 +55,110 @@ export async function sendDiscordNewsNotification(article: NewsArticle) {
 }
 
 
-export async function fetchAndStoreNews() {
-    console.log('Starting to fetch news...');
-    const { newsApiKey } = await getApiSettings();
+export async function fetchAndStoreXPosts(options: { manual?: boolean, limit?: number } = {}) {
+    console.log('Starting to fetch X posts...');
+    const { xApiBearerToken, xUsernames } = await getApiSettings();
+    const { manual = false, limit = 10 } = options;
 
-    if (!newsApiKey) {
-        console.log('NewsAPI key not configured. Skipping news fetch.');
-        return { success: false, message: 'NewsAPI key not configured.' };
+    if (!xApiBearerToken || !xUsernames || xUsernames.length === 0) {
+        const msg = 'X API Bearer Token or Usernames not configured. Skipping X fetch.';
+        console.log(msg);
+        return { success: false, message: msg };
     }
 
     const client = await clientPromise;
     const db = client.db('timaocord');
     const articlesCollection = db.collection<NewsArticle>('news_articles');
     
-    // Fetch articles from the last 2 days to ensure we don't miss anything
-    const twoDaysAgo = new Date();
-    twoDaysAgo.setDate(twoDaysAgo.getDate() - 2);
-
-    const url = `${NEWS_API_URL}?q=Corinthians&from=${twoDaysAgo.toISOString().split('T')[0]}&sortBy=publishedAt&language=pt&apiKey=${newsApiKey}`;
+    const headers = {
+        'Authorization': `Bearer ${xApiBearerToken}`,
+        'Content-Type': 'application/json',
+    };
 
     try {
-        const response = await fetch(url, { cache: 'no-store' });
-        const data = await response.json();
+        // 1. Get user IDs from usernames
+        const userLookupUrl = `https://api.twitter.com/2/users/by?usernames=${xUsernames.join(',')}&user.fields=profile_image_url`;
+        const usersRes = await fetch(userLookupUrl, { headers, cache: 'no-store' });
 
-        if (data.status !== 'ok') {
-            console.error('NewsAPI fetch error:', data.message);
-            return { success: false, message: `NewsAPI Error: ${data.message}` };
+        if (!usersRes.ok) {
+            const error = await usersRes.json();
+            throw new Error(`X API User Lookup Error: ${error.detail || usersRes.statusText}`);
+        }
+        const { data: usersData } = await usersRes.json();
+        if (!usersData || usersData.length === 0) {
+            throw new Error('No X users found for the provided usernames.');
         }
 
-        let newArticlesCount = 0;
-        for (const article of data.articles) {
-            // Check if article already exists
-            const existingArticle = await articlesCollection.findOne({ url: article.url });
-            if (existingArticle) {
-                continue; // Skip if already in DB
-            }
+        let newPostsCount = 0;
+
+        // 2. For each user, get their recent tweets
+        for (const user of usersData) {
+            const tweetLookupUrl = `https://api.twitter.com/2/users/${user.id}/tweets?max_results=${limit}&exclude=retweets,replies&expansions=attachments.media_keys&tweet.fields=created_at&media.fields=url,preview_image_url`;
+            const tweetsRes = await fetch(tweetLookupUrl, { headers, cache: 'no-store' });
             
-            const newArticleData: Omit<NewsArticle, '_id'> = {
-                title: article.title,
-                description: article.description,
-                url: article.url,
-                imageUrl: article.urlToImage,
-                source: article.source.name,
-                publishedAt: new Date(article.publishedAt),
-                fetchedAt: new Date(),
-            };
+            if (!tweetsRes.ok) {
+                console.error(`Failed to fetch tweets for ${user.username}. Status: ${tweetsRes.status}`);
+                continue; // Skip this user and try the next one
+            }
 
-            const result = await articlesCollection.insertOne(newArticleData as any);
-            const insertedArticle: NewsArticle = { ...newArticleData, _id: result.insertedId };
-            await sendDiscordNewsNotification(insertedArticle);
-            newArticlesCount++;
+            const tweetsPayload = await tweetsRes.json();
+            const tweets = tweetsPayload.data || [];
+            const media = new Map((tweetsPayload.includes?.media || []).map((m: any) => [m.media_key, m]));
+
+            for (const tweet of tweets) {
+                const existingPost = await articlesCollection.findOne({ tweetId: tweet.id });
+                if (existingPost) {
+                    continue; // Skip if already in DB
+                }
+                
+                let mediaUrl = null;
+                if (tweet.attachments?.media_keys?.length > 0) {
+                    const mediaData = media.get(tweet.attachments.media_keys[0]);
+                    if (mediaData?.type === 'photo') {
+                        mediaUrl = mediaData.url;
+                    } else if (mediaData?.type === 'video') {
+                        mediaUrl = mediaData.preview_image_url;
+                    }
+                }
+                
+                // Remove t.co links from the end of the text
+                const cleanedText = tweet.text.replace(/https:\/\/t\.co\/\w+$/, '').trim();
+
+                const newPost: Omit<NewsArticle, '_id'> = {
+                    tweetId: tweet.id,
+                    text: cleanedText,
+                    url: `https://x.com/${user.username}/status/${tweet.id}`,
+                    author: {
+                        name: user.name,
+                        username: user.username,
+                        avatarUrl: user.profile_image_url.replace('_normal', '_400x400'),
+                    },
+                    mediaUrl: mediaUrl,
+                    source: 'X (Twitter)',
+                    publishedAt: new Date(tweet.created_at),
+                    fetchedAt: new Date(),
+                };
+
+                const result = await articlesCollection.insertOne(newPost as any);
+                await sendDiscordNewsNotification({ ...newPost, _id: result.insertedId });
+                newPostsCount++;
+            }
         }
-
-        if (newArticlesCount > 0) {
+        
+        if (newPostsCount > 0) {
             revalidatePath('/news');
+            revalidatePath('/');
         }
+        
+        const message = manual 
+            ? `Busca manual concluída. ${newPostsCount} novo(s) post(s) adicionado(s).`
+            : `X posts fetch complete. Added ${newPostsCount} new posts.`;
 
-        const message = `News fetch complete. Found ${data.articles.length} total articles, added ${newArticlesCount} new articles.`;
         console.log(message);
         return { success: true, message };
 
     } catch (error) {
-        const message = `Failed to fetch or store news: ${(error as Error).message}`;
+        const message = `Failed to fetch or store X posts: ${(error as Error).message}`;
         console.error(message, error);
         return { success: false, message };
     }
