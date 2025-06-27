@@ -1,3 +1,4 @@
+
 "use client";
 
 import * as React from 'react';
@@ -14,7 +15,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { LogOut, User, Wallet, Ticket, Bell, Trophy, LayoutGrid, Store, ShieldCheck, Swords, Star, Megaphone } from 'lucide-react';
+import { LogOut, User, Wallet, Ticket, Bell, Trophy, LayoutGrid, Store, ShieldCheck, Swords, Star, Megaphone, Newspaper } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useSession, signOut } from 'next-auth/react';
@@ -143,6 +144,24 @@ export function Header() {
         </div>
         <nav className="hidden md:flex items-center gap-6 text-sm font-medium ml-6">
             <Link 
+                href="/bet" 
+                className={cn(
+                    "transition-colors hover:text-foreground",
+                    pathname === "/bet" ? "text-foreground font-semibold" : "text-muted-foreground"
+                )}
+            >
+                Apostas
+            </Link>
+            <Link 
+                href="/news" 
+                className={cn(
+                    "transition-colors hover:text-foreground",
+                    pathname === "/news" ? "text-foreground font-semibold" : "text-muted-foreground"
+                )}
+            >
+                Notícias
+            </Link>
+            <Link 
                 href="/bolao" 
                 className={cn(
                     "transition-colors hover:text-foreground",
@@ -247,6 +266,12 @@ export function Header() {
               <Link href="/my-bets">
                 <Ticket className="mr-2 h-4 w-4" />
                 <span>Minhas Apostas</span>
+              </Link>
+            </DropdownMenuItem>
+             <DropdownMenuItem asChild>
+              <Link href="/news">
+                <Newspaper className="mr-2 h-4 w-4" />
+                <span>Notícias</span>
               </Link>
             </DropdownMenuItem>
              <DropdownMenuItem asChild>

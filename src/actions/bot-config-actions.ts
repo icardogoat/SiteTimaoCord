@@ -26,6 +26,7 @@ export async function getBotConfig(): Promise<Partial<BotConfig>> {
                 winnersChannelId: '',
                 bolaoChannelId: '',
                 mvpChannelId: '',
+                newsChannelId: '',
                 adminRoleId: '',
                 vipRoleIds: [],
             };
@@ -41,6 +42,7 @@ export async function getBotConfig(): Promise<Partial<BotConfig>> {
             winnersChannelId: config.winnersChannelId || '',
             bolaoChannelId: config.bolaoChannelId || '',
             mvpChannelId: config.mvpChannelId || '',
+            newsChannelId: config.newsChannelId || '',
             adminRoleId: config.adminRoleId || '',
             vipRoleIds: config.vipRoleIds || [],
         };
@@ -55,6 +57,7 @@ export async function getBotConfig(): Promise<Partial<BotConfig>> {
             winnersChannelId: '',
             bolaoChannelId: '',
             mvpChannelId: '',
+            newsChannelId: '',
             adminRoleId: '',
             vipRoleIds: [],
         };
@@ -70,6 +73,7 @@ type UpdateConfigData = {
     winnersChannelId: string;
     bolaoChannelId: string;
     mvpChannelId: string;
+    newsChannelId: string;
     adminRoleId: string;
     vipRoleIds: string[];
 };

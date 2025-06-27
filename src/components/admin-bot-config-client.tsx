@@ -52,6 +52,7 @@ const formSchema = z.object({
   winnersChannelId: z.string().optional(),
   bolaoChannelId: z.string().optional(),
   mvpChannelId: z.string().optional(),
+  newsChannelId: z.string().optional(),
   adminRoleId: z.string().optional(),
   vipRoleIds: z.array(z.string()).max(3, { message: "Você pode selecionar no máximo 3 cargos VIP." }).optional(),
 });
@@ -83,6 +84,7 @@ export default function AdminBotConfigClient({ initialConfig, initialChannels, i
             winnersChannelId: initialConfig.winnersChannelId || "",
             bolaoChannelId: initialConfig.bolaoChannelId || "",
             mvpChannelId: initialConfig.mvpChannelId || "",
+            newsChannelId: initialConfig.newsChannelId || "",
             adminRoleId: initialConfig.adminRoleId || "",
             vipRoleIds: initialConfig.vipRoleIds || [],
         },
@@ -106,6 +108,7 @@ export default function AdminBotConfigClient({ initialConfig, initialChannels, i
             winnersChannelId: '',
             bolaoChannelId: '',
             mvpChannelId: '',
+            newsChannelId: '',
             adminRoleId: '',
             vipRoleIds: [],
         });
@@ -130,7 +133,7 @@ export default function AdminBotConfigClient({ initialConfig, initialChannels, i
         setIsLoadingDetails(false);
     };
 
-    const handleTest = async (channelType: 'welcome' | 'log' | 'betting' | 'winners' | 'bolao' | 'mvp') => {
+    const handleTest = async (channelType: 'welcome' | 'log' | 'betting' | 'winners' | 'bolao' | 'mvp' | 'news') => {
         const channelId = form.getValues(`${channelType}ChannelId` as keyof FormValues);
         if (!channelId) {
             toast({ title: "Nenhum canal selecionado", variant: "destructive" });
@@ -181,6 +184,17 @@ export default function AdminBotConfigClient({ initialConfig, initialChannels, i
                     }]
                 };
                 break;
+            case 'news':
+                payload = {
+                    embeds: [{
+                        color: 0x0ea5e9, // sky-500
+                        title: '✅ Teste do Canal de Notícias ✅',
+                        description: 'Se você pode ver esta mensagem, as novas notícias do Timão serão postadas aqui!',
+                        footer: { text: 'Teste enviado pelo Painel Admin' },
+                        timestamp: new Date().toISOString(),
+                    }]
+                };
+                break;
         }
         
         setIsTesting(channelType);
@@ -204,6 +218,7 @@ export default function AdminBotConfigClient({ initialConfig, initialChannels, i
             winnersChannelId: values.winnersChannelId || '',
             bolaoChannelId: values.bolaoChannelId || '',
             mvpChannelId: values.mvpChannelId || '',
+            newsChannelId: values.newsChannelId || '',
             adminRoleId: values.adminRoleId || '',
             vipRoleIds: values.vipRoleIds || [],
         });
@@ -478,6 +493,45 @@ export default function AdminBotConfigClient({ initialConfig, initialChannels, i
                                     </div>
                                     <FormDescription>
                                        Canal para anunciar as novas votações de MVP.
+                                    </FormDescription>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                         <FormField
+                            control={form.control}
+                            name="newsChannelId"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Canal de Notícias</FormLabel>
+                                    <div className="flex items-center gap-2">
+                                        <Select onValueChange={field.onChange} value={field.value} disabled={channels.length === 0}>
+                                            <FormControl>
+                                                <SelectTrigger>
+                                                    <SelectValue placeholder="Selecione um canal" />
+                                                </SelectTrigger>
+                                            </FormControl>
+                                            <SelectContent>
+                                                {channels.map(channel => (
+                                                    <SelectItem key={channel.id} value={channel.id}>
+                                                        #{channel.name}
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                        <Button 
+                                            type="button" 
+                                            variant="outline" 
+                                            size="icon"
+                                            onClick={() => handleTest('news')}
+                                            disabled={!field.value || isTesting !== null}
+                                            aria-label="Testar canal de notícias"
+                                        >
+                                            {isTesting === 'news' ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Testar'}
+                                        </Button>
+                                    </div>
+                                    <FormDescription>
+                                       O canal para postar automaticamente as últimas notícias do Corinthians.
                                     </FormDescription>
                                     <FormMessage />
                                 </FormItem>

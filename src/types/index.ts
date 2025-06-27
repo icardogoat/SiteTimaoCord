@@ -175,6 +175,7 @@ export type BotConfig = {
   winnersChannelId: string;
   bolaoChannelId: string;
   mvpChannelId: string;
+  newsChannelId: string;
   adminRoleId: string;
   vipRoleIds: string[];
 };
@@ -190,6 +191,7 @@ export type ApiSettings = {
     _id: string | ObjectId;
     apiKeys?: ApiKeyEntry[];
     siteUrl?: string;
+    newsApiKey?: string;
     adNetworkScript?: string;
 };
 
@@ -300,4 +302,14 @@ export type SiteSettings = {
   welcomeBonus: number;
 };
 
+export type NewsArticle = {
+  _id: string | ObjectId;
+  title: string;
+  description: string;
+  url: string;
+  imageUrl: string | null;
+  source: string;
+  publishedAt: Date | string;
+  fetchedAt: Date | string;
+};
     

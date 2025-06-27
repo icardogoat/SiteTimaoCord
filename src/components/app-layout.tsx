@@ -1,3 +1,4 @@
+
 'use client';
 
 import type { ReactNode } from 'react';
@@ -24,7 +25,7 @@ import { Header } from '@/components/header';
 import { ChampionshipSidebarMenu } from '@/components/championship-sidebar-menu';
 import { BetSlipProvider } from '@/context/bet-slip-context';
 import { BetSlip } from '@/components/bet-slip';
-import { Store, ShieldCheck, Swords, Star, Megaphone } from 'lucide-react';
+import { Store, ShieldCheck, Swords, Star, Megaphone, Newspaper } from 'lucide-react';
 import { AdBanner } from './ad-banner';
 
 interface AppLayoutProps {
@@ -70,6 +71,11 @@ export function AppLayout({ children, availableLeagues }: AppLayoutProps) {
                             <SidebarGroupLabel>Navegação</SidebarGroupLabel>
                             <SidebarGroupContent>
                                 <SidebarMenu>
+                                    <SidebarMenuItem>
+                                        <SidebarMenuButton asChild isActive={pathname?.startsWith('/news')}>
+                                            <Link href="/news"><Newspaper /><span>Notícias</span></Link>
+                                        </SidebarMenuButton>
+                                    </SidebarMenuItem>
                                     <SidebarMenuItem>
                                         <SidebarMenuButton asChild isActive={pathname?.startsWith('/bolao')}>
                                             <Link href="/bolao"><Swords /><span>Bolão</span></Link>

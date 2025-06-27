@@ -28,6 +28,7 @@ import { Textarea } from "./ui/textarea";
 const apiFormSchema = z.object({
   siteUrl: z.string().url({ message: "Por favor, insira uma URL válida." }).optional().or(z.literal('')),
   apiKeys: z.array(z.object({ key: z.string().min(1, 'A chave não pode estar vazia.') })),
+  newsApiKey: z.string().optional(),
 });
 
 const siteSettingsFormSchema = z.object({
@@ -43,6 +44,7 @@ interface AdminSettingsClientProps {
     initialApiSettings: {
         siteUrl?: string;
         apiKeys?: ApiKeyEntry[];
+        newsApiKey?: string;
     };
     initialSiteSettings: SiteSettings;
 }
@@ -57,6 +59,7 @@ export default function AdminSettingsClient({ initialApiSettings, initialSiteSet
         defaultValues: {
             siteUrl: initialApiSettings.siteUrl || "",
             apiKeys: initialApiSettings.apiKeys?.map(k => ({ key: k.key })) || [{ key: '' }],
+            newsApiKey: initialApiSettings.newsApiKey || "",
         },
     });
 
@@ -79,6 +82,7 @@ export default function AdminSettingsClient({ initialApiSettings, initialSiteSet
         const result = await updateApiSettings({
             siteUrl: values.siteUrl || '',
             apiKeys: values.apiKeys,
+            newsApiKey: values.newsApiKey || '',
         });
 
         if (result.success) {
@@ -227,6 +231,23 @@ export default function AdminSettingsClient({ initialApiSettings, initialSiteSet
                                     Adicionar Chave
                                 </Button>
                             </div>
+
+                            <FormField
+                                control={apiForm.control}
+                                name="newsApiKey"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Chave da NewsAPI</FormLabel>
+                                        <FormControl>
+                                            <Input type="password" placeholder="Sua chave da NewsAPI" {...field} />
+                                        </FormControl>
+                                        <FormDescription>
+                                            Chave de API do serviço <a href="https://newsapi.org/" target="_blank" rel="noopener noreferrer" className="underline">NewsAPI</a> para buscar notícias.
+                                        </FormDescription>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
                             
                             <Button type="submit" disabled={isApiSubmitting}>
                                 {isApiSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
