@@ -3,6 +3,17 @@
 import clientPromise from '@/lib/mongodb';
 import type { Match } from '@/types';
 import { translateMarketData } from '@/lib/translations';
+import { getAvailableApiKey } from './settings-actions';
+
+export type PlayerStat = {
+    id: number;
+    name: string;
+    photo: string;
+    position: string;
+    appearences: number;
+    goals: number;
+    assists: number | null;
+};
 
 export type TimaoData = {
     upcomingMatches: Match[];
@@ -13,6 +24,7 @@ export type TimaoData = {
         draws: number;
         losses: number;
     };
+    topPlayers: PlayerStat[];
 };
 
 // Type for a match from the database
@@ -66,6 +78,70 @@ const formatDbMatch = (dbMatch: DbMatch): Match => {
       };
 }
 
+async function getCorinthiansPlayerStats(): Promise<PlayerStat[]> {
+    const teamId = 127; // Corinthians ID
+    const season = new Date().getFullYear();
+
+    let apiKey;
+    try {
+        apiKey = await getAvailableApiKey();
+    } catch (error) {
+        console.error("Could not get API key for player stats:", error);
+        return [];
+    }
+    
+    const url = `https://api-football-v1.p.rapidapi.com/v3/players?team=${teamId}&season=${season}`;
+    const options = {
+        method: 'GET',
+        headers: {
+            'X-RapidAPI-Key': apiKey,
+            'X-RapidAPI-Host': 'api-football-v1.p.rapidapi.com'
+        },
+        cache: 'no-store' as RequestCache
+    };
+
+    try {
+        const response = await fetch(url, options);
+        if (!response.ok) {
+            console.error(`API Error fetching player stats for team ${teamId}:`, await response.text());
+            return [];
+        }
+
+        const data = await response.json();
+        if (!data.response || data.response.length === 0) {
+            return [];
+        }
+        
+        const playerStats: PlayerStat[] = data.response.map((item: any) => {
+            const mainLeagueStats = item.statistics.find((stat: any) => stat.league.name === 'Brasileirão Série A' || stat.league.name === 'Serie A') || item.statistics[0];
+            
+            if (!mainLeagueStats || !mainLeagueStats.games.appearences) return null;
+
+            return {
+                id: item.player.id,
+                name: item.player.name,
+                photo: item.player.photo,
+                position: mainLeagueStats.games.position,
+                appearences: mainLeagueStats.games.appearences || 0,
+                goals: mainLeagueStats.goals.total || 0,
+                assists: mainLeagueStats.goals.assists,
+            };
+        }).filter((p: PlayerStat | null): p is PlayerStat => p !== null && p.appearences > 0);
+        
+        return playerStats.sort((a, b) => {
+            if (b.goals !== a.goals) {
+                return b.goals - a.goals;
+            }
+            return b.appearences - a.appearences;
+        });
+
+    } catch (error) {
+        console.error('Failed to fetch player stats:', error);
+        return [];
+    }
+}
+
+
 export async function getTimaoData(): Promise<TimaoData> {
     try {
         const client = await clientPromise;
@@ -75,12 +151,13 @@ export async function getTimaoData(): Promise<TimaoData> {
         const teamName = 'Corinthians';
         const nowTimestamp = Math.floor(Date.now() / 1000);
 
-        const allMatchesCursor = matchesCollection.find({
-            $or: [{ homeTeam: teamName }, { awayTeam: teamName }]
-        });
+        const [allMatches, topPlayers] = await Promise.all([
+             matchesCollection.find({
+                $or: [{ homeTeam: teamName }, { awayTeam: teamName }]
+            }).toArray(),
+            getCorinthiansPlayerStats()
+        ]);
         
-        const allMatches = await allMatchesCursor.toArray();
-
         const upcomingMatchesDb = allMatches
             .filter(m => m.timestamp >= nowTimestamp)
             .sort((a, b) => a.timestamp - b.timestamp)
@@ -98,8 +175,6 @@ export async function getTimaoData(): Promise<TimaoData> {
 
         recentMatchesDb.forEach(match => {
             if (match.goals.home === null || match.goals.away === null || !match.teams) {
-                // If score is null or teams data is missing, we can't determine winner, so we can count it as a draw or skip.
-                // Skipping seems more accurate.
                 return;
             };
 
@@ -110,7 +185,7 @@ export async function getTimaoData(): Promise<TimaoData> {
                 wins++;
             } else if ((winner === 'home' && !isHomeTeam) || (winner === 'away' && isHomeTeam)) {
                 losses++;
-            } else { // Draw or null winner property
+            } else {
                 draws++;
             }
         });
@@ -123,14 +198,16 @@ export async function getTimaoData(): Promise<TimaoData> {
                 wins,
                 draws,
                 losses
-            }
+            },
+            topPlayers
         };
     } catch (error) {
         console.error('Error fetching Timão data:', error);
         return {
             upcomingMatches: [],
             recentMatches: [],
-            stats: { totalMatches: 0, wins: 0, draws: 0, losses: 0 }
+            stats: { totalMatches: 0, wins: 0, draws: 0, losses: 0 },
+            topPlayers: []
         };
     }
 }

@@ -5,8 +5,10 @@ import type { TimaoData } from '@/actions/timao-actions';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { MatchCard } from './match-card';
 import { Separator } from './ui/separator';
-import { ShieldCheck, Calendar, ChevronsRight, Trophy, Minus, ShieldX } from 'lucide-react';
+import { ShieldCheck, Calendar, ChevronsRight, Trophy, Minus, ShieldX, Shirt, Target, Star as StarIcon } from 'lucide-react';
 import type { Match } from '@/types';
+import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
 
 
 const StatCard = ({ title, value, icon: Icon, colorClass }: { title: string; value: string | number; icon: React.ElementType; colorClass?: string }) => (
@@ -69,7 +71,7 @@ interface TimaoClientProps {
 }
 
 export function TimaoClient({ initialData }: TimaoClientProps) {
-    const { upcomingMatches, recentMatches, stats } = initialData;
+    const { upcomingMatches, recentMatches, stats, topPlayers } = initialData;
 
     return (
         <div className="flex-1 p-4 sm:p-6 lg:p-8">
@@ -95,6 +97,53 @@ export function TimaoClient({ initialData }: TimaoClientProps) {
                         </CardContent>
                     </Card>
                 </section>
+
+                <section>
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Destaques Individuais</CardTitle>
+                            <CardDescription>Desempenho dos jogadores na temporada atual (Brasileirão Série A).</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            {topPlayers.length > 0 ? (
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead>Jogador</TableHead>
+                                            <TableHead className="hidden sm:table-cell">Posição</TableHead>
+                                            <TableHead className="text-center" title="Partidas"><Shirt className="h-4 w-4 inline-block" /></TableHead>
+                                            <TableHead className="text-center" title="Gols"><Target className="h-4 w-4 inline-block" /></TableHead>
+                                            <TableHead className="text-center" title="Assistências"><StarIcon className="h-4 w-4 inline-block" /></TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {topPlayers.slice(0, 10).map((player) => (
+                                            <TableRow key={player.id}>
+                                                <TableCell>
+                                                    <div className="flex items-center gap-3">
+                                                        <Avatar className="h-9 w-9">
+                                                            <AvatarImage src={player.photo} alt={player.name} data-ai-hint="player photo" />
+                                                            <AvatarFallback>{player.name.substring(0,2).toUpperCase()}</AvatarFallback>
+                                                        </Avatar>
+                                                        <span className="font-medium">{player.name}</span>
+                                                    </div>
+                                                </TableCell>
+                                                <TableCell className="hidden sm:table-cell">{player.position}</TableCell>
+                                                <TableCell className="text-center font-medium">{player.appearences}</TableCell>
+                                                <TableCell className="text-center font-medium">{player.goals}</TableCell>
+                                                <TableCell className="text-center font-medium">{player.assists ?? '-'}</TableCell>
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                </Table>
+                            ) : (
+                                <p className="text-muted-foreground text-center py-4">Não foi possível carregar as estatísticas dos jogadores.</p>
+                            )}
+                        </CardContent>
+                    </Card>
+                </section>
+
+                <Separator />
 
                 <section>
                     <h2 className="text-2xl font-bold font-headline mb-4">Próximos Jogos</h2>
