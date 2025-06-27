@@ -6,22 +6,24 @@ import { getApiSettings } from './settings-actions';
 import { getBotConfig } from './bot-config-actions';
 import type { NewsArticle } from '@/types';
 import { revalidatePath } from 'next/cache';
+import { ObjectId } from 'mongodb';
 
-const NEWS_API_URL = 'https://newsapi.org/v2/everything';
-
-export async function sendDiscordNewsNotification(article: Omit<NewsArticle, '_id' | 'fetchedAt'>) {
+export async function sendDiscordNewsNotification(article: NewsArticle) {
     const { newsChannelId } = await getBotConfig();
+    const { siteUrl } = await getApiSettings();
     const botToken = process.env.DISCORD_BOT_TOKEN;
 
     if (!newsChannelId || !botToken || botToken === 'YOUR_BOT_TOKEN_HERE') {
         console.log('Discord News channel or bot token not configured. Skipping news notification.');
         return;
     }
+    
+    const articleUrl = siteUrl ? `${siteUrl}/news/${article._id.toString()}` : article.url;
 
     const embed = {
         color: 0x0ea5e9, // sky-500
         title: article.title,
-        url: article.url,
+        url: articleUrl,
         description: article.description,
         image: article.imageUrl ? { url: article.imageUrl } : undefined,
         footer: {
@@ -86,7 +88,7 @@ export async function fetchAndStoreNews() {
                 continue; // Skip if already in DB
             }
             
-            const newArticle: Omit<NewsArticle, '_id'> = {
+            const newArticleData: Omit<NewsArticle, '_id'> = {
                 title: article.title,
                 description: article.description,
                 url: article.url,
@@ -96,8 +98,9 @@ export async function fetchAndStoreNews() {
                 fetchedAt: new Date(),
             };
 
-            await articlesCollection.insertOne(newArticle as any);
-            await sendDiscordNewsNotification(newArticle);
+            const result = await articlesCollection.insertOne(newArticleData as any);
+            const insertedArticle: NewsArticle = { ...newArticleData, _id: result.insertedId };
+            await sendDiscordNewsNotification(insertedArticle);
             newArticlesCount++;
         }
 
@@ -127,6 +130,28 @@ export async function getNews(): Promise<NewsArticle[]> {
     } catch (error) {
         console.error("Error fetching news from DB:", error);
         return [];
+    }
+}
+
+export async function getNewsArticleById(id: string): Promise<NewsArticle | null> {
+    if (!ObjectId.isValid(id)) {
+        return null;
+    }
+
+    try {
+        const client = await clientPromise;
+        const db = client.db('timaocord');
+        const articlesCollection = db.collection<NewsArticle>('news_articles');
+        const article = await articlesCollection.findOne({ _id: new ObjectId(id) });
+
+        if (!article) {
+            return null;
+        }
+
+        return JSON.parse(JSON.stringify(article));
+    } catch (error) {
+        console.error(`Error fetching news article by ID ${id}:`, error);
+        return null;
     }
 }
 

@@ -27,7 +27,7 @@ function ClientTime({ date }: { date: string | Date }) {
 export function NewsCard({ article }: NewsCardProps) {
     return (
         <Card className="flex flex-col overflow-hidden h-full group">
-            <Link href={article.url} target="_blank" rel="noopener noreferrer" className="flex flex-col h-full">
+            <Link href={`/news/${article._id.toString()}`} className="flex flex-col h-full">
                 {article.imageUrl && (
                     <CardHeader className="p-0">
                         <div className="aspect-video relative overflow-hidden">
