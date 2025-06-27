@@ -1,3 +1,4 @@
+
 'use server';
 
 import { getBotConfig } from '@/actions/bot-config-actions';
@@ -39,19 +40,21 @@ export default async function JoinServerPage({ searchParams }: { searchParams?: 
 
     return (
         <div className="flex min-h-screen w-full flex-col items-center justify-center bg-background p-4">
-            <Link href="/" className="flex items-center justify-center mb-8" prefetch={false}>
-                <Image
-                    src="https://i.imgur.com/xD76hcl.png"
-                    alt="Timaocord Logo"
-                    width={500}
-                    height={127}
-                    className="h-20 w-auto"
-                    priority
-                    data-ai-hint="logo"
-                />
-            </Link>
-            <Card className="w-full max-w-md shadow-lg">
+            <div className="absolute inset-0 z-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px]"></div>
+            
+            <Card className="w-full max-w-md shadow-lg z-10">
                 <CardHeader className="text-center">
+                     <Link href="/" className="flex items-center justify-center mb-6">
+                        <Image
+                            src="https://i.imgur.com/xD76hcl.png"
+                            alt="Timaocord Logo"
+                            width={500}
+                            height={127}
+                            className="h-16 w-auto"
+                            priority
+                            data-ai-hint="logo"
+                        />
+                    </Link>
                     <div className="mx-auto bg-destructive/10 p-3 rounded-full w-fit">
                         <Icon className="h-8 w-8 text-destructive" />
                     </div>
@@ -84,8 +87,8 @@ export default async function JoinServerPage({ searchParams }: { searchParams?: 
                         </p>
                     )}
                     <Button asChild variant="link" className="w-full">
-                        <Link href="/login">
-                            Voltar e Tentar Novamente
+                        <Link href="/">
+                            Voltar para a página inicial
                         </Link>
                     </Button>
                 </CardFooter>
