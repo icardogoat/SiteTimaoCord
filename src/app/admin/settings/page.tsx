@@ -16,4 +16,4 @@ export default async function AdminSettingsPage() {
             initialSiteSettings={siteSettings}
         />
     );
-    
+}
