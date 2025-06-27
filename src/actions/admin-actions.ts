@@ -1858,62 +1858,31 @@ export async function deletePurchase(inventoryId: string): Promise<{ success: bo
 
 // ---- ADMIN STANDINGS ACTIONS ----
 
-const LEAGUE_ID_MAP: { [key: string]: number } = {
-    'Brasileirão Série A': 71,
-    'Brasileirão Série B': 72,
-    'Copa do Brasil': 73,
-    'CONMEBOL Libertadores': 13,
-    'CONMEBOL Sul-Americana': 11,
-    'Premier League': 39,
-    'La Liga': 140,
-    'Serie A': 135,
-    'Bundesliga': 78,
-    'Ligue 1': 61,
-    'UEFA Champions League': 2,
-    'UEFA Europa League': 3,
-    'MLS': 253,
-    'FIFA Club World Cup': 15,
-    'Mundial de Clubes da FIFA': 15
-};
-
-const relevantLeaguesForUpdate = [...new Set(Object.keys(LEAGUE_ID_MAP))];
-
-export async function getAdminStandings(): Promise<Standing[]> {
-    try {
-        const client = await clientPromise;
-        const db = client.db('timaocord');
-        const standingsCollection = db.collection<Standing>('standings');
-        const standings = await standingsCollection.find({}).toArray();
-
-        return JSON.parse(JSON.stringify(standings));
-    } catch (error) {
-        console.error("Error fetching admin standings:", error);
-        return [];
-    }
-}
-
 export async function updateAllStandings(): Promise<{ success: boolean; message: string; details: string[] }> {
     const season = new Date().getFullYear();
     const results: string[] = [];
     let successCount = 0;
     let failureCount = 0;
+    
+    const { standingsConfig } = await getApiSettings();
+    const activeLeagues = standingsConfig?.filter(c => c.isActive && c.leagueId > 0) || [];
+
+    if (activeLeagues.length === 0) {
+        return { success: true, message: 'Nenhuma tabela ativa para atualizar.', details: [] };
+    }
 
     const client = await clientPromise;
     const db = client.db('timaocord');
     const standingsCollection = db.collection('standings');
 
-    for (const leagueName of relevantLeaguesForUpdate) {
-        const leagueId = LEAGUE_ID_MAP[leagueName];
-        if (!leagueId) {
-            results.push(`Skipping '${leagueName}': No ID found.`);
-            continue;
-        }
-
+    for (const leagueConfig of activeLeagues) {
+        const leagueId = leagueConfig.leagueId;
+        
         let apiKey;
         try {
             apiKey = await getAvailableApiKey();
         } catch (error: any) {
-            return { success: false, message: 'Failed to get API key.', details: [error.message] };
+            return { success: false, message: 'Falha ao obter a chave da API.', details: [error.message] };
         }
         
         const url = `https://api-football-v1.p.rapidapi.com/v3/standings?league=${leagueId}&season=${season}`;
@@ -1930,15 +1899,16 @@ export async function updateAllStandings(): Promise<{ success: boolean; message:
             const response = await fetch(url, options);
             if (!response.ok) {
                 const errorData = await response.text();
-                throw new Error(`API error for ${leagueName}: ${response.status} ${errorData}`);
+                throw new Error(`API error for league ${leagueId}: ${response.status} ${errorData}`);
             }
 
             const data = await response.json();
             if (!data.response || data.response.length === 0 || !data.response[0].league) {
-                throw new Error(`No standings data returned from API for ${leagueName}.`);
+                throw new Error(`Nenhum dado de classificação retornado da API para a liga ${leagueId}.`);
             }
             
             const apiResponseLeague = data.response[0].league;
+            const leagueName = apiResponseLeague.name;
 
             const documentToUpsert = {
                 league: {
@@ -1959,17 +1929,17 @@ export async function updateAllStandings(): Promise<{ success: boolean; message:
                 { upsert: true }
             );
 
-            results.push(`Successfully updated ${leagueName}.`);
+            results.push(`Atualizado com sucesso ${leagueName}.`);
             successCount++;
 
         } catch (error: any) {
-            results.push(`Failed to update ${leagueName}: ${error.message}`);
+            results.push(`Falha ao atualizar a liga ID ${leagueId}: ${error.message}`);
             failureCount++;
-            console.error(`Error updating standings for ${leagueName} (ID: ${leagueId}):`, error);
+            console.error(`Error updating standings for league ID ${leagueId}:`, error);
         }
     }
     
-    const summaryMessage = `Standings update complete. Success: ${successCount}, Failed: ${failureCount}.`;
+    const summaryMessage = `Atualização da tabela concluída. Sucesso: ${successCount}, Falha: ${failureCount}.`;
     revalidatePath('/admin/standings');
     revalidatePath('/standings');
     

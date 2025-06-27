@@ -2,14 +2,14 @@
 'use server';
 
 import clientPromise from '@/lib/mongodb';
-import type { ApiKeyEntry, ApiSettings } from '@/types';
+import type { ApiKeyEntry, ApiSettings, StandingConfigEntry } from '@/types';
 import { ObjectId } from 'mongodb';
 import { revalidatePath } from 'next/cache';
 import { randomBytes } from 'crypto';
 
 const SETTINGS_ID = '66a4f2b9a7c3d2e3c4f5b6a7'; // A fixed ID for the single settings document
 
-export async function getApiSettings(): Promise<{ siteUrl?: string; apiKeys?: ApiKeyEntry[] }> {
+export async function getApiSettings(): Promise<{ siteUrl?: string; apiKeys?: ApiKeyEntry[], standingsConfig?: StandingConfigEntry[] }> {
     try {
         const client = await clientPromise;
         const db = client.db('timaocord');
@@ -39,12 +39,14 @@ export async function getApiSettings(): Promise<{ siteUrl?: string; apiKeys?: Ap
         return {
             siteUrl: settings?.siteUrl || process.env.NEXT_PUBLIC_SITE_URL || '',
             apiKeys: apiKeys,
+            standingsConfig: settings?.standingsConfig || [],
         };
     } catch (error) {
         console.error("Error fetching API settings:", error);
         return {
             siteUrl: process.env.NEXT_PUBLIC_SITE_URL || '',
             apiKeys: [],
+            standingsConfig: [],
         };
     }
 }
@@ -91,6 +93,28 @@ export async function updateApiSettings(data: UpdateSettingsData): Promise<{ suc
     }
 }
 
+export async function updateStandingsConfig(config: StandingConfigEntry[]): Promise<{ success: boolean; message: string }> {
+    try {
+        const client = await clientPromise;
+        const db = client.db('timaocord');
+        const settingsCollection = db.collection('api_settings');
+
+        const validConfig = config.filter(c => c.leagueId && !isNaN(c.leagueId));
+
+        await settingsCollection.updateOne(
+            { _id: new ObjectId(SETTINGS_ID) },
+            { $set: { standingsConfig: validConfig } },
+            { upsert: true }
+        );
+
+        revalidatePath('/admin/standings');
+        revalidatePath('/standings');
+        return { success: true, message: 'Configuração de tabelas salva com sucesso!' };
+    } catch (error) {
+        console.error("Error updating standings config:", error);
+        return { success: false, message: 'Falha ao salvar a configuração.' };
+    }
+}
 
 export async function getAvailableApiKey(): Promise<string> {
     const client = await clientPromise;

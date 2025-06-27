@@ -228,11 +228,17 @@ export type ApiKeyEntry = {
   lastReset: Date | string;
 };
 
+export type StandingConfigEntry = {
+  leagueId: number;
+  isActive: boolean;
+};
+
 export type ApiSettings = {
     _id: string | ObjectId;
     apiKeys?: ApiKeyEntry[];
     siteUrl?: string;
     adNetworkScript?: string;
+    standingsConfig?: StandingConfigEntry[];
 };
 
 export type Achievement = {
