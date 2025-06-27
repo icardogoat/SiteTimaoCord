@@ -4,14 +4,13 @@
 import { getAvailableLeagues } from "@/actions/bet-actions";
 import { getNewsArticleById } from "@/actions/news-actions";
 import { AppLayout } from "@/components/app-layout";
-import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { notFound } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { ArrowLeft, ExternalLink } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 
 export default async function NewsArticlePage({ params }: { params: { id: string } }) {
     const [article, availableLeagues] = await Promise.all([
@@ -58,14 +57,6 @@ export default async function NewsArticlePage({ params }: { params: { id: string
                             <div className="prose prose-invert max-w-none text-foreground/90 text-lg leading-relaxed space-y-4">
                                 <p>{article.description}</p>
                             </div>
-                            
-                            <footer className="mt-8 border-t pt-6">
-                                <Button asChild>
-                                    <Link href={article.url} target="_blank" rel="noopener noreferrer">
-                                        Ler matéria original <ExternalLink className="ml-2 h-4 w-4" />
-                                    </Link>
-                                </Button>
-                            </footer>
                         </article>
                     </Card>
                 </div>
