@@ -1,11 +1,15 @@
 import { getSiteSettings } from '@/actions/settings-actions';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { getBotConfig } from '@/actions/bot-config-actions';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import Image from 'next/image';
 import { HardHat, Clock } from 'lucide-react';
 import Link from 'next/link';
+import { Button } from '@/components/ui/button';
+import { DiscordLogo } from '@/components/icons';
 
 export default async function MaintenancePage() {
     const { maintenanceMessage, maintenanceExpectedReturn } = await getSiteSettings();
+    const { guildInviteUrl } = await getBotConfig();
 
     return (
         <div className="flex min-h-screen w-full flex-col items-center justify-center bg-background p-4">
@@ -38,6 +42,18 @@ export default async function MaintenancePage() {
                             <span>Retorno previsto: {maintenanceExpectedReturn}</span>
                         </div>
                     </CardContent>
+                )}
+
+                {guildInviteUrl && (
+                    <CardFooter className="flex-col items-center justify-center pt-6 border-t">
+                        <p className="text-sm text-muted-foreground mb-4">Para mais informações, junte-se à nossa comunidade.</p>
+                        <Button asChild>
+                            <Link href={guildInviteUrl} target="_blank" rel="noopener noreferrer">
+                                <DiscordLogo className="mr-2 h-5 w-5" />
+                                Entrar no Discord
+                            </Link>
+                        </Button>
+                    </CardFooter>
                 )}
             </Card>
         </div>
