@@ -124,9 +124,9 @@ export function BetPageClient({ initialMatches, availableLeagues, ads }: BetPage
                             <section>
                                 {corinthiansMatches.length > 0 && <h2 className="text-2xl font-bold font-headline tracking-tight border-b pb-2 mb-6">Outras Partidas</h2>}
                                 <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
-                                    {otherItemsWithAds.map((item) => (
+                                    {otherItemsWithAds.map((item, index) => (
                                         isAdvertisement(item)
-                                            ? <InFeedAdCard key={`ad-${item._id.toString()}`} ad={item} />
+                                            ? <InFeedAdCard key={`ad-${item._id.toString()}-${index}`} ad={item} />
                                             : <MatchCard key={`match-${item.id}`} match={item} />
                                     ))}
                                 </div>
