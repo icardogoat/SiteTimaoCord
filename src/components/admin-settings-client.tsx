@@ -28,7 +28,7 @@ import { Separator } from "./ui/separator";
 
 const apiFormSchema = z.object({
   siteUrl: z.string().url({ message: "Por favor, insira uma URL válida." }).optional().or(z.literal('')),
-  apiKeys: z.array(z.object({ key: z.string().min(1, 'A chave não pode estar vazia.') })),
+  apiKeys: z.array(z.object({ key: z.string() })).optional(),
   xApiBearerToken: z.string().optional(),
   xUsernames: z.array(z.object({ username: z.string() })).optional(),
 });
@@ -83,7 +83,12 @@ export default function AdminSettingsClient({ initialApiSettings, initialSiteSet
 
     async function onApiSubmit(values: ApiFormValues) {
         setIsApiSubmitting(true);
-        const result = await updateApiSettings(values);
+        // Filter out empty apiKeys before submitting
+        const dataToSubmit = {
+            ...values,
+            apiKeys: values.apiKeys?.filter(k => k.key.trim() !== '') || []
+        };
+        const result = await updateApiSettings(dataToSubmit);
 
         if (result.success) {
             toast({ title: "Sucesso!", description: result.message });
@@ -253,7 +258,7 @@ export default function AdminSettingsClient({ initialApiSettings, initialSiteSet
                             
                             <div className="space-y-4">
                                 <FormLabel>Chaves da API-Football</FormLabel>
-                                <FormDescription>Adicione múltiplas chaves. O sistema rotacionará automaticamente para evitar o limite de 90 usos diários por chave.</FormDescription>
+                                <FormDescription>Adicione múltiplas chaves. O sistema rotacionará automaticamente para evitar o limite de 90 usos diários por chave. A chave principal definida em .env será usada como fallback.</FormDescription>
                                 {apiKeyFields.map((field, index) => {
                                     const currentKeyData = initialApiSettings.apiKeys?.find(k => k.key === apiForm.watch(`apiKeys.${index}.key`));
                                     return (
@@ -270,7 +275,7 @@ export default function AdminSettingsClient({ initialApiSettings, initialSiteSet
                                                     <div className="p-2 border rounded-md bg-muted text-muted-foreground text-sm font-mono whitespace-nowrap">
                                                         {currentKeyData?.usage ?? 0} / 90
                                                     </div>
-                                                    <Button type="button" variant="destructive" size="icon" onClick={() => removeApiKey(index)} disabled={apiKeyFields.length <= 1}>
+                                                    <Button type="button" variant="destructive" size="icon" onClick={() => removeApiKey(index)} disabled={apiKeyFields.length <= 1 && renderField.value === ''}>
                                                         <Trash2 className="h-4 w-4" />
                                                     </Button>
                                                 </div>

@@ -304,16 +304,19 @@ export type SiteSettings = {
 
 export type NewsArticle = {
   _id: string | ObjectId;
-  tweetId: string;
-  author: {
+  tweetId?: string;
+  author?: {
     name: string;
     username: string;
     avatarUrl: string;
   };
   text: string;
+  title?: string;
+  description?: string;
   url: string;
   mediaUrl?: string | null;
-  source: string; // "X (Twitter)"
+  imageUrl?: string | null;
+  source: string;
   publishedAt: Date | string;
   fetchedAt: Date | string;
 };

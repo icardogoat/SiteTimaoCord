@@ -37,7 +37,7 @@ export async function getApiSettings(): Promise<Partial<ApiSettings>> {
         }
 
         return {
-            siteUrl: settings?.siteUrl || process.env.NEXT_PUBLIC_SITE_URL || '',
+            siteUrl: settings?.siteUrl || process.env.NEXTAUTH_URL || '',
             apiKeys: apiKeys,
             xApiBearerToken: settings?.xApiBearerToken || '',
             xUsernames: settings?.xUsernames || [],
@@ -45,7 +45,7 @@ export async function getApiSettings(): Promise<Partial<ApiSettings>> {
     } catch (error) {
         console.error("Error fetching API settings:", error);
         return {
-            siteUrl: process.env.NEXT_PUBLIC_SITE_URL || '',
+            siteUrl: process.env.NEXTAUTH_URL || '',
             apiKeys: [],
             xApiBearerToken: '',
             xUsernames: [],
@@ -115,7 +115,11 @@ export async function getAvailableApiKey(): Promise<string> {
     let settings = await settingsCollection.findOne({ _id: new ObjectId(SETTINGS_ID) });
 
     if (!settings || !settings.apiKeys || settings.apiKeys.length === 0) {
-        throw new Error('Nenhuma chave de API configurada.');
+        if (process.env.API_FOOTBALL_KEY) {
+            console.log("Using API_FOOTBALL_KEY from .env as a fallback.");
+            return process.env.API_FOOTBALL_KEY;
+        }
+        throw new Error('Nenhuma chave de API configurada no painel de admin e nenhuma chave de fallback encontrada no .env.');
     }
 
     const keysNeedReset = settings.apiKeys.some((k: any) => new Date(k.lastReset) < today);
@@ -136,7 +140,7 @@ export async function getAvailableApiKey(): Promise<string> {
     const availableKey = settings.apiKeys.find((k: any) => k.usage < 90);
 
     if (!availableKey) {
-        throw new Error('Todas as chaves de API atingiram o limite de uso diário.');
+        throw new Error('Todas as chaves de API configuradas atingiram o limite de uso diário.');
     }
     
     await settingsCollection.updateOne(

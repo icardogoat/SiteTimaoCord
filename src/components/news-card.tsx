@@ -29,6 +29,7 @@ function ClientTime({ date }: { date: string | Date }) {
 
 // Simple function to linkify URLs in text
 function linkify(text: string) {
+    if (!text) return '';
     const urlRegex = /(https?:\/\/[^\s]+)/g;
     return text.split(urlRegex).map((part, i) => {
         if (part.match(urlRegex)) {
@@ -39,29 +40,41 @@ function linkify(text: string) {
 }
 
 export function NewsCard({ article }: NewsCardProps) {
+    const isTweet = !!article.author;
+    const media = article.mediaUrl || article.imageUrl;
+    const contentText = article.text || article.title || '';
+
     return (
         <Card className="flex flex-col overflow-hidden h-full group">
             <CardHeader className="flex-row items-center gap-3">
-                <Avatar className="h-10 w-10">
-                    <AvatarImage src={article.author.avatarUrl} alt={article.author.name} data-ai-hint="author avatar" />
-                    <AvatarFallback><AvatarFallbackText name={article.author.name} /></AvatarFallback>
-                </Avatar>
-                <div className="flex-1">
-                    <p className="font-semibold">{article.author.name}</p>
-                    <p className="text-xs text-muted-foreground">@{article.author.username}</p>
-                </div>
+                {isTweet ? (
+                     <>
+                        <Avatar className="h-10 w-10">
+                            <AvatarImage src={article.author.avatarUrl} alt={article.author.name} data-ai-hint="author avatar" />
+                            <AvatarFallback><AvatarFallbackText name={article.author.name} /></AvatarFallback>
+                        </Avatar>
+                        <div className="flex-1 overflow-hidden">
+                            <p className="font-semibold truncate">{article.author.name}</p>
+                            <p className="text-xs text-muted-foreground truncate">@{article.author.username}</p>
+                        </div>
+                    </>
+                ) : (
+                    <div className="flex-1 overflow-hidden">
+                        <p className="font-semibold truncate">{article.source || 'Notícia'}</p>
+                    </div>
+                )}
                 <p className="text-xs text-muted-foreground whitespace-nowrap"><ClientTime date={article.publishedAt} /></p>
             </CardHeader>
             <CardContent className="flex-grow space-y-4">
-                <p className="text-foreground/90 whitespace-pre-wrap">{linkify(article.text)}</p>
-                {article.mediaUrl && (
+                <p className="text-foreground/90 whitespace-pre-wrap line-clamp-4">{linkify(contentText)}</p>
+                {media && (
                     <div className="aspect-video relative rounded-lg overflow-hidden border">
                          <Image
-                            src={article.mediaUrl}
+                            src={media}
                             alt="Mídia do post"
                             fill
                             className="object-cover"
-                            data-ai-hint="tweet media"
+                            data-ai-hint="news media"
                         />
                     </div>
                 )}
