@@ -3,8 +3,8 @@ import { getSiteSettings } from '@/actions/settings-actions';
 import { NextResponse } from 'next/server';
 
 // This route is designed to be called from the middleware.
-// It has a short revalidation time to ensure the maintenance status is fresh.
-export const revalidate = 10; // Revalidate every 10 seconds
+// Setting revalidate to 0 disables caching for this route, ensuring the status is always fresh.
+export const revalidate = 0;
 
 export async function GET() {
   try {
