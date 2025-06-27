@@ -15,7 +15,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { LogOut, User, Wallet, Ticket, Bell, Trophy, LayoutGrid, Store, Table, Swords, Star, Megaphone } from 'lucide-react';
+import { LogOut, User, Wallet, Ticket, Bell, Trophy, LayoutGrid, Store, ShieldCheck, Swords, Star, Megaphone } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useSession, signOut } from 'next-auth/react';
@@ -139,13 +139,13 @@ export function Header() {
                 Loja
             </Link>
             <Link 
-                href="/standings"
+                href="/timao"
                 className={cn(
                     "transition-colors hover:text-foreground",
-                    pathname === "/standings" ? "text-foreground font-semibold" : "text-muted-foreground"
+                    pathname === "/timao" ? "text-foreground font-semibold" : "text-muted-foreground"
                 )}
             >
-                Tabela
+                Espaço do Timão
             </Link>
         </nav>
       </div>
@@ -252,9 +252,9 @@ export function Header() {
               </Link>
             </DropdownMenuItem>
             <DropdownMenuItem asChild>
-              <Link href="/standings">
-                <Table className="mr-2 h-4 w-4" />
-                <span>Tabela</span>
+              <Link href="/timao">
+                <ShieldCheck className="mr-2 h-4 w-4" />
+                <span>Espaço do Timão</span>
               </Link>
             </DropdownMenuItem>
             {user?.admin && (

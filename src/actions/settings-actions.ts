@@ -2,14 +2,14 @@
 'use server';
 
 import clientPromise from '@/lib/mongodb';
-import type { ApiKeyEntry, ApiSettings, StandingConfigEntry } from '@/types';
+import type { ApiKeyEntry, ApiSettings } from '@/types';
 import { ObjectId } from 'mongodb';
 import { revalidatePath } from 'next/cache';
 import { randomBytes } from 'crypto';
 
 const SETTINGS_ID = '66a4f2b9a7c3d2e3c4f5b6a7'; // A fixed ID for the single settings document
 
-export async function getApiSettings(): Promise<{ siteUrl?: string; apiKeys?: ApiKeyEntry[], standingsConfig?: StandingConfigEntry[] }> {
+export async function getApiSettings(): Promise<{ siteUrl?: string; apiKeys?: ApiKeyEntry[] }> {
     try {
         const client = await clientPromise;
         const db = client.db('timaocord');
@@ -39,14 +39,12 @@ export async function getApiSettings(): Promise<{ siteUrl?: string; apiKeys?: Ap
         return {
             siteUrl: settings?.siteUrl || process.env.NEXT_PUBLIC_SITE_URL || '',
             apiKeys: apiKeys,
-            standingsConfig: settings?.standingsConfig || [],
         };
     } catch (error) {
         console.error("Error fetching API settings:", error);
         return {
             siteUrl: process.env.NEXT_PUBLIC_SITE_URL || '',
             apiKeys: [],
-            standingsConfig: [],
         };
     }
 }

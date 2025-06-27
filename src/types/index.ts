@@ -165,48 +165,6 @@ export type UserInventoryItem = {
     expiresAt?: Date | string;
 };
 
-export type StandingTeam = {
-  id: number;
-  name: string;
-  logo: string;
-};
-
-export type StandingStats = {
-  played: number;
-  win: number;
-  draw: number;
-  lose: number;
-  goals: {
-    for: number;
-    against: number;
-  };
-};
-
-export type StandingEntry = {
-  rank: number;
-  team: StandingTeam;
-  points: number;
-  goalsDiff: number;
-  group: string;
-  form: string | null;
-  all: StandingStats;
-  description: string | null;
-};
-
-export type Standing = {
-  _id: string | ObjectId;
-  league: {
-    id: number;
-    name: string;
-    logo: string;
-    country: string;
-    flag: string;
-    season: number;
-  };
-  standings: StandingEntry[][];
-  lastUpdated?: Date | string;
-};
-
 export type BotConfig = {
   _id: string | ObjectId;
   guildId: string;
@@ -228,17 +186,11 @@ export type ApiKeyEntry = {
   lastReset: Date | string;
 };
 
-export type StandingConfigEntry = {
-  leagueId: number;
-  isActive: boolean;
-};
-
 export type ApiSettings = {
     _id: string | ObjectId;
     apiKeys?: ApiKeyEntry[];
     siteUrl?: string;
     adNetworkScript?: string;
-    standingsConfig?: StandingConfigEntry[];
 };
 
 export type Achievement = {
