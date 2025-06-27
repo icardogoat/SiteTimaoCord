@@ -40,6 +40,10 @@ function linkify(text: string) {
 }
 
 export function NewsCard({ article }: NewsCardProps) {
+    if (!article) {
+        return null;
+    }
+
     const isTweet = !!article.author;
     const media = article.mediaUrl || article.imageUrl;
     const contentText = article.text || article.title || '';
@@ -47,7 +51,7 @@ export function NewsCard({ article }: NewsCardProps) {
     return (
         <Card className="flex flex-col overflow-hidden h-full group">
             <CardHeader className="flex-row items-center gap-3">
-                {isTweet ? (
+                {isTweet && article.author ? (
                      <>
                         <Avatar className="h-10 w-10">
                             <AvatarImage src={article.author.avatarUrl} alt={article.author.name} data-ai-hint="author avatar" />

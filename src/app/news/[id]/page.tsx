@@ -58,15 +58,15 @@ export default async function NewsArticlePage({ params }: { params: { id: string
                     </Link>
 
                     <Card>
-                        {isTweet ? (
+                        {isTweet && article.author ? (
                             <CardHeader className="flex-row items-center gap-4">
                                  <Avatar className="h-12 w-12">
-                                    <AvatarImage src={article.author!.avatarUrl} alt={article.author!.name} data-ai-hint="author avatar" />
-                                    <AvatarFallback><AvatarFallbackText name={article.author!.name} /></AvatarFallback>
+                                    <AvatarImage src={article.author.avatarUrl} alt={article.author.name} data-ai-hint="author avatar" />
+                                    <AvatarFallback><AvatarFallbackText name={article.author.name} /></AvatarFallback>
                                 </Avatar>
                                 <div className="flex-1">
-                                    <p className="font-semibold">{article.author!.name}</p>
-                                    <p className="text-sm text-muted-foreground">@{article.author!.username}</p>
+                                    <p className="font-semibold">{article.author.name}</p>
+                                    <p className="text-sm text-muted-foreground">@{article.author.username}</p>
                                 </div>
                             </CardHeader>
                          ) : (
