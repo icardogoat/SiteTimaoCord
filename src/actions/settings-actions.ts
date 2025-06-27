@@ -39,16 +39,12 @@ export async function getApiSettings(): Promise<Partial<ApiSettings>> {
         return {
             siteUrl: settings?.siteUrl || process.env.NEXTAUTH_URL || '',
             apiKeys: apiKeys,
-            xApiBearerToken: settings?.xApiBearerToken || process.env.X_API_BEARER_TOKEN || '',
-            xUsernames: settings?.xUsernames || [],
         };
     } catch (error) {
         console.error("Error fetching API settings:", error);
         return {
             siteUrl: process.env.NEXTAUTH_URL || '',
             apiKeys: [],
-            xApiBearerToken: process.env.X_API_BEARER_TOKEN || '',
-            xUsernames: [],
         };
     }
 }
@@ -56,8 +52,6 @@ export async function getApiSettings(): Promise<Partial<ApiSettings>> {
 type UpdateSettingsData = {
     siteUrl: string;
     apiKeys: { key: string }[];
-    xApiBearerToken: string;
-    xUsernames: { username: string }[];
 };
 
 export async function updateApiSettings(data: UpdateSettingsData): Promise<{ success: boolean; message: string }> {
@@ -83,15 +77,11 @@ export async function updateApiSettings(data: UpdateSettingsData): Promise<{ suc
                 };
             });
             
-        const xUsernames = data.xUsernames.map(u => u.username).filter(Boolean);
-
         await settingsCollection.updateOne(
             { _id: new ObjectId(SETTINGS_ID) },
             { $set: { 
                 siteUrl: data.siteUrl, 
                 apiKeys: newApiKeys, 
-                xApiBearerToken: data.xApiBearerToken,
-                xUsernames: xUsernames,
             } },
             { upsert: true }
         );

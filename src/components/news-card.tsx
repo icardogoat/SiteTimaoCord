@@ -1,7 +1,7 @@
 
 'use client';
 
-import type { NewsArticle } from '@/types';
+import type { Post } from '@/types';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from './ui/card';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -11,10 +11,10 @@ import { useEffect, useState } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import { AvatarFallbackText } from './avatar-fallback-text';
 import { Button } from './ui/button';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, Pin } from 'lucide-react';
 
-interface NewsCardProps {
-    article: NewsArticle;
+interface PostCardProps {
+    post: Post;
 }
 
 function ClientTime({ date }: { date: string | Date }) {
@@ -27,69 +27,49 @@ function ClientTime({ date }: { date: string | Date }) {
     return <>{timeAgo}</>;
 }
 
-// Simple function to linkify URLs in text
-function linkify(text: string) {
-    if (!text) return '';
-    const urlRegex = /(https?:\/\/[^\s]+)/g;
-    return text.split(urlRegex).map((part, i) => {
-        if (part.match(urlRegex)) {
-            return <a key={i} href={part} target="_blank" rel="noopener noreferrer" className="text-primary underline">{part}</a>;
-        }
-        return part;
-    });
-}
-
-export function NewsCard({ article }: NewsCardProps) {
-    if (!article) {
+export function PostCard({ post }: PostCardProps) {
+    if (!post || !post.author) {
         return null;
     }
 
-    const isTweet = !!article.author;
-    const media = article.mediaUrl || article.imageUrl;
-    const contentText = article.text || article.title || '';
-
     return (
         <Card className="flex flex-col overflow-hidden h-full group">
-            <CardHeader className="flex-row items-center gap-3">
-                {isTweet && article.author ? (
-                     <>
-                        <Avatar className="h-10 w-10">
-                            <AvatarImage src={article.author.avatarUrl} alt={article.author.name} data-ai-hint="author avatar" />
-                            <AvatarFallback><AvatarFallbackText name={article.author.name} /></AvatarFallback>
-                        </Avatar>
-                        <div className="flex-1 overflow-hidden">
-                            <p className="font-semibold truncate">{article.author.name}</p>
-                            <p className="text-xs text-muted-foreground truncate">@{article.author.username}</p>
-                        </div>
-                    </>
-                ) : (
-                    <div className="flex-1 overflow-hidden">
-                        <p className="font-semibold truncate">{article.source || 'Notícia'}</p>
-                    </div>
-                )}
-                <p className="text-xs text-muted-foreground whitespace-nowrap"><ClientTime date={article.publishedAt} /></p>
-            </CardHeader>
-            <CardContent className="flex-grow space-y-4">
-                <p className="text-foreground/90 whitespace-pre-wrap line-clamp-4">{linkify(contentText)}</p>
-                {media && (
-                    <div className="aspect-video relative rounded-lg overflow-hidden border">
+             <Link href={`/feed/${post._id.toString()}`} className="flex flex-col h-full">
+                {post.imageUrl && (
+                    <div className="overflow-hidden relative">
                          <Image
-                            src={media}
-                            alt="Mídia do post"
-                            fill
-                            className="object-cover"
-                            data-ai-hint="news media"
+                            src={post.imageUrl}
+                            alt={post.title}
+                            width={400}
+                            height={200}
+                            className="w-full h-40 object-cover group-hover:scale-105 transition-transform duration-300"
+                            data-ai-hint="post image"
                         />
                     </div>
                 )}
-            </CardContent>
-            <CardFooter>
-                 <Button asChild variant="secondary" className="w-full">
-                    <Link href={`/news/${article._id.toString()}`}>
-                        Ver Post <ArrowRight className="ml-2 h-4 w-4" />
-                    </Link>
-                </Button>
-            </CardFooter>
+                <CardHeader>
+                    <div className="flex items-center gap-3">
+                        <Avatar className="h-10 w-10">
+                            <AvatarImage src={post.author.avatarUrl} alt={post.author.name} data-ai-hint="author avatar" />
+                            <AvatarFallback><AvatarFallbackText name={post.author.name} /></AvatarFallback>
+                        </Avatar>
+                        <div className="flex-1 overflow-hidden">
+                            <p className="font-semibold truncate">{post.author.name}</p>
+                            <p className="text-xs text-muted-foreground"><ClientTime date={post.publishedAt} /></p>
+                        </div>
+                        {post.isPinned && <Pin className="h-4 w-4 text-primary" />}
+                    </div>
+                    <CardTitle className="!mt-2">{post.title}</CardTitle>
+                </CardHeader>
+                <CardContent className="flex-grow">
+                    <p className="text-muted-foreground line-clamp-3">{post.content}</p>
+                </CardContent>
+                <CardFooter>
+                    <Button variant="secondary" className="w-full">
+                        Ler Mais <ArrowRight className="ml-2 h-4 w-4" />
+                    </Button>
+                </CardFooter>
+            </Link>
         </Card>
     );
 }

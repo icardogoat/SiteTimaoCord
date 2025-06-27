@@ -3,18 +3,18 @@
 
 import { AppLayout } from '@/components/app-layout';
 import { getAvailableLeagues } from '@/actions/bet-actions';
-import { getNews } from '@/actions/news-actions';
-import { NewsClient } from '@/components/news-client';
+import { getPublicPosts } from '@/actions/news-actions';
+import { FeedClient } from '@/components/news-client';
 
-export default async function NewsPage() {
-    const [availableLeagues, initialNews] = await Promise.all([
+export default async function FeedPage() {
+    const [availableLeagues, initialPosts] = await Promise.all([
         getAvailableLeagues(),
-        getNews(),
+        getPublicPosts(),
     ]);
 
     return (
         <AppLayout availableLeagues={availableLeagues}>
-            <NewsClient initialNews={initialNews} />
+            <FeedClient initialPosts={initialPosts} />
         </AppLayout>
     );
 }

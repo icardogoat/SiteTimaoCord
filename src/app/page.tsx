@@ -7,13 +7,13 @@ import { authOptions } from './api/auth/[...nextauth]/route';
 import { redirect } from 'next/navigation';
 import { getBotConfig } from '@/actions/bot-config-actions';
 import Image from 'next/image';
-import { getNews } from '@/actions/news-actions';
-import { NewsCard } from '@/components/news-card';
+import { getPublicPosts } from '@/actions/news-actions';
+import { PostCard } from '@/components/news-card';
 
 export default async function TimaocordHome() {
   const session = await getServerSession(authOptions);
   const { guildInviteUrl } = await getBotConfig();
-  const latestNews = await getNews();
+  const latestPosts = await getPublicPosts();
 
   if (session) {
     redirect('/bet');
@@ -53,16 +53,16 @@ export default async function TimaocordHome() {
         </div>
       </main>
 
-      {latestNews.length > 0 && (
+      {latestPosts.length > 0 && (
         <section className="w-full py-12 md:py-24 z-10 bg-background">
           <div className="container mx-auto px-4 md:px-6">
             <div className="flex flex-col items-center text-center mb-12">
-              <h2 className="text-3xl md:text-4xl font-bold font-headline">Últimas Notícias do Timão</h2>
+              <h2 className="text-3xl md:text-4xl font-bold font-headline">Últimos Posts</h2>
               <p className="text-muted-foreground mt-2">Fique por dentro de tudo que acontece.</p>
             </div>
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-              {latestNews.slice(0, 3).map(article => (
-                <NewsCard key={article._id.toString()} article={article} />
+              {latestPosts.slice(0, 3).map(post => (
+                <PostCard key={post._id.toString()} post={post} />
               ))}
             </div>
           </div>

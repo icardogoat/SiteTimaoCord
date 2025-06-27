@@ -29,8 +29,6 @@ import { Separator } from "./ui/separator";
 const apiFormSchema = z.object({
   siteUrl: z.string().url({ message: "Por favor, insira uma URL válida." }).optional().or(z.literal('')),
   apiKeys: z.array(z.object({ key: z.string() })).optional(),
-  xApiBearerToken: z.string().optional(),
-  xUsernames: z.array(z.object({ username: z.string() })).optional(),
 });
 
 const siteSettingsFormSchema = z.object({
@@ -57,19 +55,12 @@ export default function AdminSettingsClient({ initialApiSettings, initialSiteSet
         defaultValues: {
             siteUrl: initialApiSettings.siteUrl || "",
             apiKeys: initialApiSettings.apiKeys?.map(k => ({ key: k.key })) || [{ key: '' }],
-            xApiBearerToken: initialApiSettings.xApiBearerToken || "",
-            xUsernames: initialApiSettings.xUsernames?.map(u => ({ username: u })) || [{ username: '' }],
         },
     });
 
     const { fields: apiKeyFields, append: appendApiKey, remove: removeApiKey } = useFieldArray({
         control: apiForm.control,
         name: "apiKeys"
-    });
-    
-    const { fields: xUsernameFields, append: appendXUsername, remove: removeXUsername } = useFieldArray({
-        control: apiForm.control,
-        name: "xUsernames"
     });
     
     const siteSettingsForm = useForm<SiteSettingsFormValues>({
@@ -196,63 +187,6 @@ export default function AdminSettingsClient({ initialApiSettings, initialSiteSet
                                     </FormItem>
                                 )}
                             />
-                             <Separator />
-
-                            <div>
-                                <h3 className="text-lg font-medium flex items-center gap-2 mb-2"><Rss className="h-5 w-5"/>Feed do X (Twitter)</h3>
-                                <div className="space-y-4">
-                                     <FormField
-                                        control={apiForm.control}
-                                        name="xApiBearerToken"
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel>X API Bearer Token</FormLabel>
-                                                <FormControl>
-                                                    <Input type="password" placeholder="Seu Bearer Token da API do X" {...field} />
-                                                </FormControl>
-                                                <FormDescription>
-                                                    Token necessário para buscar posts do X.
-                                                </FormDescription>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
-                                    <div className="space-y-4">
-                                        <FormLabel>Nomes de Usuário do X</FormLabel>
-                                        <FormDescription>Adicione os perfis do X (sem o @) dos quais deseja puxar os posts.</FormDescription>
-                                        {xUsernameFields.map((field, index) => (
-                                            <FormField
-                                                control={apiForm.control}
-                                                key={field.id}
-                                                name={`xUsernames.${index}.username`}
-                                                render={({ field: renderField }) => (
-                                                    <FormItem>
-                                                        <div className="flex items-center gap-2">
-                                                            <FormControl>
-                                                                <Input placeholder="Ex: Corinthians" {...renderField} />
-                                                            </FormControl>
-                                                            <Button type="button" variant="destructive" size="icon" onClick={() => removeXUsername(index)} disabled={xUsernameFields.length <= 1}>
-                                                                <Trash2 className="h-4 w-4" />
-                                                            </Button>
-                                                        </div>
-                                                        <FormMessage />
-                                                    </FormItem>
-                                                )}
-                                            />
-                                        ))}
-                                        <Button
-                                            type="button"
-                                            variant="outline"
-                                            size="sm"
-                                            className="mt-2"
-                                            onClick={() => appendXUsername({ username: '' })}
-                                        >
-                                            <PlusCircle className="mr-2 h-4 w-4" />
-                                            Adicionar Usuário
-                                        </Button>
-                                    </div>
-                                </div>
-                            </div>
                             
                             <Separator />
                             

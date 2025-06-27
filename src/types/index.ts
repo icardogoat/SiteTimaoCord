@@ -176,6 +176,7 @@ export type BotConfig = {
   bolaoChannelId: string;
   mvpChannelId: string;
   newsChannelId: string;
+  newsMentionRoleId: string; // New field for role to mention on new posts
   adminRoleId: string;
   vipRoleIds: string[];
 };
@@ -191,8 +192,6 @@ export type ApiSettings = {
     _id: string | ObjectId;
     siteUrl?: string;
     apiKeys?: ApiKeyEntry[];
-    xApiBearerToken?: string;
-    xUsernames?: string[];
 };
 
 export type Achievement = {
@@ -302,22 +301,22 @@ export type SiteSettings = {
   welcomeBonus: number;
 };
 
-export type NewsArticle = {
-  _id: string | ObjectId;
-  tweetId?: string;
-  author?: {
+// Types for the new manual post system
+export type PostAuthor = {
+    _id: string | ObjectId;
     name: string;
-    username: string;
     avatarUrl: string;
-  };
-  text: string;
-  title?: string;
-  description?: string;
-  url: string;
-  mediaUrl?: string | null;
+    createdAt: Date | string;
+}
+
+export type Post = {
+  _id: string | ObjectId;
+  authorId: string;
+  title: string;
+  content: string;
   imageUrl?: string | null;
-  source: string;
+  isPinned: boolean;
   publishedAt: Date | string;
-  fetchedAt: Date | string;
+  author?: PostAuthor; // Populated field
 };
     

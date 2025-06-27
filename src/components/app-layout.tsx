@@ -72,8 +72,8 @@ export function AppLayout({ children, availableLeagues }: AppLayoutProps) {
                             <SidebarGroupContent>
                                 <SidebarMenu>
                                     <SidebarMenuItem>
-                                        <SidebarMenuButton asChild isActive={pathname?.startsWith('/news')}>
-                                            <Link href="/news"><Newspaper /><span>Notícias</span></Link>
+                                        <SidebarMenuButton asChild isActive={pathname?.startsWith('/feed')}>
+                                            <Link href="/feed"><Newspaper /><span>Feed</span></Link>
                                         </SidebarMenuButton>
                                     </SidebarMenuItem>
                                     <SidebarMenuItem>

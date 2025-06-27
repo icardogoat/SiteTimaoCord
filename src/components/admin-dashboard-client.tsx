@@ -16,7 +16,6 @@ import {
 } from "@/components/ui/chart"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import type { DashboardStats, TopBettor, RecentBet, WeeklyBetVolume } from "@/actions/admin-actions"
-import { forceFetchXPosts } from "@/actions/admin-actions"
 import { useToast } from "@/hooks/use-toast"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
@@ -37,26 +36,6 @@ interface AdminDashboardClientProps {
 
 export function AdminDashboardClient({ stats, weeklyVolume, topBettors, recentBets }: AdminDashboardClientProps) {
     const { toast } = useToast();
-    const [isFetchingNews, setIsFetchingNews] = useState(false);
-    
-    const handleForceFetchNews = async () => {
-        setIsFetchingNews(true);
-        toast({ title: "Iniciando busca manual de posts..." });
-        const result = await forceFetchXPosts();
-        if (result.success) {
-            toast({
-                title: "Busca Concluída",
-                description: result.message,
-            })
-        } else {
-            toast({
-                title: "Erro na Busca",
-                description: result.message,
-                variant: "destructive"
-            })
-        }
-        setIsFetchingNews(false);
-    }
     
     const formatCurrency = (value: number) => `R$ ${value.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
@@ -193,10 +172,7 @@ export function AdminDashboardClient({ stats, weeklyVolume, topBettors, recentBe
                     <CardDescription>Execute tarefas manuais importantes.</CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <Button className="w-full" onClick={handleForceFetchNews} disabled={isFetchingNews}>
-                        {isFetchingNews ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Rss className="mr-2 h-4 w-4" />}
-                        Forçar Busca de Notícias
-                    </Button>
+                   <p className="text-sm text-muted-foreground">Nenhuma ação rápida disponível no momento.</p>
                 </CardContent>
             </Card>
           </div>

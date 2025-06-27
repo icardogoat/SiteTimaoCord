@@ -53,6 +53,7 @@ const formSchema = z.object({
   bolaoChannelId: z.string().optional(),
   mvpChannelId: z.string().optional(),
   newsChannelId: z.string().optional(),
+  newsMentionRoleId: z.string().optional(),
   adminRoleId: z.string().optional(),
   vipRoleIds: z.array(z.string()).max(3, { message: "Você pode selecionar no máximo 3 cargos VIP." }).optional(),
 });
@@ -85,6 +86,7 @@ export default function AdminBotConfigClient({ initialConfig, initialChannels, i
             bolaoChannelId: initialConfig.bolaoChannelId || "",
             mvpChannelId: initialConfig.mvpChannelId || "",
             newsChannelId: initialConfig.newsChannelId || "",
+            newsMentionRoleId: initialConfig.newsMentionRoleId || "",
             adminRoleId: initialConfig.adminRoleId || "",
             vipRoleIds: initialConfig.vipRoleIds || [],
         },
@@ -109,6 +111,7 @@ export default function AdminBotConfigClient({ initialConfig, initialChannels, i
             bolaoChannelId: '',
             mvpChannelId: '',
             newsChannelId: '',
+            newsMentionRoleId: '',
             adminRoleId: '',
             vipRoleIds: [],
         });
@@ -188,8 +191,8 @@ export default function AdminBotConfigClient({ initialConfig, initialChannels, i
                 payload = {
                     embeds: [{
                         color: 0x0ea5e9, // sky-500
-                        title: '✅ Teste do Canal de Notícias ✅',
-                        description: 'Se você pode ver esta mensagem, as novas notícias do Timão serão postadas aqui!',
+                        title: '✅ Teste do Canal de Posts ✅',
+                        description: 'Se você pode ver esta mensagem, os novos posts serão publicados aqui!',
                         footer: { text: 'Teste enviado pelo Painel Admin' },
                         timestamp: new Date().toISOString(),
                     }]
@@ -219,6 +222,7 @@ export default function AdminBotConfigClient({ initialConfig, initialChannels, i
             bolaoChannelId: values.bolaoChannelId || '',
             mvpChannelId: values.mvpChannelId || '',
             newsChannelId: values.newsChannelId || '',
+            newsMentionRoleId: values.newsMentionRoleId || '',
             adminRoleId: values.adminRoleId || '',
             vipRoleIds: values.vipRoleIds || [],
         });
@@ -327,7 +331,6 @@ export default function AdminBotConfigClient({ initialConfig, initialChannels, i
                                          <Button 
                                             type="button" 
                                             variant="outline" 
-                                            size="icon"
                                             onClick={() => handleTest('welcome')}
                                             disabled={!field.value || isTesting !== null}
                                             aria-label="Testar canal de boas-vindas"
@@ -366,7 +369,6 @@ export default function AdminBotConfigClient({ initialConfig, initialChannels, i
                                         <Button 
                                             type="button" 
                                             variant="outline" 
-                                            size="icon"
                                             onClick={() => handleTest('log')}
                                             disabled={!field.value || isTesting !== null}
                                             aria-label="Testar canal de logs"
@@ -405,7 +407,6 @@ export default function AdminBotConfigClient({ initialConfig, initialChannels, i
                                         <Button 
                                             type="button" 
                                             variant="outline" 
-                                            size="icon"
                                             onClick={() => handleTest('betting')}
                                             disabled={!field.value || isTesting !== null}
                                             aria-label="Testar canal de apostas"
@@ -444,7 +445,6 @@ export default function AdminBotConfigClient({ initialConfig, initialChannels, i
                                         <Button 
                                             type="button" 
                                             variant="outline" 
-                                            size="icon"
                                             onClick={() => handleTest('bolao')}
                                             disabled={!field.value || isTesting !== null}
                                             aria-label="Testar canal do bolão"
@@ -483,7 +483,6 @@ export default function AdminBotConfigClient({ initialConfig, initialChannels, i
                                         <Button 
                                             type="button" 
                                             variant="outline" 
-                                            size="icon"
                                             onClick={() => handleTest('mvp')}
                                             disabled={!field.value || isTesting !== null}
                                             aria-label="Testar canal de votação MVP"
@@ -503,7 +502,7 @@ export default function AdminBotConfigClient({ initialConfig, initialChannels, i
                             name="newsChannelId"
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>Canal de Notícias</FormLabel>
+                                    <FormLabel>Canal de Posts</FormLabel>
                                     <div className="flex items-center gap-2">
                                         <Select onValueChange={field.onChange} value={field.value} disabled={channels.length === 0}>
                                             <FormControl>
@@ -522,16 +521,15 @@ export default function AdminBotConfigClient({ initialConfig, initialChannels, i
                                         <Button 
                                             type="button" 
                                             variant="outline" 
-                                            size="icon"
                                             onClick={() => handleTest('news')}
                                             disabled={!field.value || isTesting !== null}
-                                            aria-label="Testar canal de notícias"
+                                            aria-label="Testar canal de posts"
                                         >
                                             {isTesting === 'news' ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Testar'}
                                         </Button>
                                     </div>
                                     <FormDescription>
-                                       O canal para postar automaticamente as últimas notícias do Corinthians.
+                                       O canal para postar automaticamente as novas notícias.
                                     </FormDescription>
                                     <FormMessage />
                                 </FormItem>
@@ -561,7 +559,6 @@ export default function AdminBotConfigClient({ initialConfig, initialChannels, i
                                          <Button 
                                             type="button" 
                                             variant="outline" 
-                                            size="icon"
                                             onClick={() => handleTest('winners')}
                                             disabled={!field.value || isTesting !== null}
                                             aria-label="Testar canal de vencedores"
@@ -571,6 +568,34 @@ export default function AdminBotConfigClient({ initialConfig, initialChannels, i
                                     </div>
                                     <FormDescription>
                                        Canal para anunciar os grandes vencedores de apostas.
+                                    </FormDescription>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                        <FormField
+                            control={form.control}
+                            name="newsMentionRoleId"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Cargo de Marcação para Posts</FormLabel>
+                                    <Select onValueChange={field.onChange} value={field.value} disabled={roles.length === 0}>
+                                        <FormControl>
+                                            <SelectTrigger>
+                                                <SelectValue placeholder="Selecione um cargo para mencionar (opcional)" />
+                                            </SelectTrigger>
+                                        </FormControl>
+                                        <SelectContent>
+                                            <SelectItem value="">Nenhum</SelectItem>
+                                            {roles.map(role => (
+                                                <SelectItem key={role.id} value={role.id}>
+                                                    {role.name}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                    <FormDescription>
+                                        Este cargo será mencionado (@) sempre que um novo post for criado.
                                     </FormDescription>
                                     <FormMessage />
                                 </FormItem>

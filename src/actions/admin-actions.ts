@@ -2,13 +2,13 @@
 'use server';
 
 import clientPromise from '@/lib/mongodb';
-import type { PlacedBet, Transaction, UserRanking, MvpVoting, MvpPlayer, MvpTeamLineup, Notification, StoreItem, Bolao, Advertisement, UserInventoryItem, PurchaseAdminView, NewsArticle } from '@/types';
+import type { PlacedBet, Transaction, UserRanking, MvpVoting, MvpPlayer, MvpTeamLineup, Notification, StoreItem, Bolao, Advertisement, UserInventoryItem, PurchaseAdminView, Post, PostAuthor } from '@/types';
 import { ObjectId, WithId } from 'mongodb';
 import { revalidatePath } from 'next/cache';
 import { getBotConfig } from './bot-config-actions';
 import { grantAchievement } from './achievement-actions';
 import { getApiSettings, getAvailableApiKey } from './settings-actions';
-import { fetchAndStoreXPosts, sendDiscordNewsNotification } from './news-actions';
+import { sendDiscordPostNotification } from './news-actions';
 
 // Base type for a match in the DB (for admin list view)
 type MatchFromDb = {
@@ -1893,15 +1893,168 @@ export async function sendAnnouncement(data: {
     }
 }
 
-export async function forceFetchXPosts(): Promise<{ success: boolean; message: string }> {
-    console.log('Admin action: Forcing X (Twitter) posts fetch...');
+// --- POSTS & AUTHORS ACTIONS ---
+
+export async function getAuthors(): Promise<PostAuthor[]> {
     try {
-        // We call the main fetching function, but with a smaller limit for a quick update.
-        const result = await fetchAndStoreXPosts({ manual: true, limit: 5 });
-        return { success: result.success, message: result.message };
+        const client = await clientPromise;
+        const db = client.db('timaocord');
+        const authors = await db.collection<PostAuthor>('authors').find({}).sort({ name: 1 }).toArray();
+        return JSON.parse(JSON.stringify(authors));
     } catch (error) {
-        const message = `Failed to force fetch X posts: ${(error as Error).message}`;
-        console.error(message, error);
-        return { success: false, message };
+        console.error('Error fetching authors:', error);
+        return [];
+    }
+}
+
+export async function upsertAuthor(data: { id?: string; name: string; avatarUrl: string }): Promise<{ success: boolean; message: string }> {
+    const { id, ...authorData } = data;
+    try {
+        const client = await clientPromise;
+        const db = client.db('timaocord');
+        const collection = db.collection<PostAuthor>('authors');
+
+        if (id) {
+            await collection.updateOne({ _id: new ObjectId(id) }, { $set: authorData });
+        } else {
+            await collection.insertOne({ ...authorData, createdAt: new Date() } as PostAuthor);
+        }
+        revalidatePath('/admin/posts');
+        return { success: true, message: `Autor ${id ? 'atualizado' : 'criado'} com sucesso.` };
+    } catch (error) {
+        console.error('Error upserting author:', error);
+        return { success: false, message: 'Falha ao salvar o autor.' };
+    }
+}
+
+export async function deleteAuthor(id: string): Promise<{ success: boolean; message: string }> {
+    try {
+        const client = await clientPromise;
+        const db = client.db('timaocord');
+        
+        const postCount = await db.collection('posts').countDocuments({ authorId: id });
+        if (postCount > 0) {
+            return { success: false, message: 'Não é possível excluir um autor que já possui posts. Remova os posts primeiro.' };
+        }
+        
+        await db.collection('authors').deleteOne({ _id: new ObjectId(id) });
+        revalidatePath('/admin/posts');
+        return { success: true, message: 'Autor excluído com sucesso.' };
+    } catch (error) {
+        console.error('Error deleting author:', error);
+        return { success: false, message: 'Falha ao excluir o autor.' };
+    }
+}
+
+export async function getAdminPosts(): Promise<Post[]> {
+    try {
+        const client = await clientPromise;
+        const db = client.db('timaocord');
+        const posts = await db.collection<Post>('posts').aggregate([
+            { $sort: { isPinned: -1, publishedAt: -1 } },
+            {
+                $lookup: {
+                    from: 'authors',
+                    localField: 'authorId',
+                    foreignField: '_id',
+                    as: 'authorDetails'
+                }
+            },
+            {
+                $unwind: {
+                    path: '$authorDetails',
+                    preserveNullAndEmptyArrays: true
+                }
+            },
+            {
+                $project: {
+                    title: 1,
+                    author: '$authorDetails',
+                    publishedAt: 1,
+                    isPinned: 1,
+                    content: { $substrCP: [ "$content", 0, 100 ] } // For display, send only a snippet
+                }
+            }
+        ]).toArray();
+        return JSON.parse(JSON.stringify(posts));
+    } catch (error) {
+        console.error('Error fetching admin posts:', error);
+        return [];
+    }
+}
+
+export async function getPostForEdit(id: string): Promise<(Omit<Post, 'authorId'> & { authorId: string }) | null> {
+     if (!ObjectId.isValid(id)) return null;
+    try {
+        const client = await clientPromise;
+        const db = client.db('timaocord');
+        const post = await db.collection('posts').findOne({ _id: new ObjectId(id) });
+        if (!post) return null;
+        return {
+            ...JSON.parse(JSON.stringify(post)),
+            authorId: post.authorId.toString()
+        };
+    } catch (error) {
+        console.error('Error fetching post for edit:', error);
+        return null;
+    }
+}
+
+export async function upsertPost(data: { id?: string; title: string; content: string; imageUrl?: string | null, authorId: string; isPinned: boolean; }): Promise<{ success: boolean; message: string }> {
+    const { id, ...postData } = data;
+    try {
+        const client = await clientPromise;
+        const db = client.db('timaocord');
+        const postsCollection = db.collection('posts');
+        const authorsCollection = db.collection('authors');
+
+        const postToSave = {
+            ...postData,
+            authorId: new ObjectId(postData.authorId),
+        };
+        
+        let savedPostId: ObjectId;
+
+        if (id) {
+            await postsCollection.updateOne({ _id: new ObjectId(id) }, { $set: postToSave });
+            savedPostId = new ObjectId(id);
+        } else {
+            const result = await postsCollection.insertOne({ ...postToSave, publishedAt: new Date() } as any);
+            savedPostId = result.insertedId;
+        }
+
+        const author = await authorsCollection.findOne({ _id: postToSave.authorId });
+        const fullPost = await postsCollection.findOne({ _id: savedPostId });
+
+        if (author && fullPost) {
+            // Send notification only for new posts
+            if (!id) {
+               await sendDiscordPostNotification(fullPost as Post, author as PostAuthor);
+            }
+        }
+
+        revalidatePath('/admin/posts');
+        revalidatePath('/feed');
+        revalidatePath('/');
+        return { success: true, message: `Post ${id ? 'atualizado' : 'criado'} com sucesso.` };
+    } catch (error) {
+        console.error('Error upserting post:', error);
+        return { success: false, message: 'Falha ao salvar o post.' };
+    }
+}
+
+export async function deletePost(id: string): Promise<{ success: boolean; message: string }> {
+     try {
+        const client = await clientPromise;
+        const db = client.db('timaocord');
+        await db.collection('posts').deleteOne({ _id: new ObjectId(id) });
+        
+        revalidatePath('/admin/posts');
+        revalidatePath('/feed');
+        revalidatePath('/');
+        return { success: true, message: 'Post excluído com sucesso.' };
+    } catch (error) {
+        console.error('Error deleting post:', error);
+        return { success: false, message: 'Falha ao excluir o post.' };
     }
 }
