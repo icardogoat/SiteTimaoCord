@@ -13,8 +13,7 @@ import { Form, FormControl, FormField, FormItem } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
-import { updateStandingsConfig } from '@/actions/settings-actions';
-import { updateAllStandings } from '@/actions/admin-actions';
+import { updateAllStandings, updateStandingsConfig } from '@/actions/admin-actions';
 import { Loader2, RefreshCw, Trash2, PlusCircle } from 'lucide-react';
 
 const configSchema = z.object({
