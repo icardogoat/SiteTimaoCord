@@ -1,1 +1,4 @@
-// This file has been removed as the "Espaço do Timão" page was deprecated.
+'use server';
+
+// A funcionalidade "Espaço do Timão" foi descontinuada.
+// Este arquivo é mantido para evitar erros de build.
