@@ -1,4 +1,3 @@
-
 "use client";
 
 import * as React from 'react';
@@ -71,10 +70,42 @@ export function Header() {
   const pathname = usePathname();
   const [notifications, setNotifications] = React.useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = React.useState(0);
+  const seenNotificationIds = React.useRef(new Set<string>());
+  const isInitialLoad = React.useRef(true);
+  const notificationSound = React.useRef<HTMLAudioElement | null>(null);
+
+  React.useEffect(() => {
+    notificationSound.current = new Audio('https://assets.mixkit.co/sfx/preview/mixkit-correct-answer-tone-2870.mp3');
+    notificationSound.current.volume = 0.5;
+
+    if ("Notification" in window && Notification.permission !== "granted" && Notification.permission !== "denied") {
+        Notification.requestPermission();
+    }
+  }, []);
 
   const fetchNotifications = React.useCallback(async () => {
     if (session?.user?.discordId) {
         const userNotifications = await getNotificationsForUser(session.user.discordId);
+
+        if (isInitialLoad.current) {
+            userNotifications.forEach(n => seenNotificationIds.current.add(n._id.toString()));
+            isInitialLoad.current = false;
+        } else {
+            userNotifications.forEach(n => {
+                const notificationId = n._id.toString();
+                if (!seenNotificationIds.current.has(notificationId)) {
+                    notificationSound.current?.play().catch(e => console.error("Error playing sound:", e));
+                    if (Notification.permission === "granted") {
+                        new Notification(n.title, {
+                            body: n.description,
+                            icon: 'https://i.imgur.com/RocHctJ.png'
+                        });
+                    }
+                    seenNotificationIds.current.add(notificationId);
+                }
+            });
+        }
+        
         setNotifications(userNotifications);
         setUnreadCount(userNotifications.filter(n => !n.read).length);
     }
@@ -82,7 +113,7 @@ export function Header() {
 
   React.useEffect(() => {
     fetchNotifications();
-    const intervalId = setInterval(fetchNotifications, 60000);
+    const intervalId = setInterval(fetchNotifications, 30000); // Check every 30 seconds
     return () => clearInterval(intervalId);
   }, [fetchNotifications]);
 
