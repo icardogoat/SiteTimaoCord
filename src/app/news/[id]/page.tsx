@@ -4,15 +4,19 @@
 import { getAvailableLeagues } from "@/actions/bet-actions";
 import { getPostById } from "@/actions/news-actions";
 import { AppLayout } from "@/components/app-layout";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { notFound } from "next/navigation";
 import Image from "next/image";
 import Link from 'next/link';
-import { formatDistanceToNow, format } from 'date-fns';
+import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Lock } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { AvatarFallbackText } from "@/components/avatar-fallback-text";
+import { getServerSession } from "next-auth";
+import { authOptions } from "../api/auth/[...nextauth]/route";
+import { Button, buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 function linkify(text: string): React.ReactNode[] {
     const urlRegex = /(https?:\/\/[^\s]+)/g;
@@ -31,10 +35,37 @@ function linkify(text: string): React.ReactNode[] {
 
 
 export default async function PostArticlePage({ params }: { params: { id: string } }) {
+    const session = await getServerSession(authOptions);
+    const hasPermission = session?.user?.admin || session?.user?.canPost;
+
     const [post, availableLeagues] = await Promise.all([
         getPostById(params.id),
         getAvailableLeagues(),
     ]);
+    
+    if (!hasPermission) {
+        return (
+            <AppLayout availableLeagues={availableLeagues}>
+                <div className="flex-1 p-4 sm:p-6 lg:p-8">
+                    <div className="max-w-3xl mx-auto flex items-center justify-center h-full">
+                         <Card className="w-full text-center">
+                            <CardHeader className="items-center">
+                                <Lock className="h-12 w-12 text-destructive" />
+                                <CardTitle className="mt-4">Acesso Restrito</CardTitle>
+                                <CardDescription>Você não tem permissão para ver o conteúdo completo desta postagem.</CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                <Link href="/news" className={cn(buttonVariants({ variant: "outline" }))}>
+                                    <ArrowLeft className="mr-2 h-4 w-4" />
+                                    Voltar para Notícias
+                                </Link>
+                            </CardContent>
+                        </Card>
+                    </div>
+                </div>
+            </AppLayout>
+        );
+    }
     
     if (!post || !post.author) {
         notFound();
@@ -46,9 +77,9 @@ export default async function PostArticlePage({ params }: { params: { id: string
         <AppLayout availableLeagues={availableLeagues}>
             <div className="flex-1 p-4 sm:p-6 lg:p-8">
                 <div className="max-w-3xl mx-auto">
-                    <Link href="/feed" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-4">
+                    <Link href="/news" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-4">
                         <ArrowLeft className="h-4 w-4" />
-                        Voltar para o Feed
+                        Voltar para Notícias
                     </Link>
 
                     <Card>

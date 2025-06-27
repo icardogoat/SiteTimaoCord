@@ -153,13 +153,13 @@ export function Header() {
                 Apostas
             </Link>
             <Link 
-                href="/feed" 
+                href="/news" 
                 className={cn(
                     "transition-colors hover:text-foreground",
-                    pathname === "/feed" ? "text-foreground font-semibold" : "text-muted-foreground"
+                    pathname?.startsWith("/news") ? "text-foreground font-semibold" : "text-muted-foreground"
                 )}
             >
-                Feed
+                Notícias
             </Link>
             <Link 
                 href="/bolao" 
@@ -269,9 +269,9 @@ export function Header() {
               </Link>
             </DropdownMenuItem>
              <DropdownMenuItem asChild>
-              <Link href="/feed">
+              <Link href="/news">
                 <Newspaper className="mr-2 h-4 w-4" />
-                <span>Feed</span>
+                <span>Notícias</span>
               </Link>
             </DropdownMenuItem>
              <DropdownMenuItem asChild>

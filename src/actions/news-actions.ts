@@ -18,7 +18,7 @@ export async function sendDiscordPostNotification(post: Post, author: AuthorInfo
         return;
     }
     
-    const postUrl = siteUrl ? `${siteUrl}/feed/${post._id.toString()}` : undefined;
+    const postUrl = siteUrl ? `${siteUrl}/news/${post._id.toString()}` : undefined;
 
     const embed = {
         color: 0x0ea5e9, // sky-500

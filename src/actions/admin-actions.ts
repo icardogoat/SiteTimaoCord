@@ -2,7 +2,7 @@
 'use server';
 
 import clientPromise from '@/lib/mongodb';
-import type { PlacedBet, Transaction, UserRanking, MvpVoting, MvpPlayer, MvpTeamLineup, Notification, StoreItem, Bolao, Advertisement, UserInventoryItem, PurchaseAdminView, Post } from '@/types';
+import type { Post, AuthorInfo, PlacedBet, Transaction, UserRanking, MvpVoting, MvpPlayer, MvpTeamLineup, Notification, StoreItem, Bolao, Advertisement, UserInventoryItem, PurchaseAdminView } from '@/types';
 import { ObjectId, WithId } from 'mongodb';
 import { revalidatePath } from 'next/cache';
 import { getBotConfig } from './bot-config-actions';
@@ -1988,15 +1988,14 @@ export async function upsertPost(data: { id?: string; title: string; content: st
 
         if (fullPost && isNewPost) {
            await sendDiscordPostNotification(fullPost as Post, {
-               _id: session.user.id,
+               _id: new ObjectId(session.user.id),
                name: session.user.name || 'Usuário',
                avatarUrl: session.user.image || '',
-               createdAt: new Date(),
            });
         }
 
         revalidatePath('/admin/announcements');
-        revalidatePath('/feed');
+        revalidatePath('/news');
         revalidatePath('/');
         return { success: true, message: `Post ${id ? 'atualizado' : 'criado'} com sucesso.` };
     } catch (error) {
@@ -2012,7 +2011,7 @@ export async function deletePost(id: string): Promise<{ success: boolean; messag
         await db.collection('posts').deleteOne({ _id: new ObjectId(id) });
         
         revalidatePath('/admin/announcements');
-        revalidatePath('/feed');
+        revalidatePath('/news');
         revalidatePath('/');
         return { success: true, message: 'Post excluído com sucesso.' };
     } catch (error) {

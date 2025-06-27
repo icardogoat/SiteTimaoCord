@@ -1,3 +1,4 @@
+
 'use client';
 
 import type { Post } from '@/types';
@@ -12,7 +13,7 @@ export function FeedClient({ initialPosts }: FeedClientProps) {
     return (
         <div className="flex-1 p-4 sm:p-6 lg:p-8">
             <div className="mb-8">
-                <h1 className="text-3xl font-bold font-headline tracking-tight">Feed</h1>
+                <h1 className="text-3xl font-bold font-headline tracking-tight">Notícias</h1>
                 <p className="text-muted-foreground">Fique por dentro de tudo que acontece com o Corinthians.</p>
             </div>
 
