@@ -2,7 +2,6 @@
 import { getToken } from "next-auth/jwt";
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { getSiteSettings } from "@/actions/admin-actions";
 
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
@@ -15,7 +14,10 @@ export async function middleware(req: NextRequest) {
   
   // --- Verificação de Modo de Manutenção ---
   try {
-    const { maintenanceMode } = await getSiteSettings();
+    // Middleware runs on the Edge and cannot access the database directly.
+    // So we fetch the status from a dedicated API route.
+    const maintenanceStatusRes = await fetch(new URL('/api/maintenance', req.url));
+    const { maintenanceMode } = await maintenanceStatusRes.json();
 
     if (maintenanceMode) {
       // Permite acesso ao painel de administração e à página de login para que o admin possa desativar o modo
@@ -37,8 +39,8 @@ export async function middleware(req: NextRequest) {
       }
     }
   } catch (error) {
-    console.error("Middleware não conseguiu verificar o modo de manutenção, permitindo acesso para evitar bloqueio total:", error);
-    // Em caso de erro na verificação (ex: DB offline), permite o acesso para não bloquear o site inteiro.
+    console.error("Middleware maintenance check failed, allowing access to avoid lockout:", error);
+    // Em caso de erro na verificação, permite o acesso para não bloquear o site inteiro.
   }
 
   // --- Verificação de Autenticação e Autorização ---
@@ -71,14 +73,12 @@ export async function middleware(req: NextRequest) {
 export const config = {
   matcher: [
     /*
-     * Faz o match em todas as rotas, exceto as que começam com:
-     * - _next/static (arquivos estáticos)
-     * - _next/image (arquivos de otimização de imagem)
-     * - favicon.ico (arquivo de ícone)
-     * - api/ (rotas de API - elas têm sua própria lógica de segurança)
+     * Match all request paths except for the ones starting with:
+     * - api (API routes are checked inside the middleware to prevent loops)
+     * - _next/static (static files)
+     * - _next/image (image optimization files)
+     * - favicon.ico (favicon file)
      */
     '/((?!api|_next/static|_next/image|favicon.ico).*)',
   ],
 };
-
-    

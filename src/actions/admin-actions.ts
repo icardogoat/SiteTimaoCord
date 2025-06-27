@@ -1071,60 +1071,6 @@ export async function getRecentBets(): Promise<RecentBet[]> {
     }
 }
 
-// Function to get general site settings
-export async function getSiteSettings() {
-    try {
-        const client = await clientPromise;
-        const db = client.db('timaocord');
-        const settingsCollection = db.collection('site_settings');
-        const settings = await settingsCollection.findOne({});
-        
-        return {
-            maintenanceMode: settings?.maintenanceMode ?? false,
-            maintenanceMessage: settings?.maintenanceMessage ?? 'O site está em manutenção. Voltamos em breve!',
-            maintenanceExpectedReturn: settings?.maintenanceExpectedReturn ?? '',
-            welcomeBonus: settings?.welcomeBonus ?? 1000,
-        };
-    } catch (error) {
-        console.error("Error fetching site settings:", error);
-        return {
-            maintenanceMode: false,
-            maintenanceMessage: 'O site está em manutenção. Voltamos em breve!',
-            maintenanceExpectedReturn: '',
-            welcomeBonus: 1000,
-        };
-    }
-}
-
-
-// Function to update general site settings
-export async function updateGeneralSiteSettings(data: {
-    maintenanceMode: boolean;
-    maintenanceMessage: string;
-    maintenanceExpectedReturn: string;
-}) {
-    try {
-        const client = await clientPromise;
-        const db = client.db('timaocord');
-        const settingsCollection = db.collection('site_settings');
-        
-        // There is only one settings document, so we can use an empty query to update/upsert it.
-        await settingsCollection.updateOne(
-            {},
-            { $set: data },
-            { upsert: true }
-        );
-
-        revalidatePath('/admin/settings');
-        revalidatePath('/'); // Revalidate root to affect middleware checks
-
-        return { success: true, message: 'Configurações gerais atualizadas com sucesso!' };
-    } catch (error) {
-        console.error("Error updating site settings:", error);
-        return { success: false, message: 'Falha ao salvar as configurações.' };
-    }
-}
-
 // ---- MVP VOTING ACTIONS ----
 const getTeamIdFromLogo = (url: string | undefined): number | null => {
     if (!url) return null;

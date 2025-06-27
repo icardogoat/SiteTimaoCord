@@ -1,8 +1,7 @@
 
 'use server';
 
-import { getApiSettings } from '@/actions/settings-actions';
-import { getSiteSettings } from '@/actions/admin-actions';
+import { getApiSettings, getSiteSettings } from '@/actions/settings-actions';
 import AdminSettingsClient from '@/components/admin-settings-client';
 
 export default async function AdminSettingsPage() {
@@ -17,5 +16,4 @@ export default async function AdminSettingsPage() {
             initialSiteSettings={siteSettings}
         />
     );
-
     
