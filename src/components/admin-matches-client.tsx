@@ -28,7 +28,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Button } from "@/components/ui/button"
 import { MoreHorizontal, Loader2, RefreshCw, BellRing, Crown, Star, BarChart } from "lucide-react"
-import { getAdminMatches, processAllFinishedMatches, resolveMatch, createMvpVoting, updateCorinthiansPlayerStats } from "@/actions/admin-actions";
+import { getAdminMatches, processAllFinishedMatches, resolveMatch, createMvpVoting, updateCorinthiansSquad } from "@/actions/admin-actions";
 import { useToast } from "@/hooks/use-toast";
 import { sendUpcomingMatchNotifications } from "@/actions/match-notifications";
 import { createBolao, cancelBolao } from "@/actions/bolao-actions";
@@ -123,13 +123,13 @@ export function AdminMatchesClient({ initialMatches }: AdminMatchesClientProps) 
         setIsNotifying(false);
     }
     
-    const handleUpdateStats = async () => {
+    const handleUpdateSquad = async () => {
         setIsUpdatingStats(true);
         toast({
-            title: "Atualizando Estatísticas",
+            title: "Atualizando Elenco",
             description: "Buscando dados dos jogadores do Corinthians...",
         });
-        const result = await updateCorinthiansPlayerStats();
+        const result = await updateCorinthiansSquad();
         toast({
             title: result.success ? "Sucesso!" : "Erro",
             description: result.message,
@@ -191,9 +191,9 @@ export function AdminMatchesClient({ initialMatches }: AdminMatchesClientProps) 
                     </CardDescription>
                 </div>
                  <div className="flex gap-2 flex-wrap">
-                     <Button onClick={handleUpdateStats} disabled={isUpdatingStats || isProcessingAll} variant="outline">
+                     <Button onClick={handleUpdateSquad} disabled={isUpdatingStats || isProcessingAll} variant="outline">
                         {isUpdatingStats ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <BarChart className="mr-2 h-4 w-4" />}
-                        Atualizar Stats
+                        Atualizar Elenco
                     </Button>
                      <Button onClick={handleNotifyUpcoming} disabled={isNotifying || isProcessingAll} variant="outline">
                         {isNotifying ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <BellRing className="mr-2 h-4 w-4" />}

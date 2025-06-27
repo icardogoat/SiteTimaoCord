@@ -293,14 +293,11 @@ export type PurchaseAdminView = {
   userId: string;
 };
 
-export type PlayerStat = {
+export type SquadPlayer = {
     id: number;
     name: string;
     photo: string;
     position: string;
-    appearences: number;
-    goals: number;
-    assists: number | null;
 };
 
 export type TimaoData = {
@@ -312,13 +309,13 @@ export type TimaoData = {
         draws: number;
         losses: number;
     };
-    topPlayers: PlayerStat[];
+    squad: SquadPlayer[];
 };
 
-export type PlayerStatsData = {
+export type SquadData = {
     _id: ObjectId | string;
     teamId: number;
     season: number;
-    players: PlayerStat[];
+    players: SquadPlayer[];
     lastUpdated: Date;
 }

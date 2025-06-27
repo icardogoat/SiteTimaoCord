@@ -2,7 +2,7 @@
 'use server';
 
 import clientPromise from '@/lib/mongodb';
-import type { PlacedBet, Transaction, UserRanking, MvpVoting, MvpPlayer, MvpTeamLineup, Notification, StoreItem, Bolao, Advertisement, UserInventoryItem, PurchaseAdminView, PlayerStat, PlayerStatsData } from '@/types';
+import type { PlacedBet, Transaction, UserRanking, MvpVoting, MvpPlayer, MvpTeamLineup, Notification, StoreItem, Bolao, Advertisement, UserInventoryItem, PurchaseAdminView, SquadPlayer, SquadData } from '@/types';
 import { ObjectId, WithId } from 'mongodb';
 import { revalidatePath } from 'next/cache';
 import { getBotConfig } from './bot-config-actions';
@@ -1857,15 +1857,14 @@ export async function deletePurchase(inventoryId: string): Promise<{ success: bo
     }
 }
 
-// ---- PLAYER STATS ACTIONS ----
-async function fetchPlayerStatsFromApi(teamId: number): Promise<PlayerStat[]> {
+// ---- SQUAD ACTIONS ----
+async function fetchSquadFromApi(teamId: number): Promise<SquadPlayer[]> {
     const season = new Date().getFullYear();
     let apiKey;
     try {
         apiKey = await getAvailableApiKey();
     } catch (error) {
         console.error("Could not get API key for player stats:", error);
-        // Don't throw, return empty so the admin can see the error message
         return [];
     }
     
@@ -1882,7 +1881,7 @@ async function fetchPlayerStatsFromApi(teamId: number): Promise<PlayerStat[]> {
     try {
         const response = await fetch(url, options);
         if (!response.ok) {
-            console.error(`API Error fetching player stats for team ${teamId}:`, await response.text());
+            console.error(`API Error fetching squad for team ${teamId}:`, await response.text());
             return [];
         }
 
@@ -1891,39 +1890,36 @@ async function fetchPlayerStatsFromApi(teamId: number): Promise<PlayerStat[]> {
             return [];
         }
         
-        const playerStats: PlayerStat[] = data.response.map((item: any) => {
-            const mainLeagueStats = item.statistics.find((stat: any) => stat.league.name === 'Brasileirão Série A' || stat.league.name === 'Serie A') || item.statistics[0];
-            
-            if (!mainLeagueStats || !mainLeagueStats.games.appearences) return null;
-
+        const squad: SquadPlayer[] = data.response.map((item: any) => {
+            const position = item.statistics[0]?.games?.position || 'Desconhecido';
             return {
                 id: item.player.id,
                 name: item.player.name,
                 photo: item.player.photo,
-                position: mainLeagueStats.games.position,
-                appearences: mainLeagueStats.games.appearences || 0,
-                goals: mainLeagueStats.goals.total || 0,
-                assists: mainLeagueStats.goals.assists,
+                position: position,
             };
-        }).filter((p: PlayerStat | null): p is PlayerStat => p !== null && p.appearences > 0);
+        }).filter((p: SquadPlayer | null): p is SquadPlayer => p !== null);
         
-        return playerStats.sort((a, b) => {
-            if (b.goals !== a.goals) {
-                return b.goals - a.goals;
+        const positionOrder = ['Goalkeeper', 'Defender', 'Midfielder', 'Attacker', 'Desconhecido'];
+        return squad.sort((a, b) => {
+            const posA = positionOrder.indexOf(a.position);
+            const posB = positionOrder.indexOf(b.position);
+            if (posA !== posB) {
+                return posA - posB;
             }
-            return b.appearences - a.appearences;
+            return a.name.localeCompare(b.name);
         });
 
     } catch (error) {
-        console.error('Failed to fetch player stats:', error);
+        console.error('Failed to fetch squad:', error);
         return [];
     }
 }
 
-export async function updateCorinthiansPlayerStats(): Promise<{ success: boolean; message: string }> {
+export async function updateCorinthiansSquad(): Promise<{ success: boolean; message: string }> {
     const teamId = 127; // Corinthians ID
     try {
-        const players = await fetchPlayerStatsFromApi(teamId);
+        const players = await fetchSquadFromApi(teamId);
 
         if (players.length === 0) {
             return { success: false, message: "Nenhum dado de jogador encontrado na API. Verifique os logs ou a chave da API." };
@@ -1931,7 +1927,7 @@ export async function updateCorinthiansPlayerStats(): Promise<{ success: boolean
 
         const client = await clientPromise;
         const db = client.db('timaocord');
-        const statsCollection = db.collection<PlayerStatsData>('player_stats');
+        const statsCollection = db.collection<SquadData>('player_stats');
         
         await statsCollection.updateOne(
             { teamId: teamId },
@@ -1947,10 +1943,10 @@ export async function updateCorinthiansPlayerStats(): Promise<{ success: boolean
         );
 
         revalidatePath('/timao');
-        return { success: true, message: `Estatísticas de ${players.length} jogadores atualizadas com sucesso.` };
+        return { success: true, message: `Elenco de ${players.length} jogadores atualizado com sucesso.` };
 
     } catch (error) {
-        console.error("Error updating Corinthians player stats:", error);
-        return { success: false, message: "Ocorreu um erro ao atualizar as estatísticas." };
+        console.error("Error updating Corinthians squad:", error);
+        return { success: false, message: "Ocorreu um erro ao atualizar o elenco." };
     }
 }

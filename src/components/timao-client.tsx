@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/
 import { MatchCard } from './match-card';
 import { Separator } from './ui/separator';
 import { ShieldCheck, Calendar, ChevronsRight, Trophy, Minus, ShieldX, Shirt, Target, Star as StarIcon } from 'lucide-react';
-import type { Match } from '@/types';
+import type { Match, SquadPlayer } from '@/types';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
 
@@ -71,7 +71,7 @@ interface TimaoClientProps {
 }
 
 export function TimaoClient({ initialData }: TimaoClientProps) {
-    const { upcomingMatches, recentMatches, stats, topPlayers } = initialData;
+    const { upcomingMatches, recentMatches, stats, squad } = initialData;
 
     return (
         <div className="flex-1 p-4 sm:p-6 lg:p-8">
@@ -80,7 +80,7 @@ export function TimaoClient({ initialData }: TimaoClientProps) {
                     <ShieldCheck className="h-8 w-8 text-primary" />
                     Espaço do Timão
                 </h1>
-                <p className="text-muted-foreground">Tudo sobre o Corinthians: próximos jogos, resultados e estatísticas.</p>
+                <p className="text-muted-foreground">Tudo sobre o Corinthians: próximos jogos, resultados e elenco.</p>
             </div>
 
             <div className="space-y-8">
@@ -101,23 +101,20 @@ export function TimaoClient({ initialData }: TimaoClientProps) {
                 <section>
                     <Card>
                         <CardHeader>
-                            <CardTitle>Destaques Individuais</CardTitle>
-                            <CardDescription>Desempenho dos jogadores na temporada atual (Brasileirão Série A).</CardDescription>
+                            <CardTitle>Elenco</CardTitle>
+                            <CardDescription>Jogadores do elenco principal do Corinthians na temporada atual.</CardDescription>
                         </CardHeader>
                         <CardContent>
-                            {topPlayers.length > 0 ? (
+                            {squad.length > 0 ? (
                                 <Table>
                                     <TableHeader>
                                         <TableRow>
                                             <TableHead>Jogador</TableHead>
                                             <TableHead className="hidden sm:table-cell">Posição</TableHead>
-                                            <TableHead className="text-center" title="Partidas"><Shirt className="h-4 w-4 inline-block" /></TableHead>
-                                            <TableHead className="text-center" title="Gols"><Target className="h-4 w-4 inline-block" /></TableHead>
-                                            <TableHead className="text-center" title="Assistências"><StarIcon className="h-4 w-4 inline-block" /></TableHead>
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
-                                        {topPlayers.slice(0, 10).map((player) => (
+                                        {squad.map((player) => (
                                             <TableRow key={player.id}>
                                                 <TableCell>
                                                     <div className="flex items-center gap-3">
@@ -129,15 +126,12 @@ export function TimaoClient({ initialData }: TimaoClientProps) {
                                                     </div>
                                                 </TableCell>
                                                 <TableCell className="hidden sm:table-cell">{player.position}</TableCell>
-                                                <TableCell className="text-center font-medium">{player.appearences}</TableCell>
-                                                <TableCell className="text-center font-medium">{player.goals}</TableCell>
-                                                <TableCell className="text-center font-medium">{player.assists ?? '-'}</TableCell>
                                             </TableRow>
                                         ))}
                                     </TableBody>
                                 </Table>
                             ) : (
-                                <p className="text-muted-foreground text-center py-4">Não foi possível carregar as estatísticas dos jogadores.</p>
+                                <p className="text-muted-foreground text-center py-4">Não foi possível carregar o elenco.</p>
                             )}
                         </CardContent>
                     </Card>

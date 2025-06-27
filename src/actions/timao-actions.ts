@@ -2,7 +2,7 @@
 'use server';
 
 import clientPromise from '@/lib/mongodb';
-import type { Match, TimaoData, PlayerStatsData } from '@/types';
+import type { Match, TimaoData, SquadData } from '@/types';
 import { translateMarketData } from '@/lib/translations';
 
 // Type for a match from the database
@@ -61,20 +61,20 @@ export async function getTimaoData(): Promise<TimaoData> {
         const client = await clientPromise;
         const db = client.db('timaocord');
         const matchesCollection = db.collection<DbMatch>('matches');
-        const statsCollection = db.collection<PlayerStatsData>('player_stats');
+        const statsCollection = db.collection<SquadData>('player_stats');
 
         const teamName = 'Corinthians';
         const teamId = 127;
         const nowTimestamp = Math.floor(Date.now() / 1000);
 
-        const [allMatches, playerStatsDoc] = await Promise.all([
+        const [allMatches, squadDoc] = await Promise.all([
              matchesCollection.find({
                 $or: [{ homeTeam: teamName }, { awayTeam: teamName }]
             }).toArray(),
             statsCollection.findOne({ teamId })
         ]);
 
-        const topPlayers = playerStatsDoc ? playerStatsDoc.players : [];
+        const squad = squadDoc ? squadDoc.players : [];
         
         const upcomingMatchesDb = allMatches
             .filter(m => m.timestamp >= nowTimestamp)
@@ -117,7 +117,7 @@ export async function getTimaoData(): Promise<TimaoData> {
                 draws,
                 losses
             },
-            topPlayers
+            squad
         };
     } catch (error) {
         console.error('Error fetching Timão data:', error);
@@ -125,7 +125,7 @@ export async function getTimaoData(): Promise<TimaoData> {
             upcomingMatches: [],
             recentMatches: [],
             stats: { totalMatches: 0, wins: 0, draws: 0, losses: 0 },
-            topPlayers: []
+            squad: []
         };
     }
 }
