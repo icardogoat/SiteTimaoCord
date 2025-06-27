@@ -5,7 +5,7 @@ import type { NextRequest } from "next/server";
 
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
-  const publicPaths = ['/login', '/join-server', '/maintenance', '/terms', '/privacy', '/'];
+  const publicPaths = ['/join-server', '/maintenance', '/terms', '/privacy', '/'];
 
   // Evita verificações em rotas de API e arquivos estáticos para não causar loops
   if (pathname.startsWith('/api') || pathname.startsWith('/_next') || pathname.includes('.')) {
@@ -20,8 +20,8 @@ export async function middleware(req: NextRequest) {
     const { maintenanceMode } = await maintenanceStatusRes.json();
 
     if (maintenanceMode) {
-      // Permite acesso ao painel de administração e à página de login para que o admin possa desativar o modo
-      if (pathname.startsWith('/admin') || pathname === '/login') {
+      // Permite acesso ao painel de administração para que o admin possa desativar o modo
+      if (pathname.startsWith('/admin')) {
          // Continua para a verificação de autenticação abaixo
       } 
       // Permite acesso à própria página de manutenção
@@ -47,18 +47,15 @@ export async function middleware(req: NextRequest) {
   const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
   const isPublicPage = publicPaths.includes(pathname);
 
-  // Se o usuário não está autenticado e a página não é pública, redireciona para o login
+  // Se o usuário não está autenticado e a página não é pública, redireciona para a página inicial para login.
   if (!token && !isPublicPage) {
-    const loginUrl = new URL('/login', req.url);
-    // O callbackUrl foi removido para garantir que o redirecionamento pós-login seja sempre para /bet,
-    // conforme definido nos botões de login, proporcionando uma experiência consistente.
-    return NextResponse.redirect(loginUrl);
+    return NextResponse.redirect(new URL('/', req.url));
   }
 
   // Se o usuário está autenticado
   if (token) {
-    // Redireciona para fora das páginas de autenticação se já estiver logado
-    if (pathname === '/login' || pathname === '/join-server') {
+    // Redireciona para fora da página de erro de entrada no servidor se já estiver logado
+    if (pathname === '/join-server') {
         return NextResponse.redirect(new URL('/bet', req.url));
     }
     // Protege as rotas de admin
