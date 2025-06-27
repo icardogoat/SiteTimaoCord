@@ -1,5 +1,5 @@
 
-import { getSiteSettings } from '@/actions/admin-actions';
+import { getSiteSettings } from '@/actions/settings-actions';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { FielBetLogo } from '@/components/icons';
 import { HardHat, Clock } from 'lucide-react';
