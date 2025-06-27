@@ -68,11 +68,6 @@ export function AppLayout({ children, availableLeagues }: AppLayoutProps) {
                                             <Link href="/store"><Store /><span>Loja</span></Link>
                                         </SidebarMenuButton>
                                     </SidebarMenuItem>
-                                    <SidebarMenuItem>
-                                        <SidebarMenuButton asChild isActive={pathname?.startsWith('/timao')}>
-                                            <Link href="/timao"><ShieldCheck /><span>Espaço do Timão</span></Link>
-                                        </SidebarMenuButton>
-                                    </SidebarMenuItem>
                                 </SidebarMenu>
                             </SidebarGroupContent>
                         </SidebarGroup>

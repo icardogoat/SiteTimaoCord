@@ -28,7 +28,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Button } from "@/components/ui/button"
 import { MoreHorizontal, Loader2, RefreshCw, BellRing, Crown, Star, BarChart } from "lucide-react"
-import { getAdminMatches, processAllFinishedMatches, resolveMatch, createMvpVoting, updateCorinthiansSquad } from "@/actions/admin-actions";
+import { getAdminMatches, processAllFinishedMatches, resolveMatch, createMvpVoting } from "@/actions/admin-actions";
 import { useToast } from "@/hooks/use-toast";
 import { sendUpcomingMatchNotifications } from "@/actions/match-notifications";
 import { createBolao, cancelBolao } from "@/actions/bolao-actions";
@@ -61,7 +61,6 @@ export function AdminMatchesClient({ initialMatches }: AdminMatchesClientProps) 
     const [isCreatingBolao, setIsCreatingBolao] = useState<number | null>(null);
     const [isCancelingBolao, setIsCancelingBolao] = useState<number | null>(null);
     const [isCreatingMvp, setIsCreatingMvp] = useState<number | null>(null);
-    const [isUpdatingStats, setIsUpdatingStats] = useState(false);
     const { toast } = useToast();
 
     const handleResolve = async (fixtureId: number) => {
@@ -122,21 +121,6 @@ export function AdminMatchesClient({ initialMatches }: AdminMatchesClientProps) 
         
         setIsNotifying(false);
     }
-    
-    const handleUpdateSquad = async () => {
-        setIsUpdatingStats(true);
-        toast({
-            title: "Atualizando Elenco",
-            description: "Buscando dados dos jogadores do Corinthians...",
-        });
-        const result = await updateCorinthiansSquad();
-        toast({
-            title: result.success ? "Sucesso!" : "Erro",
-            description: result.message,
-            variant: result.success ? "default" : "destructive",
-        });
-        setIsUpdatingStats(false);
-    };
 
     const handleCreateBolao = async (fixtureId: number) => {
         setIsCreatingBolao(fixtureId);
@@ -191,10 +175,6 @@ export function AdminMatchesClient({ initialMatches }: AdminMatchesClientProps) 
                     </CardDescription>
                 </div>
                  <div className="flex gap-2 flex-wrap">
-                     <Button onClick={handleUpdateSquad} disabled={isUpdatingStats || isProcessingAll} variant="outline">
-                        {isUpdatingStats ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <BarChart className="mr-2 h-4 w-4" />}
-                        Atualizar Elenco
-                    </Button>
                      <Button onClick={handleNotifyUpcoming} disabled={isNotifying || isProcessingAll} variant="outline">
                         {isNotifying ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <BellRing className="mr-2 h-4 w-4" />}
                         Notificar Próximas

@@ -2,7 +2,7 @@
 'use server';
 
 import clientPromise from '@/lib/mongodb';
-import type { PlacedBet, Transaction, UserRanking, MvpVoting, MvpPlayer, MvpTeamLineup, Notification, StoreItem, Bolao, Advertisement, UserInventoryItem, PurchaseAdminView, SquadPlayer, SquadData } from '@/types';
+import type { PlacedBet, Transaction, UserRanking, MvpVoting, MvpPlayer, MvpTeamLineup, Notification, StoreItem, Bolao, Advertisement, UserInventoryItem, PurchaseAdminView } from '@/types';
 import { ObjectId, WithId } from 'mongodb';
 import { revalidatePath } from 'next/cache';
 import { getBotConfig } from './bot-config-actions';
@@ -1854,99 +1854,5 @@ export async function deletePurchase(inventoryId: string): Promise<{ success: bo
     } catch (error) {
         console.error("Error deleting purchase:", error);
         return { success: false, message: "Ocorreu um erro ao excluir o registro." };
-    }
-}
-
-// ---- SQUAD ACTIONS ----
-async function fetchSquadFromApi(teamId: number): Promise<SquadPlayer[]> {
-    const season = new Date().getFullYear();
-    let apiKey;
-    try {
-        apiKey = await getAvailableApiKey();
-    } catch (error) {
-        console.error("Could not get API key for player stats:", error);
-        return [];
-    }
-    
-    const url = `https://api-football-v1.p.rapidapi.com/v3/players?team=${teamId}&season=${season}`;
-    const options = {
-        method: 'GET',
-        headers: {
-            'X-RapidAPI-Key': apiKey,
-            'X-RapidAPI-Host': 'api-football-v1.p.rapidapi.com'
-        },
-        cache: 'no-store' as RequestCache
-    };
-
-    try {
-        const response = await fetch(url, options);
-        if (!response.ok) {
-            console.error(`API Error fetching squad for team ${teamId}:`, await response.text());
-            return [];
-        }
-
-        const data = await response.json();
-        if (!data.response || data.response.length === 0) {
-            return [];
-        }
-        
-        const squad: SquadPlayer[] = data.response.map((item: any) => {
-            const position = item.statistics[0]?.games?.position || 'Desconhecido';
-            return {
-                id: item.player.id,
-                name: item.player.name,
-                photo: item.player.photo,
-                position: position,
-            };
-        }).filter((p: SquadPlayer | null): p is SquadPlayer => p !== null);
-        
-        const positionOrder = ['Goalkeeper', 'Defender', 'Midfielder', 'Attacker', 'Desconhecido'];
-        return squad.sort((a, b) => {
-            const posA = positionOrder.indexOf(a.position);
-            const posB = positionOrder.indexOf(b.position);
-            if (posA !== posB) {
-                return posA - posB;
-            }
-            return a.name.localeCompare(b.name);
-        });
-
-    } catch (error) {
-        console.error('Failed to fetch squad:', error);
-        return [];
-    }
-}
-
-export async function updateCorinthiansSquad(): Promise<{ success: boolean; message: string }> {
-    const teamId = 131; // Flamengo ID
-    try {
-        const players = await fetchSquadFromApi(teamId);
-
-        if (players.length === 0) {
-            return { success: false, message: "Nenhum dado de jogador encontrado na API. Verifique os logs ou a chave da API." };
-        }
-
-        const client = await clientPromise;
-        const db = client.db('timaocord');
-        const statsCollection = db.collection<SquadData>('player_stats');
-        
-        await statsCollection.updateOne(
-            { teamId: teamId },
-            {
-                $set: {
-                    teamId: teamId,
-                    season: new Date().getFullYear(),
-                    players: players,
-                    lastUpdated: new Date()
-                }
-            },
-            { upsert: true }
-        );
-
-        revalidatePath('/timao');
-        return { success: true, message: `Elenco de ${players.length} jogadores atualizado com sucesso.` };
-
-    } catch (error) {
-        console.error("Error updating squad:", error);
-        return { success: false, message: "Ocorreu um erro ao atualizar o elenco." };
     }
 }

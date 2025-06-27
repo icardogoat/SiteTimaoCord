@@ -42,7 +42,6 @@ export const config = {
     "/ranking",
     "/wallet",
     "/store",
-    "/timao",
     "/bolao",
     "/mvp",
     "/admin/:path*",

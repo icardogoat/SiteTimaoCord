@@ -292,30 +292,3 @@ export type PurchaseAdminView = {
   redemptionCode?: string;
   userId: string;
 };
-
-export type SquadPlayer = {
-    id: number;
-    name: string;
-    photo: string;
-    position: string;
-};
-
-export type TimaoData = {
-    upcomingMatches: Match[];
-    recentMatches: Match[];
-    stats: {
-        totalMatches: number;
-        wins: number;
-        draws: number;
-        losses: number;
-    };
-    squad: SquadPlayer[];
-};
-
-export type SquadData = {
-    _id: ObjectId | string;
-    teamId: number;
-    season: number;
-    players: SquadPlayer[];
-    lastUpdated: Date;
-}

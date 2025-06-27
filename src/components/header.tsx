@@ -138,15 +138,6 @@ export function Header() {
             >
                 Loja
             </Link>
-            <Link 
-                href="/timao"
-                className={cn(
-                    "transition-colors hover:text-foreground",
-                    pathname === "/timao" ? "text-foreground font-semibold" : "text-muted-foreground"
-                )}
-            >
-                Espaço do Timão
-            </Link>
         </nav>
       </div>
       <div className="flex items-center gap-4">
@@ -249,12 +240,6 @@ export function Header() {
               <Link href="/store">
                 <Store className="mr-2 h-4 w-4" />
                 <span>Loja</span>
-              </Link>
-            </DropdownMenuItem>
-            <DropdownMenuItem asChild>
-              <Link href="/timao">
-                <ShieldCheck className="mr-2 h-4 w-4" />
-                <span>Espaço do Timão</span>
               </Link>
             </DropdownMenuItem>
             {user?.admin && (
