@@ -17,6 +17,7 @@ import {
   SidebarMenuButton,
   SidebarTrigger,
   SidebarInset,
+  SidebarMenuSkeleton,
 } from '@/components/ui/sidebar';
 import { FielBetLogo } from '@/components/icons';
 import { Header } from '@/components/header';
@@ -25,11 +26,28 @@ import { BetSlipProvider } from '@/context/bet-slip-context';
 import { BetSlip } from '@/components/bet-slip';
 import { Store, ShieldCheck, Swords, Star, Megaphone } from 'lucide-react';
 import { AdBanner } from './ad-banner';
+import { Suspense } from 'react';
 
 interface AppLayoutProps {
     children: ReactNode;
     availableLeagues?: string[];
 }
+
+const ChampionshipMenuFallback = () => {
+    return (
+        <>
+            <SidebarMenuItem>
+                <SidebarMenuSkeleton showIcon />
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+                <SidebarMenuSkeleton showIcon />
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+                <SidebarMenuSkeleton showIcon />
+            </SidebarMenuItem>
+        </>
+    );
+};
 
 export function AppLayout({ children, availableLeagues }: AppLayoutProps) {
     const pathname = usePathname();
@@ -76,7 +94,9 @@ export function AppLayout({ children, availableLeagues }: AppLayoutProps) {
                                 <SidebarGroupLabel>Campeonatos</SidebarGroupLabel>
                                 <SidebarGroupContent>
                                 <SidebarMenu>
-                                    <ChampionshipSidebarMenu availableLeagues={availableLeagues} />
+                                    <Suspense fallback={<ChampionshipMenuFallback />}>
+                                        <ChampionshipSidebarMenu availableLeagues={availableLeagues} />
+                                    </Suspense>
                                 </SidebarMenu>
                                 </SidebarGroupContent>
                             </SidebarGroup>
