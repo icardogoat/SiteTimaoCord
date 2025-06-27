@@ -9,6 +9,8 @@ import Image from 'next/image';
 import { ScrollArea, ScrollBar } from './ui/scroll-area';
 import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from './ui/tooltip';
 import { cn } from '@/lib/utils';
+import Link from 'next/link';
+import { buttonVariants } from './ui/button';
 
 interface StandingsClientProps {
   standings: Standing[];
@@ -176,9 +178,14 @@ export function StandingsClient({ standings }: StandingsClientProps) {
                                     </div>
                                 ))
                             ) : (
-                                <div className="p-8 text-center text-muted-foreground">
+                                <div className="p-8 text-center text-muted-foreground flex flex-col items-center gap-4">
                                     <p>Este campeonato está em fase de mata-mata ou não possui uma tabela de classificação tradicional.</p>
-                                    <p className="text-xs mt-2">Os jogos podem ser encontrados na página principal de apostas.</p>
+                                    <Link 
+                                        href={`/bet?league=${encodeURIComponent(s.league.name)}`} 
+                                        className={buttonVariants({ variant: "outline" })}
+                                    >
+                                        Ver jogos disponíveis para este campeonato
+                                    </Link>
                                 </div>
                             )}
                         </CardContent>
