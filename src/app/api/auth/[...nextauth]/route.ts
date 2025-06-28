@@ -199,26 +199,33 @@ export const authOptions: AuthOptions = {
         const existingWallet = await walletsCollection.findOne({ userId: userId });
 
         if (!existingWallet) {
+          // Check if the new user is a VIP to grant a special welcome bonus
+          const config = await getBotConfig();
+          const isVip = await checkUserHasRoles(userId, config.vipRoleIds || []);
+
+          const bonusAmount = isVip ? 5000 : 1000;
+          const bonusDescription = isVip ? 'Bônus de boas-vindas VIP!' : 'Bônus de boas-vindas!';
+          
           const initialTransaction: Transaction = {
             id: new ObjectId().toString(),
             type: 'Bônus',
-            description: 'Bônus de boas-vindas!',
-            amount: 1000,
+            description: bonusDescription,
+            amount: bonusAmount,
             date: new Date().toISOString(),
             status: 'Concluído'
           };
           
           await walletsCollection.insertOne({
             userId: userId,
-            balance: 1000,
+            balance: bonusAmount,
             transactions: [initialTransaction]
           });
 
           const notificationsCollection = db.collection("notifications");
           const welcomeNotification: Omit<Notification, '_id'> = {
               userId: userId,
-              title: 'Bem-vindo ao Timaocord!',
-              description: 'Você recebeu R$ 1.000,00 de bônus para começar a apostar. Boa sorte!',
+              title: 'Bem-vindo ao FielBet!',
+              description: `Você recebeu R$ ${bonusAmount.toFixed(2)} de bônus para começar a apostar. Boa sorte!`,
               date: new Date(),
               read: false,
               link: '/wallet'
