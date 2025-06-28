@@ -1,15 +1,17 @@
+
 'use client'
 
-import { Activity, CreditCard, DollarSign, Users, Loader2, RefreshCw, BellRing, Send, ShieldCheck } from "lucide-react"
+import { Activity, CreditCard, DollarSign, Users, Loader2, RefreshCw, BellRing, Send, ShieldCheck, Wallet, Zap, Trophy } from "lucide-react"
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis, Tooltip, Legend } from "recharts"
 import { useState } from "react"
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
+import Link from 'next/link';
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
 import {
   ChartContainer,
   ChartTooltip,
@@ -17,9 +19,9 @@ import {
   type ChartConfig,
 } from "@/components/ui/chart"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import type { DashboardStats, TopBettor, RecentBet, BetVolumeData, ProfitLossData } from "@/actions/admin-actions"
+import type { DashboardStats, TopBettor, RecentBet, BetVolumeData, ProfitLossData, RichestUserRanking, TopLevelUserRanking } from "@/types"
 import { useToast } from "@/hooks/use-toast"
-import { Button } from "@/components/ui/button"
+import { Button, buttonVariants } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { processAllFinishedMatches, sendAnnouncement, getChartData, updateFixturesFromApi } from "@/actions/admin-actions";
 import { sendUpcomingMatchNotifications } from "@/actions/match-notifications";
@@ -65,6 +67,8 @@ interface AdminDashboardClientProps {
     initialChartData: { volume: BetVolumeData; profit: ProfitLossData; };
     topBettors: TopBettor[];
     recentBets: RecentBet[];
+    richestUsers: RichestUserRanking[];
+    topLevelUsers: TopLevelUserRanking[];
 }
 
 const obfuscateEmail = (email: string) => {
@@ -79,7 +83,7 @@ const obfuscateEmail = (email: string) => {
 };
 
 
-export function AdminDashboardClient({ stats, initialChartData, topBettors, recentBets }: AdminDashboardClientProps) {
+export function AdminDashboardClient({ stats, initialChartData, topBettors, recentBets, richestUsers, topLevelUsers }: AdminDashboardClientProps) {
     const { toast } = useToast();
     const [isProcessingAll, setIsProcessingAll] = useState(false);
     const [isNotifying, setIsNotifying] = useState(false);
@@ -251,38 +255,85 @@ export function AdminDashboardClient({ stats, initialChartData, topBettors, rece
             </CardContent>
         </Card>
 
-      <div className="grid auto-rows-max gap-4 md:gap-8 lg:col-span-2">
-         <Card>
-              <CardHeader>
-                <CardTitle>Top Apostadores</CardTitle>
-                <CardDescription>
-                  Usuários com maior volume de apostas.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="grid gap-4">
-                {topBettors.map(user => (
-                    <div className="flex items-center gap-4" key={user.email}>
-                      <Avatar className={cn("hidden h-9 w-9 sm:flex", user.isVip && "ring-2 ring-vip")}>
-                        <AvatarImage src={user.avatar} alt="Avatar" data-ai-hint="user avatar" />
-                        <AvatarFallback>{user.name.substring(0, 2).toUpperCase()}</AvatarFallback>
-                      </Avatar>
-                      <div className="grid gap-1">
-                        <p className="text-sm font-medium leading-none">
-                          {user.name}
-                        </p>
-                        <p className="text-sm text-muted-foreground">
-                          {obfuscateEmail(user.email)}
-                        </p>
-                      </div>
-                      <div className="ml-auto font-medium">{formatCurrency(user.totalWagered)}</div>
-                    </div>
-                ))}
-                {topBettors.length === 0 && (
-                  <p className="text-sm text-center text-muted-foreground">Nenhum apostador encontrado.</p>
-                )}
-              </CardContent>
+        <div className="grid auto-rows-max gap-4 md:gap-8 lg:col-span-2">
+            <div className="grid gap-4 sm:grid-cols-2">
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2"><Trophy />Top Apostadores</CardTitle>
+                        <CardDescription>Usuários com maior volume de apostas.</CardDescription>
+                    </CardHeader>
+                    <CardContent className="grid gap-4">
+                        {topBettors.map(user => (
+                            <div className="flex items-center gap-4" key={user.email}>
+                            <Avatar className={cn("hidden h-9 w-9 sm:flex", user.isVip && "ring-2 ring-vip")}>
+                                <AvatarImage src={user.avatar} alt="Avatar" data-ai-hint="user avatar" />
+                                <AvatarFallback>{user.name.substring(0, 2).toUpperCase()}</AvatarFallback>
+                            </Avatar>
+                            <div className="grid gap-1">
+                                <p className="text-sm font-medium leading-none">{user.name}</p>
+                                <p className="text-sm text-muted-foreground">{obfuscateEmail(user.email)}</p>
+                            </div>
+                            <div className="ml-auto font-medium">{formatCurrency(user.totalWagered)}</div>
+                            </div>
+                        ))}
+                        {topBettors.length === 0 && <p className="text-sm text-center text-muted-foreground">Nenhum apostador encontrado.</p>}
+                    </CardContent>
+                    <CardFooter>
+                         <Link href="/ranking" className={cn(buttonVariants({ variant: "outline", size: "sm" }), "w-full")}>Ver Ranking Completo</Link>
+                    </CardFooter>
+                </Card>
+                 <Card>
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2"><Wallet /> Mais Ricos</CardTitle>
+                        <CardDescription>Usuários com maior saldo.</CardDescription>
+                    </CardHeader>
+                    <CardContent className="grid gap-4">
+                        {richestUsers.map(user => (
+                            <div className="flex items-center gap-4" key={user.discordId}>
+                                <Avatar className={cn("hidden h-9 w-9 sm:flex", user.isVip && "ring-2 ring-vip")}>
+                                    <AvatarImage src={user.avatar} alt="Avatar" data-ai-hint="user avatar" />
+                                    <AvatarFallback>{user.name.substring(0, 2).toUpperCase()}</AvatarFallback>
+                                </Avatar>
+                                <div className="grid gap-1">
+                                    <p className="text-sm font-medium leading-none">{user.name}</p>
+                                    <p className="text-sm text-muted-foreground">Rank: {user.rank}</p>
+                                </div>
+                                <div className="ml-auto font-medium">{formatCurrency(user.balance)}</div>
+                            </div>
+                        ))}
+                        {richestUsers.length === 0 && <p className="text-sm text-center text-muted-foreground">Nenhum usuário encontrado.</p>}
+                    </CardContent>
+                    <CardFooter>
+                        <Link href="/ranking" className={cn(buttonVariants({ variant: "outline", size: "sm" }), "w-full")}>Ver Ranking Completo</Link>
+                    </CardFooter>
+                </Card>
+            </div>
+            <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2"><Zap /> Top Níveis</CardTitle>
+                    <CardDescription>Usuários com mais experiência (XP).</CardDescription>
+                </CardHeader>
+                <CardContent className="grid gap-4">
+                    {topLevelUsers.map(user => (
+                        <div className="flex items-center gap-4" key={user.discordId}>
+                            <Avatar className={cn("hidden h-9 w-9 sm:flex", user.isVip && "ring-2 ring-vip")}>
+                                <AvatarImage src={user.avatar} alt="Avatar" data-ai-hint="user avatar" />
+                                <AvatarFallback>{user.name.substring(0, 2).toUpperCase()}</AvatarFallback>
+                            </Avatar>
+                            <div className="grid gap-1">
+                                <p className="text-sm font-medium leading-none">{user.name}</p>
+                                <p className="text-sm text-muted-foreground">{user.xp.toLocaleString('pt-BR')} XP</p>
+                            </div>
+                            <div className="ml-auto font-medium">Nível {user.level}</div>
+                        </div>
+                    ))}
+                    {topLevelUsers.length === 0 && <p className="text-sm text-center text-muted-foreground">Nenhum usuário encontrado.</p>}
+                </CardContent>
+                <CardFooter>
+                    <Link href="/ranking" className={cn(buttonVariants({ variant: "outline", size: "sm" }), "w-full")}>Ver Ranking Completo</Link>
+                </CardFooter>
             </Card>
-      </div>
+        </div>
 
       <div className="grid auto-rows-max gap-4 md:gap-8 lg:col-span-1">
           <Card>

@@ -404,3 +404,26 @@ export type DbStats = {
     storageSize: string; // in MB
     totalSize: string; // in MB
 };
+
+export type DashboardStats = {
+    totalWagered: number;
+    activeUsers: number;
+    totalBets: number;
+    grossProfit: number;
+};
+
+export type TopBettor = {
+    name: string;
+    email: string;
+    avatar: string;
+    totalWagered: number;
+    isVip?: boolean;
+};
+
+export type RecentBet = {
+    userName: string;
+    userEmail: string;
+    matchDescription: string;
+    status: 'Em Aberto' | 'Ganha' | 'Perdida' | 'Cancelada';
+    stake: number;
+};
