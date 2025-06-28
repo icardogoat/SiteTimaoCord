@@ -2,7 +2,7 @@
 'use server';
 
 import clientPromise from '@/lib/mongodb';
-import type { Post, AuthorInfo, PlacedBet, Transaction, UserRanking, MvpVoting, MvpPlayer, MvpTeamLineup, Notification, StoreItem, Bolao, Advertisement, UserInventoryItem, PurchaseAdminView, BetVolumeData, ProfitLossData, SiteEvent, LevelThreshold } from '@/types';
+import type { Post, AuthorInfo, PlacedBet, Transaction, UserRanking, MvpVoting, MvpPlayer, MvpTeamLineup, Notification, StoreItem, Bolao, Advertisement, UserInventoryItem, PurchaseAdminView, BetVolumeData, ProfitLossData, SiteEvent, LevelThreshold, DbStats } from '@/types';
 import { ObjectId, WithId } from 'mongodb';
 import { revalidatePath } from 'next/cache';
 import { getBotConfig } from './bot-config-actions';
@@ -2216,5 +2216,31 @@ export async function deleteEvent(eventId: string): Promise<{ success: boolean; 
     } catch (error) {
         console.error("Error deleting event:", error);
         return { success: false, message: "Ocorreu um erro ao excluir o evento." };
+    }
+}
+
+// ---- DATABASE ACTIONS ----
+
+export async function getDbStats(): Promise<{ success: boolean; data?: DbStats, error?: string }> {
+    try {
+        const client = await clientPromise;
+        const db = client.db(); // Get the default database from the connection string
+        
+        const stats = await db.command({ dbStats: 1, scale: 1024 * 1024 }); // Scale to MB
+        
+        const dbStats: DbStats = {
+            db: stats.db,
+            collections: stats.collections,
+            objects: stats.objects,
+            dataSize: stats.dataSize.toFixed(2),
+            storageSize: stats.storageSize.toFixed(2),
+            totalSize: stats.totalSize.toFixed(2),
+        };
+
+        return { success: true, data: dbStats };
+    } catch (error) {
+        const errorMessage = (error instanceof Error) ? error.message : "An unknown error occurred.";
+        console.error("Error fetching DB stats:", error);
+        return { success: false, error: `Failed to fetch database statistics: ${errorMessage}` };
     }
 }

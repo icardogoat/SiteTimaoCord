@@ -384,3 +384,12 @@ export type SiteEvent = {
   createdAt: Date | string;
   updatedAt: Date | string;
 };
+
+export type DbStats = {
+    db: string;
+    collections: number;
+    objects: number;
+    dataSize: string; // in MB
+    storageSize: string; // in MB
+    totalSize: string; // in MB
+};
