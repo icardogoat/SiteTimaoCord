@@ -1,5 +1,3 @@
-'use server';
-
 import { getLiveStream, voteOnPoll } from '@/actions/stream-actions';
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
