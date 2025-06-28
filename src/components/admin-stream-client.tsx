@@ -26,6 +26,7 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
@@ -271,12 +272,13 @@ export function AdminStreamClient({ initialStreams }: { initialStreams: LiveStre
 
   const handleOpenDialog = (stream: LiveStream | null) => {
     setCurrentStream(stream);
-    form.reset(stream ? { 
-        ...stream, 
-        id: stream._id.toString(),
-        embedCode: stream.embedCode || '',
-        streamUrl: stream.streamUrl || ''
-    } : { name: '', embedCode: '', streamUrl: '', streamType: 'iframe' });
+    form.reset({ 
+        id: stream?._id.toString(),
+        name: stream?.name || '',
+        streamType: stream?.streamType || 'iframe',
+        embedCode: stream?.embedCode || '',
+        streamUrl: stream?.streamUrl || ''
+    });
     setIsDialogOpen(true);
   };
 
@@ -491,5 +493,3 @@ export function AdminStreamClient({ initialStreams }: { initialStreams: LiveStre
     </>
   );
 }
-
-    
