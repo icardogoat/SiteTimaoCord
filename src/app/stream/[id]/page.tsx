@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useState, use } from 'react';
@@ -102,6 +103,8 @@ export default function StreamPage() {
         return null; // Should be handled by loading/error states
     }
 
+    const adBlockActive = session?.user?.adRemovalExpiresAt && new Date(session.user.adRemovalExpiresAt) > new Date();
+
     const renderPlayer = () => {
         if (!activeSource) {
              return (
@@ -127,7 +130,12 @@ export default function StreamPage() {
         }
 
         if (activeSource.type === 'iframe') {
-            return <iframe src={activeSource.url} allow="autoplay; encrypted-media" allowFullScreen className="w-full h-full border-0" />;
+            return <iframe 
+                src={activeSource.url} 
+                allow="autoplay; encrypted-media; fullscreen" 
+                sandbox={adBlockActive ? "allow-scripts allow-fullscreen" : undefined}
+                className="w-full h-full border-0" 
+            />;
         }
 
         return <div className="w-full h-full flex items-center justify-center text-white bg-black"><p>Tipo de fonte inválido.</p></div>;
