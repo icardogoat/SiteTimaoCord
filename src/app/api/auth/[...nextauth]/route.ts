@@ -305,7 +305,7 @@ export const authOptions: AuthOptions = {
         } catch (error) {
             console.error("Failed to fetch user balance/level for session:", error);
             session.user.balance = 0;
-            session.user.level = { level: 1, xp: 0, xpForNextLevel: 100, progress: 0 }; // Default level
+            session.user.level = { level: 1, levelName: 'Iniciante', xp: 0, xpForNextLevel: 500, progress: 0 };
         }
       }
       return session;

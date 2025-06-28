@@ -74,7 +74,7 @@ export default async function ProfilePage() {
     const userRichestRank = richestUsers.find(u => u.discordId === discordId)?.rank;
     const userActiveRank = mostActiveBettors.find(u => u.discordId === discordId)?.rank;
 
-    const { level, progress, xp, xpForNextLevel } = userLevel ?? { level: 1, xp: 0, xpForNextLevel: 1500, progress: 0 };
+    const { level, levelName, progress, xp, xpForNextLevel } = userLevel ?? { level: 1, levelName: 'Iniciante', xp: 0, xpForNextLevel: 1500, progress: 0 };
 
     const sortedAchievements = [...allAchievements].sort((a, b) => {
         const aUnlocked = unlockedSet.has(a.id);
@@ -117,9 +117,12 @@ export default async function ProfilePage() {
                                 <CardTitle>Nível de Experiência</CardTitle>
                             </CardHeader>
                             <CardContent className="space-y-4">
-                                <div className="flex justify-between items-baseline">
+                                <div className="flex justify-between items-end">
                                     <p className="text-sm text-muted-foreground">Nível Atual</p>
-                                    <p className="text-3xl font-bold">{level}</p>
+                                    <div className="text-right">
+                                        <p className="text-3xl font-bold leading-none">{level}</p>
+                                        <p className="font-semibold text-primary">{levelName}</p>
+                                    </div>
                                 </div>
                                 <div>
                                     <div className="flex justify-between items-center mb-1 text-xs text-muted-foreground">
@@ -212,7 +215,7 @@ export default async function ProfilePage() {
                                 <TooltipProvider>
                                     <div className="flex flex-wrap justify-center gap-4">
                                         {sortedAchievements.map(ach => {
-                                            const isUnlocked = unlockedSet.has(ach.id);
+                                            const isUnlocked = unlockedSet.has(a.id);
                                             if (ach.hidden && !isUnlocked) return null;
 
                                             return (

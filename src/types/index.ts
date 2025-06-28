@@ -115,8 +115,15 @@ export type RichestUserRanking = {
   isVip?: boolean;
 };
 
+export type LevelThreshold = {
+    level: number;
+    xp: number;
+    name: string;
+};
+
 export type UserLevel = {
   level: number;
+  levelName: string;
   xp: number;
   xpForNextLevel: number;
   progress: number;

@@ -5,6 +5,7 @@ import clientPromise from '@/lib/mongodb';
 import type { UserRanking, ActiveBettorRanking, TopLevelUserRanking, PlacedBet, UserLevel, RichestUserRanking, InviterRanking } from '@/types';
 import type { WithId } from 'mongodb';
 import { cache } from 'react';
+import { getLevelConfig } from './level-actions';
 
 export interface UserStats {
     totalWagered: number;
@@ -222,38 +223,29 @@ export const getRichestUsers = cache(async (): Promise<RichestUserRanking[]> => 
     }
 });
 
-
-const LEVEL_THRESHOLDS = [
-    { level: 1, xp: 0 },
-    { level: 2, xp: 500 },
-    { level: 3, xp: 1500 },
-    { level: 4, xp: 3000 },
-    { level: 5, xp: 5000 },
-    { level: 6, xp: 10000 },
-    { level: 7, xp: 20000 },
-    { level: 8, xp: 40000 },
-    { level: 9, xp: 75000 },
-    { level: 10, xp: 150000 },
-];
-
 export const getUserLevel = cache(async (userId: string): Promise<UserLevel> => {
     try {
         const client = await clientPromise;
         const db = client.db('timaocord');
         const usersCollection = db.collection('users');
-        const user = await usersCollection.findOne({ discordId: userId });
-
+        const [user, levelThresholds] = await Promise.all([
+            usersCollection.findOne({ discordId: userId }),
+            getLevelConfig()
+        ]);
+        
         const xp = user?.xp ?? 0;
 
         let currentLevel = 1;
-        let xpForNextLevel = LEVEL_THRESHOLDS[1]?.xp ?? Infinity;
+        let currentLevelName = levelThresholds[0]?.name ?? 'Iniciante';
+        let xpForNextLevel = levelThresholds[1]?.xp ?? Infinity;
         let xpForCurrentLevel = 0;
 
-        for (let i = LEVEL_THRESHOLDS.length - 1; i >= 0; i--) {
-            if (xp >= LEVEL_THRESHOLDS[i].xp) {
-                currentLevel = LEVEL_THRESHOLDS[i].level;
-                xpForCurrentLevel = LEVEL_THRESHOLDS[i].xp;
-                xpForNextLevel = LEVEL_THRESHOLDS[i + 1]?.xp ?? LEVEL_THRESHOLDS[i].xp;
+        for (let i = levelThresholds.length - 1; i >= 0; i--) {
+            if (xp >= levelThresholds[i].xp) {
+                currentLevel = levelThresholds[i].level;
+                currentLevelName = levelThresholds[i].name;
+                xpForCurrentLevel = levelThresholds[i].xp;
+                xpForNextLevel = levelThresholds[i + 1]?.xp ?? levelThresholds[i].xp;
                 break;
             }
         }
@@ -263,7 +255,7 @@ export const getUserLevel = cache(async (userId: string): Promise<UserLevel> => 
             await usersCollection.updateOne({ _id: user._id }, { $set: { level: currentLevel } });
         }
 
-        if (currentLevel === LEVEL_THRESHOLDS[LEVEL_THRESHOLDS.length - 1].level) {
+        if (currentLevel === levelThresholds[levelThresholds.length - 1].level) {
             xpForNextLevel = xpForCurrentLevel;
         }
 
@@ -274,13 +266,14 @@ export const getUserLevel = cache(async (userId: string): Promise<UserLevel> => 
 
         return {
             level: currentLevel,
+            levelName: currentLevelName,
             xp,
             xpForNextLevel: xpForNextLevel,
             progress: Math.min(progress, 100),
         };
     } catch (error) {
         console.error(`Error fetching user level for ${userId}:`, error);
-        return { level: 1, xp: 0, xpForNextLevel: LEVEL_THRESHOLDS[1]?.xp ?? 100, progress: 0 };
+        return { level: 1, levelName: 'Iniciante', xp: 0, xpForNextLevel: 500, progress: 0 };
     }
 });
 
