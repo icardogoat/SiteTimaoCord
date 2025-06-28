@@ -1,4 +1,3 @@
-
 'use client';
 
 import type { Post } from '@/types';
@@ -67,20 +66,15 @@ export function PostCard({ post }: PostCardProps) {
             <CardContent className="flex-grow">
                 <p className="text-muted-foreground line-clamp-3">{post.content}</p>
             </CardContent>
-            <CardFooter>
-                 {hasPermission ? (
+            {hasPermission && (
+                <CardFooter>
                     <Button asChild variant="secondary" className="w-full">
                         <Link href={`/news/${post._id.toString()}`}>
                             Ler Mais <ArrowRight className="ml-2 h-4 w-4" />
                         </Link>
                     </Button>
-                ) : (
-                    <Button variant="secondary" disabled className="w-full cursor-not-allowed">
-                        <Lock className="mr-2 h-4 w-4" />
-                        Acesso Restrito
-                    </Button>
-                )}
-            </CardFooter>
+                </CardFooter>
+            )}
         </Card>
     );
 }
