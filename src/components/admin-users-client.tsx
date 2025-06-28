@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState } from "react";
@@ -54,6 +53,17 @@ type User = {
 interface AdminUsersClientProps {
     initialUsers: User[];
 }
+
+const obfuscateEmail = (email: string) => {
+    if (!email || !email.includes('@')) {
+        return 'Email inválido';
+    }
+    const [localPart, domain] = email.split('@');
+    if (localPart.length <= 3) {
+        return `${localPart.slice(0, 1)}*****@${domain}`;
+    }
+    return `${localPart.slice(0, 3)}*****@${domain}`;
+};
 
 
 export default function AdminUsersClient({ initialUsers }: AdminUsersClientProps) {
@@ -111,7 +121,7 @@ export default function AdminUsersClient({ initialUsers }: AdminUsersClientProps
                                             </Avatar>
                                             <div>
                                                 <div className="font-medium">{user.name}</div>
-                                                <div className="hidden text-sm text-muted-foreground sm:block">{user.email}</div>
+                                                <div className="hidden text-sm text-muted-foreground sm:block">{obfuscateEmail(user.email)}</div>
                                                 <div className="text-xs text-muted-foreground">Discord ID: {user.discordId}</div>
                                             </div>
                                         </div>
@@ -158,7 +168,7 @@ export default function AdminUsersClient({ initialUsers }: AdminUsersClientProps
                             </div>
                              <div className="grid grid-cols-4 items-center gap-4">
                                 <Label className="text-right">Email</Label>
-                                <Input value={selectedUser.email} className="col-span-3" readOnly />
+                                <Input value={obfuscateEmail(selectedUser.email)} className="col-span-3" readOnly />
                             </div>
                              <div className="grid grid-cols-4 items-center gap-4">
                                 <Label className="text-right">Discord ID</Label>
