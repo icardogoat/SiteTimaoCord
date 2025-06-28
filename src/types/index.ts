@@ -195,111 +195,12 @@ export type ApiSettings = {
     apiKeys?: ApiKeyEntry[];
 };
 
-export type Achievement = {
-  id: string;
-  name: string;
-  description: string;
-  icon: React.ComponentType<{ className?: string }>;
-  hidden?: boolean;
-};
-
-export type BolaoParticipant = {
-  userId: string;
-  name: string;
-  avatar: string;
-  guess: {
-    home: number;
-    away: number;
-  };
-  guessedAt: Date | string;
-};
-
-export type Bolao = {
-  _id: string | ObjectId;
-  matchId: number;
-  homeTeam: string;
-  awayTeam: string;
-  homeLogo: string;
-  awayLogo: string;
-  league: string;
-  matchTime: string;
-  entryFee: number;
-  prizePool: number;
-  status: 'Aberto' | 'Fechado' | 'Pago' | 'Cancelado';
-  participants: BolaoParticipant[];
-  winners?: { userId: string, prize: number }[];
-  createdAt: Date | string;
-  finalScore?: { home: number, away: number };
-};
-
-export type MvpPlayer = {
-  id: number;
-  name: string;
-  photo: string;
-};
-
-export type MvpTeamLineup = {
-  teamId: number;
-  teamName: string;
-  teamLogo: string;
-  players: MvpPlayer[];
-};
-
-export type MvpVote = {
-    userId: string;
-    playerId: number;
-    votedAt: Date | string;
-};
-
-export type MvpVoting = {
-  _id: string | ObjectId;
-  matchId: number;
-  homeTeam: string;
-  awayTeam: string;
-  homeLogo: string;
-  awayLogo: string;
-  league: string;
-  status: 'Aberto' | 'Finalizado' | 'Cancelado';
-  lineups: MvpTeamLineup[];
-  votes: MvpVote[];
-  mvpPlayerIds?: number[];
-  createdAt: Date | string;
-  endsAt?: Date | string;
-  finalizedAt?: Date | string;
-};
-
-export type Advertisement = {
-  _id: string | ObjectId;
-  title: string;
-  description: string;
-  imageUrl: string;
-  linkUrl: string;
-  status: 'active' | 'inactive' | 'pending';
-  owner: 'system' | 'user';
-  userId?: string;
-  createdAt: Date | string;
-  startDate?: Date | string | null;
-  endDate?: Date | string | null;
-};
-
-export type PurchaseAdminView = {
-  id: string; // inventory item id
-  userName: string;
-  userAvatar: string;
-  itemName: string;
-  itemType: StoreItem['type'];
-  pricePaid: number;
-  isRedeemed: boolean;
-  purchasedAt: string;
-  redemptionCode?: string;
-  userId: string;
-};
-
 export type SiteSettings = {
   maintenanceMode: boolean;
   maintenanceMessage: string;
   maintenanceExpectedReturn: string;
   welcomeBonus: number;
+  betaVipMode: boolean;
 };
 
 // Simplified Author Info, populated from the User collection

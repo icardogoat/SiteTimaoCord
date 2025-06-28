@@ -154,6 +154,7 @@ export async function getSiteSettings() {
             maintenanceMode: settings?.maintenanceMode ?? false,
             maintenanceMessage: settings?.maintenanceMessage ?? 'O site está em manutenção. Voltamos em breve!',
             maintenanceExpectedReturn: settings?.maintenanceExpectedReturn ?? '',
+            betaVipMode: settings?.betaVipMode ?? false,
             welcomeBonus: settings?.welcomeBonus ?? 1000,
         };
     } catch (error) {
@@ -162,6 +163,7 @@ export async function getSiteSettings() {
             maintenanceMode: false,
             maintenanceMessage: 'O site está em manutenção. Voltamos em breve!',
             maintenanceExpectedReturn: '',
+            betaVipMode: false,
             welcomeBonus: 1000,
         };
     }
@@ -192,6 +194,30 @@ export async function updateGeneralSiteSettings(data: {
         return { success: true, message: 'Configurações gerais atualizadas com sucesso!' };
     } catch (error) {
         console.error("Error updating site settings:", error);
+        return { success: false, message: 'Falha ao salvar as configurações.' };
+    }
+}
+
+export async function updateBetaVipSettings(data: {
+    betaVipMode: boolean;
+}) {
+    try {
+        const client = await clientPromise;
+        const db = client.db('timaocord');
+        const settingsCollection = db.collection('site_settings');
+
+        await settingsCollection.updateOne(
+            {},
+            { $set: data },
+            { upsert: true }
+        );
+
+        revalidatePath('/admin/settings');
+        revalidatePath('/'); // Revalidate root for middleware checks
+
+        return { success: true, message: 'Configurações de modo beta atualizadas!' };
+    } catch (error) {
+        console.error("Error updating beta vip settings:", error);
         return { success: false, message: 'Falha ao salvar as configurações.' };
     }
 }
