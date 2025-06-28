@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, use } from 'react';
 import { useSession } from 'next-auth/react';
 import { getLiveStream } from '@/actions/stream-actions';
 import HlsPlayer from '@/components/hls-player';
@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Lock } from 'lucide-react';
 import { notFound, useRouter, useParams } from 'next/navigation';
-import { FielBetLogo } from '@/components/icons';
+import Image from 'next/image';
 
 export default function StreamPage() {
     const params = useParams<{ id: string }>();
@@ -56,7 +56,15 @@ export default function StreamPage() {
     if (status === 'loading' || loading) {
         return (
             <div className="flex items-center justify-center h-screen bg-black text-white">
-                <FielBetLogo className="h-24 w-24 text-primary animate-pulse" />
+                <Image
+                    src="https://i.imgur.com/xD76hcl.png"
+                    alt="FielBet Logo"
+                    width={250}
+                    height={64}
+                    className="animate-pulse"
+                    priority
+                    data-ai-hint="logo"
+                />
             </div>
         );
     }
@@ -99,7 +107,15 @@ export default function StreamPage() {
              return (
                 <div className="w-full h-full flex items-center justify-center text-white bg-black">
                     <div className="text-center">
-                        <FielBetLogo className="h-24 w-24 text-primary mx-auto animate-pulse" />
+                         <Image
+                            src="https://i.imgur.com/xD76hcl.png"
+                            alt="FielBet Logo"
+                            width={250}
+                            height={64}
+                            className="animate-pulse mx-auto"
+                            priority
+                            data-ai-hint="logo"
+                        />
                         <p className="mt-4 text-muted-foreground">Selecione uma fonte abaixo para assistir</p>
                     </div>
                 </div>
@@ -120,6 +136,17 @@ export default function StreamPage() {
     return (
         <div className="relative w-screen h-screen bg-black overflow-hidden">
             {renderPlayer()}
+
+            <div className="absolute top-4 right-4 z-20 pointer-events-none">
+                <Image
+                    src="https://i.imgur.com/xD76hcl.png"
+                    alt="FielBet Logo"
+                    width={150}
+                    height={38}
+                    className="opacity-75"
+                    data-ai-hint="logo"
+                />
+            </div>
 
             {(stream.sources?.length ?? 0) > 1 && (
                  <div className="fixed bottom-0 left-1/2 -translate-x-1/2 p-4 z-50">
