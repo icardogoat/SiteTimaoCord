@@ -192,61 +192,63 @@ export function AdminStreamClient({ initialStreams }: { initialStreams: LiveStre
           </DialogHeader>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-              <FormField
-                control={form.control}
-                name="name"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Nome da Transmissão</FormLabel>
-                    <FormControl>
-                      <Input {...field} placeholder="Ex: Corinthians x São Paulo - Ao Vivo" />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <Separator />
+              <div className="max-h-[60vh] overflow-y-auto space-y-6 pr-4">
+                <FormField
+                    control={form.control}
+                    name="name"
+                    render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Nome da Transmissão</FormLabel>
+                        <FormControl>
+                        <Input {...field} placeholder="Ex: Corinthians x São Paulo - Ao Vivo" />
+                        </FormControl>
+                        <FormMessage />
+                    </FormItem>
+                    )}
+                />
+                
+                <Separator />
 
-              <div>
-                <FormLabel>Fontes da Transmissão</FormLabel>
-                <FormDescription className="mb-4">Adicione uma ou mais fontes para os espectadores escolherem.</FormDescription>
-                <div className="space-y-4">
-                    {fields.map((field, index) => (
-                        <Card key={field.id} className="p-4 bg-muted/50">
-                            <div className="flex justify-between items-center mb-4">
-                                <h4 className="font-semibold">Fonte {index + 1}</h4>
-                                <Button type="button" variant="ghost" size="icon" onClick={() => remove(index)} disabled={fields.length <= 1}>
-                                    <Trash2 className="h-4 w-4 text-destructive"/>
-                                </Button>
-                            </div>
-                             <div className="space-y-4">
-                                 <FormField control={form.control} name={`sources.${index}.name`} render={({ field }) => (
-                                    <FormItem><FormLabel>Nome da Opção</FormLabel><FormControl><Input {...field} placeholder="Ex: Câmera Principal, Rádio Craque Neto" /></FormControl><FormMessage /></FormItem>
-                                )}/>
-                                 <FormField control={form.control} name={`sources.${index}.type`} render={({ field }) => (
-                                    <FormItem className="space-y-3"><FormLabel>Tipo</FormLabel><FormControl>
-                                        <RadioGroup onValueChange={field.onChange} defaultValue={field.value} className="flex space-x-4">
-                                            <FormItem className="flex items-center space-x-2 space-y-0"><FormControl><RadioGroupItem value="iframe" /></FormControl><FormLabel className="font-normal">iFrame</FormLabel></FormItem>
-                                            <FormItem className="flex items-center space-x-2 space-y-0"><FormControl><RadioGroupItem value="hls" /></FormControl><FormLabel className="font-normal">HLS (.m3u8)</FormLabel></FormItem>
-                                        </RadioGroup>
-                                    </FormControl><FormMessage /></FormItem>
-                                )}/>
-                                 <FormField control={form.control} name={`sources.${index}.url`} render={({ field }) => (
-                                    <FormItem><FormLabel>URL</FormLabel><FormControl><Input {...field} placeholder="https://..." /></FormControl>
-                                    <FormDescription>Para iframe, cole a URL do atributo 'src'. Para HLS, a URL do arquivo .m3u8.</FormDescription>
-                                    <FormMessage /></FormItem>
-                                )}/>
-                            </div>
-                        </Card>
-                    ))}
+                <div>
+                    <FormLabel>Fontes da Transmissão</FormLabel>
+                    <FormDescription className="mb-4">Adicione uma ou mais fontes para os espectadores escolherem.</FormDescription>
+                    <div className="space-y-4">
+                        {fields.map((field, index) => (
+                            <Card key={field.id} className="p-4 bg-muted/50">
+                                <div className="flex justify-between items-center mb-4">
+                                    <h4 className="font-semibold">Fonte {index + 1}</h4>
+                                    <Button type="button" variant="ghost" size="icon" onClick={() => remove(index)} disabled={fields.length <= 1}>
+                                        <Trash2 className="h-4 w-4 text-destructive"/>
+                                    </Button>
+                                </div>
+                                <div className="space-y-4">
+                                    <FormField control={form.control} name={`sources.${index}.name`} render={({ field }) => (
+                                        <FormItem><FormLabel>Nome da Opção</FormLabel><FormControl><Input {...field} placeholder={`Opção ${index + 1}`} /></FormControl><FormMessage /></FormItem>
+                                    )}/>
+                                    <FormField control={form.control} name={`sources.${index}.type`} render={({ field }) => (
+                                        <FormItem className="space-y-3"><FormLabel>Tipo</FormLabel><FormControl>
+                                            <RadioGroup onValueChange={field.onChange} defaultValue={field.value} className="flex space-x-4">
+                                                <FormItem className="flex items-center space-x-2 space-y-0"><FormControl><RadioGroupItem value="iframe" /></FormControl><FormLabel className="font-normal">iFrame</FormLabel></FormItem>
+                                                <FormItem className="flex items-center space-x-2 space-y-0"><FormControl><RadioGroupItem value="hls" /></FormControl><FormLabel className="font-normal">HLS (.m3u8)</FormLabel></FormItem>
+                                            </RadioGroup>
+                                        </FormControl><FormMessage /></FormItem>
+                                    )}/>
+                                    <FormField control={form.control} name={`sources.${index}.url`} render={({ field }) => (
+                                        <FormItem><FormLabel>URL</FormLabel><FormControl><Input {...field} placeholder="https://..." /></FormControl>
+                                        <FormDescription>Para iframe, cole a URL do atributo 'src'. Para HLS, a URL do arquivo .m3u8.</FormDescription>
+                                        <FormMessage /></FormItem>
+                                    )}/>
+                                </div>
+                            </Card>
+                        ))}
+                    </div>
+                    <Button type="button" variant="outline" size="sm" className="mt-4" onClick={() => append({ id: crypto.randomUUID(), name: `Opção ${fields.length + 1}`, type: 'iframe', url: '' })}>
+                        <PlusCircle className="mr-2 h-4 w-4" /> Adicionar Fonte
+                    </Button>
                 </div>
-                 <Button type="button" variant="outline" size="sm" className="mt-4" onClick={() => append({ id: crypto.randomUUID(), name: `Opção ${fields.length + 1}`, type: 'iframe', url: '' })}>
-                    <PlusCircle className="mr-2 h-4 w-4" /> Adicionar Fonte
-                </Button>
               </div>
               
-              <DialogFooter>
+              <DialogFooter className="pt-4 border-t">
                 <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
                   Cancelar
                 </Button>

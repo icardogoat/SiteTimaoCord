@@ -8,10 +8,11 @@ import type { LiveStream, StreamSource } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Lock } from 'lucide-react';
-import { notFound, useRouter } from 'next/navigation';
+import { notFound, useRouter, useParams } from 'next/navigation';
 import { FielBetLogo } from '@/components/icons';
 
-export default function StreamPage({ params }: { params: { id: string } }) {
+export default function StreamPage() {
+    const params = useParams<{ id: string }>();
     const { data: session, status } = useSession();
     const router = useRouter();
     const [stream, setStream] = useState<LiveStream | null>(null);
@@ -98,7 +99,7 @@ export default function StreamPage({ params }: { params: { id: string } }) {
              return (
                 <div className="w-full h-full flex items-center justify-center text-white bg-black">
                     <div className="text-center">
-                        <FielBetLogo className="h-24 w-24 text-primary mx-auto" />
+                        <FielBetLogo className="h-24 w-24 text-primary mx-auto animate-pulse" />
                         <p className="mt-4 text-muted-foreground">Selecione uma fonte abaixo para assistir</p>
                     </div>
                 </div>
