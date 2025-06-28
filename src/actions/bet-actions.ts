@@ -1,3 +1,4 @@
+
 'use server';
 
 import { getServerSession } from 'next-auth/next';
@@ -39,6 +40,7 @@ export async function placeBet(betsInSlip: BetInSlip[], stake: number): Promise<
     await mongoSession.withTransaction(async () => {
       const walletsCollection = db.collection('wallets');
       const betsCollection = db.collection('bets');
+      const userStatsCollection = db.collection('user_stats');
 
       const userWallet = await walletsCollection.findOne({ userId }, { session: mongoSession });
 
@@ -70,6 +72,18 @@ export async function placeBet(betsInSlip: BetInSlip[], stake: number): Promise<
       };
       
       await betsCollection.insertOne(newPlacedBet as any, { session: mongoSession });
+      
+      // Update user stats
+      await userStatsCollection.updateOne(
+        { userId },
+        { 
+            $inc: { 
+                totalBets: 1, 
+                totalWagered: stake 
+            } 
+        },
+        { upsert: true, session: mongoSession }
+      );
 
       const newTransaction: Transaction = {
         id: new ObjectId().toString(),

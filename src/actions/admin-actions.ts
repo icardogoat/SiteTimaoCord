@@ -2,7 +2,7 @@
 'use server';
 
 import clientPromise from '@/lib/mongodb';
-import type { Post, AuthorInfo, PlacedBet, Transaction, UserRanking, MvpVoting, MvpPlayer, MvpTeamLineup, Notification, StoreItem, Bolao, Advertisement, UserInventoryItem, PurchaseAdminView, BetVolumeData, ProfitLossData, SiteEvent, LevelThreshold, DbStats } from '@/types';
+import type { Post, AuthorInfo, PlacedBet, Transaction, UserRanking, MvpVoting, MvpPlayer, MvpTeamLineup, Notification, StoreItem, Bolao, Advertisement, UserInventoryItem, PurchaseAdminView, BetVolumeData, ProfitLossData, SiteEvent, LevelThreshold, DbStats, UserStats } from '@/types';
 import { ObjectId, WithId } from 'mongodb';
 import { revalidatePath } from 'next/cache';
 import { getBotConfig } from './bot-config-actions';
@@ -309,16 +309,22 @@ export async function getAdminUsers(): Promise<UserAdminView[]> {
             },
              {
                 $lookup: {
-                    from: 'bets',
+                    from: 'user_stats',
                     localField: 'discordId',
                     foreignField: 'userId',
-                    as: 'betInfo'
+                    as: 'statsInfo'
+                }
+            },
+            {
+                $unwind: {
+                    path: '$statsInfo',
+                    preserveNullAndEmptyArrays: true
                 }
             },
             {
                 $addFields: {
-                    totalBets: { $size: '$betInfo' },
-                    totalWagered: { $sum: '$betInfo.stake' },
+                    totalBets: { $ifNull: ['$statsInfo.totalBets', 0] },
+                    totalWagered: { $ifNull: ['$statsInfo.totalWagered', 0] },
                     balance: { $ifNull: ['$walletInfo.balance', 0] },
                     joinDate: { $ifNull: ['$createdAt', new Date()] },
                 }
@@ -602,6 +608,7 @@ export async function resolveMatch(fixtureId: number, options: { revalidate: boo
             const walletsCollection = db.collection('wallets');
             const notificationsCollection = db.collection('notifications');
             const usersCollection = db.collection('users');
+            const userStatsCollection = db.collection<UserStats>('user_stats');
             const boloesCollection = db.collection<Bolao>('boloes');
             const pendingRewardsCollection = db.collection('pending_rewards');
             const levelConfig = await getLevelConfig();
@@ -640,6 +647,11 @@ export async function resolveMatch(fixtureId: number, options: { revalidate: boo
                     
                     if (finalBetStatus === 'Perdida') {
                         await grantAchievement(bet.userId, 'first_loss');
+                         await userStatsCollection.updateOne(
+                            { userId: bet.userId },
+                            { $inc: { betsLost: 1, totalLosses: bet.stake } },
+                            { upsert: true, session: mongoSession }
+                        );
                     }
                     
                     let winnings = 0;
@@ -649,6 +661,12 @@ export async function resolveMatch(fixtureId: number, options: { revalidate: boo
                             return acc * parseFloat(sel.oddValue);
                         }, 1);
                         winnings = bet.stake * finalOdds;
+
+                         await userStatsCollection.updateOne(
+                            { userId: bet.userId },
+                            { $inc: { betsWon: 1, totalWinnings: winnings } },
+                            { upsert: true, session: mongoSession }
+                        );
 
                          const newTransaction: Transaction = {
                             id: new ObjectId().toString(),
@@ -2260,15 +2278,19 @@ export async function cleanupOldData(): Promise<{ success: boolean; message: str
         const notificationsCollection = db.collection('notifications');
         const matchesCollection = db.collection('matches');
         const mvpVotingsCollection = db.collection('mvp_votings');
+        const betsCollection = db.collection('bets');
 
         const deletedNotifications = await notificationsCollection.deleteMany({ date: { $lt: thirtyDaysAgo } });
         const deletedMatches = await matchesCollection.deleteMany({ timestamp: { $lt: ninetyDaysAgoTimestamp }, isProcessed: true });
         const deletedVotings = await mvpVotingsCollection.deleteMany({ createdAt: { $lt: ninetyDaysAgo }, status: { $in: ['Finalizado', 'Cancelado'] } });
+        const deletedBets = await betsCollection.deleteMany({ settledAt: { $lt: ninetyDaysAgo } });
+
 
         const details = [
             `${deletedNotifications.deletedCount} notificações antigas foram excluídas.`,
             `${deletedMatches.deletedCount} partidas antigas foram excluídas.`,
-            `${deletedVotings.deletedCount} votações MVP antigas foram excluídas.`
+            `${deletedVotings.deletedCount} votações MVP antigas foram excluídas.`,
+            `${deletedBets.deletedCount} apostas resolvidas antigas foram excluídas.`,
         ];
         
         revalidatePath('/admin/server');

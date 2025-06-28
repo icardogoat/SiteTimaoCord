@@ -2,47 +2,68 @@
 'use server';
 
 import clientPromise from '@/lib/mongodb';
-import type { UserRanking, ActiveBettorRanking, TopLevelUserRanking, PlacedBet, UserLevel, RichestUserRanking, InviterRanking } from '@/types';
+import type { UserRanking, ActiveBettorRanking, TopLevelUserRanking, PlacedBet, UserLevel, RichestUserRanking, InviterRanking, UserStats } from '@/types';
 import type { WithId } from 'mongodb';
 import { cache } from 'react';
 import { getLevelConfig } from './level-actions';
 
-export interface UserStats {
-    totalWagered: number;
-    totalBets: number;
-    totalWinnings: number;
-    totalLosses: number;
-    betsWon: number;
-    betsLost: number;
-}
+const defaultStats: UserStats = { 
+    userId: '', 
+    totalWagered: 0, 
+    totalBets: 0, 
+    totalWinnings: 0, 
+    totalLosses: 0, 
+    betsWon: 0, 
+    betsLost: 0 
+};
 
+// This function now primarily reads from the aggregated stats collection.
+// It includes a self-healing fallback for users who haven't had their stats migrated.
 export const getUserStats = cache(async (userId: string): Promise<UserStats> => {
     try {
         const client = await clientPromise;
         const db = client.db('timaocord');
-        const betsCollection = db.collection<WithId<PlacedBet>>('bets');
+        const userStatsCollection = db.collection<UserStats>('user_stats');
 
-        const userBets = await betsCollection.find({ userId }).toArray();
+        const userStats = await userStatsCollection.findOne({ userId });
 
-        if (userBets.length === 0) {
-            return { totalWagered: 0, totalBets: 0, totalWinnings: 0, totalLosses: 0, betsWon: 0, betsLost: 0 };
+        if (userStats) {
+            // Remove the _id before returning to match the type
+            const { _id, ...stats } = userStats;
+            return stats;
         }
 
-        const totalBets = userBets.length;
-        const totalWagered = userBets.reduce((sum, bet) => sum + bet.stake, 0);
+        // --- Fallback for existing users without an aggregated doc ---
+        // This part can be removed after all users have placed at least one bet
+        // with the new system, or after running a one-time migration script.
+        const betsCollection = db.collection<WithId<PlacedBet>>('bets');
+        const userBets = await betsCollection.find({ userId }).toArray();
+        if (userBets.length === 0) {
+            return { ...defaultStats, userId };
+        }
 
-        const wonBets = userBets.filter(bet => bet.status === 'Ganha');
-        const lostBets = userBets.filter(bet => bet.status === 'Perdida');
+        const calculatedStats: UserStats = {
+            userId,
+            totalBets: userBets.length,
+            totalWagered: userBets.reduce((sum, bet) => sum + bet.stake, 0),
+            betsWon: userBets.filter(bet => bet.status === 'Ganha').length,
+            betsLost: userBets.filter(bet => bet.status === 'Perdida').length,
+            totalWinnings: userBets.filter(b => b.status === 'Ganha').reduce((sum, bet) => sum + bet.potentialWinnings, 0),
+            totalLosses: userBets.filter(b => b.status === 'Perdida').reduce((sum, bet) => sum + bet.stake, 0),
+        };
 
-        const totalWinnings = wonBets.reduce((sum, bet) => sum + bet.potentialWinnings, 0);
-        const totalLosses = lostBets.reduce((sum, bet) => sum + bet.stake, 0);
-        const betsWon = wonBets.length;
-        const betsLost = lostBets.length;
+        // Create the aggregated document for future queries
+        await userStatsCollection.updateOne(
+            { userId },
+            { $set: calculatedStats },
+            { upsert: true }
+        );
 
-        return { totalWagered, totalBets, totalWinnings, totalLosses, betsWon, betsLost };
+        return calculatedStats;
+
     } catch (error) {
         console.error('Error fetching user stats:', error);
-        return { totalWagered: 0, totalBets: 0, totalWinnings: 0, totalLosses: 0, betsWon: 0, betsLost: 0 };
+        return { ...defaultStats, userId };
     }
 });
 
@@ -50,22 +71,16 @@ export const getTopWinners = cache(async (): Promise<UserRanking[]> => {
     try {
         const client = await clientPromise;
         const db = client.db('timaocord');
-        const betsCollection = db.collection('bets');
+        const userStatsCollection = db.collection('user_stats');
 
-        const rankingsData = await betsCollection.aggregate([
-            { $match: { status: 'Ganha' } },
-            {
-                $group: {
-                    _id: '$userId',
-                    winnings: { $sum: '$potentialWinnings' }
-                }
-            },
-            { $sort: { winnings: -1 } },
+        const rankingsData = await userStatsCollection.aggregate([
+            { $match: { totalWinnings: { $gt: 0 } } },
+            { $sort: { totalWinnings: -1 } },
             { $limit: 50 },
             {
                 $lookup: {
                     from: 'users',
-                    localField: '_id',
+                    localField: 'userId',
                     foreignField: 'discordId',
                     as: 'userDetails'
                 }
@@ -77,7 +92,7 @@ export const getTopWinners = cache(async (): Promise<UserRanking[]> => {
                     discordId: '$userDetails.discordId',
                     name: '$userDetails.name',
                     avatar: '$userDetails.image',
-                    winnings: 1,
+                    winnings: '$totalWinnings',
                     isVip: '$userDetails.isVip',
                 }
             }
@@ -102,21 +117,15 @@ export const getMostActiveBettors = cache(async (): Promise<ActiveBettorRanking[
     try {
         const client = await clientPromise;
         const db = client.db('timaocord');
-        const betsCollection = db.collection('bets');
+        const userStatsCollection = db.collection('user_stats');
 
-        const rankingsData = await betsCollection.aggregate([
-            {
-                $group: {
-                    _id: '$userId',
-                    totalBets: { $sum: 1 }
-                }
-            },
+        const rankingsData = await userStatsCollection.aggregate([
             { $sort: { totalBets: -1 } },
             { $limit: 50 },
             {
                 $lookup: {
                     from: 'users',
-                    localField: '_id',
+                    localField: 'userId',
                     foreignField: 'discordId',
                     as: 'userDetails'
                 }

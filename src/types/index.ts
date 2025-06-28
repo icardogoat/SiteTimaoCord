@@ -66,6 +66,15 @@ export type PlacedBet = {
   settledAt?: Date | string;
 };
 
+export type UserStats = {
+  userId: string;
+  totalWagered: number;
+  totalBets: number;
+  totalWinnings: number;
+  totalLosses: number;
+  betsWon: number;
+  betsLost: number;
+};
 
 export type Notification = {
   _id: string | ObjectId;
