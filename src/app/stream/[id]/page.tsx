@@ -1,4 +1,3 @@
-'use server';
 
 import { getLiveStream } from '@/actions/stream-actions';
 import { LiveStreamOverlay } from '@/components/live-stream-overlay';
