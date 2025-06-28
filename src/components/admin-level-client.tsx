@@ -94,6 +94,18 @@ export default function AdminLevelClient({ initialLevels }: { initialLevels: Lev
                         <div className="space-y-4">
                             {fields.map((field, index) => {
                                 const rewardType = watchedLevels[index]?.rewardType;
+                                
+                                const unlockedFeaturesElsewhere = new Set();
+                                if (watchedLevels) {
+                                    for (let i = 0; i < watchedLevels.length; i++) {
+                                        if (i === index) continue; // Don't check against the current level
+                                        const feature = watchedLevels[i]?.unlocksFeature;
+                                        if (feature && feature !== 'none') {
+                                            unlockedFeaturesElsewhere.add(feature);
+                                        }
+                                    }
+                                }
+
                                 return (
                                     <div key={field.id} className="grid grid-cols-12 gap-4 items-end p-4 border rounded-lg bg-card-foreground/5">
                                         <div className="col-span-12 sm:col-span-1">
@@ -128,7 +140,7 @@ export default function AdminLevelClient({ initialLevels }: { initialLevels: Lev
                                             render={({ field }) => (
                                                  <FormItem className="col-span-6 sm:col-span-2">
                                                     <FormLabel>Recompensa</FormLabel>
-                                                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                                    <Select onValueChange={field.onChange} value={field.value}>
                                                         <FormControl><SelectTrigger><SelectValue placeholder="Tipo" /></SelectTrigger></FormControl>
                                                         <SelectContent>
                                                             <SelectItem value="none">Nenhuma</SelectItem>
@@ -166,12 +178,16 @@ export default function AdminLevelClient({ initialLevels }: { initialLevels: Lev
                                             render={({ field }) => (
                                                  <FormItem className="col-span-6 sm:col-span-2">
                                                     <FormLabel>Desbloqueia</FormLabel>
-                                                    <Select onValueChange={field.onChange} defaultValue={field.value || 'none'}>
+                                                    <Select onValueChange={field.onChange} value={field.value || 'none'}>
                                                         <FormControl><SelectTrigger><SelectValue placeholder="Recurso" /></SelectTrigger></FormControl>
                                                         <SelectContent>
                                                             <SelectItem value="none">Nada</SelectItem>
-                                                            <SelectItem value="bolao">Bolão</SelectItem>
-                                                            <SelectItem value="mvp">MVP</SelectItem>
+                                                            <SelectItem value="bolao" disabled={unlockedFeaturesElsewhere.has('bolao')}>
+                                                                Bolão {unlockedFeaturesElsewhere.has('bolao') && '(em uso)'}
+                                                            </SelectItem>
+                                                            <SelectItem value="mvp" disabled={unlockedFeaturesElsewhere.has('mvp')}>
+                                                                MVP {unlockedFeaturesElsewhere.has('mvp') && '(em uso)'}
+                                                            </SelectItem>
                                                         </SelectContent>
                                                     </Select>
                                                     <FormMessage />
