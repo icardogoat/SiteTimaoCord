@@ -2318,11 +2318,15 @@ export async function getRecentUsers(): Promise<RecentUser[]> {
             .project({ name: 1, image: 1, createdAt: 1 })
             .toArray();
         
-        return users.map(user => ({
-            name: user.name,
-            avatar: user.image,
-            joinDate: (user.createdAt as Date).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })
-        }));
+        return users
+            .filter(user => user.name)
+            .map(user => ({
+                name: user.name as string,
+                avatar: user.image as string,
+                joinDate: user.createdAt 
+                    ? (user.createdAt as Date).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })
+                    : 'N/A'
+            }));
     } catch (error) {
         console.error('Error fetching recent users:', error);
         return [];
