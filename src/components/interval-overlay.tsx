@@ -75,22 +75,22 @@ export function IntervalOverlay({ discordInviteUrl }: IntervalOverlayProps) {
         });
     }, []);
 
-    // Rotate ad every 5 seconds
+    // Rotate ad every 10 seconds
     useEffect(() => {
         if (ads.length <= 1) return;
         const interval = setInterval(() => {
             setCurrentAdIndex(prev => (prev + 1) % ads.length);
-        }, 5000);
+        }, 10000);
         return () => clearInterval(interval);
     }, [ads]);
 
     const adToDisplay = ads.length > 0 ? ads[currentAdIndex] : null;
 
     return (
-        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/90 text-white backdrop-blur-sm">
+        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-background text-white">
             <audio src="/audio/hino-do-corinthians.mp3" autoPlay loop data-ai-hint="anthem music"></audio>
 
-            <div className="absolute inset-0 bg-[url('https://i.imgur.com/8QZkX4F.jpg')] bg-cover bg-center opacity-10 z-0" data-ai-hint="stadium background"></div>
+            <div className="absolute inset-0 z-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px]"></div>
 
             <div className="relative z-10 flex flex-col items-center justify-center text-center p-4">
                 <Image
@@ -106,11 +106,17 @@ export function IntervalOverlay({ discordInviteUrl }: IntervalOverlayProps) {
                 <h1 className="text-4xl font-bold font-headline tracking-tight">Estamos no Intervalo</h1>
                 <p className="text-lg text-muted-foreground mt-2">Voltamos em breve com o segundo tempo!</p>
                 
-                {adToDisplay ? (
-                    <AdCard ad={adToDisplay} />
-                ) : (
-                    <DiscordInviteCard discordInviteUrl={discordInviteUrl} />
-                )}
+                <div className="min-h-[340px] flex items-center justify-center">
+                    {adToDisplay ? (
+                        <div key={adToDisplay._id as string} className="animate-in fade-in-50 duration-500">
+                           <AdCard ad={adToDisplay} />
+                        </div>
+                    ) : (
+                        <div className="animate-in fade-in-50 duration-500">
+                            <DiscordInviteCard discordInviteUrl={discordInviteUrl} />
+                        </div>
+                    )}
+                </div>
             </div>
         </div>
     );

@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useEffect, useState, use } from 'react';
+import { useEffect, useState, use, useRef } from 'react';
 import { useSession } from 'next-auth/react';
 import { getLiveStream } from '@/actions/stream-actions';
 import { getBotConfig } from '@/actions/bot-config-actions';
@@ -13,6 +13,7 @@ import { Lock } from 'lucide-react';
 import { notFound, useRouter, useParams } from 'next/navigation';
 import Image from 'next/image';
 import { IntervalOverlay } from '@/components/interval-overlay';
+import { cn } from '@/lib/utils';
 
 export default function StreamPage() {
     const params = useParams<{ id: string }>();
@@ -23,6 +24,31 @@ export default function StreamPage() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [discordInviteUrl, setDiscordInviteUrl] = useState('');
+    const [isIdle, setIsIdle] = useState(false);
+    const idleTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+     useEffect(() => {
+        const handleMouseMove = () => {
+            setIsIdle(false);
+            if (idleTimerRef.current) {
+                clearTimeout(idleTimerRef.current);
+            }
+            idleTimerRef.current = setTimeout(() => {
+                setIsIdle(true);
+            }, 3000); // Hide after 3 seconds of inactivity
+        };
+
+        window.addEventListener('mousemove', handleMouseMove);
+        handleMouseMove(); // Initial call to set timer
+
+        return () => {
+            window.removeEventListener('mousemove', handleMouseMove);
+            if (idleTimerRef.current) {
+                clearTimeout(idleTimerRef.current);
+            }
+        };
+    }, []);
+
 
     useEffect(() => {
         async function fetchConfig() {
@@ -44,6 +70,7 @@ export default function StreamPage() {
 
         if (status === 'authenticated' && session.user.canViewStream) {
             const fetchStreamData = async () => {
+                let intervalId: NodeJS.Timeout | null = null;
                 try {
                     const streamData = await getLiveStream(params.id);
                     if (streamData) {
@@ -142,26 +169,22 @@ export default function StreamPage() {
         }
 
         if (activeSource.type === 'iframe') {
-            // Common convention for muting embeddable players
-            let finalUrl = activeSource.url;
-             if (!finalUrl.includes('autoplay=1')) {
-                if (finalUrl.includes('?')) {
-                    finalUrl += '&autoplay=1';
-                } else {
-                    finalUrl += '?autoplay=1';
-                }
-            }
-            if (!finalUrl.includes('mute=1')) {
-                if (finalUrl.includes('?')) {
-                    finalUrl += '&mute=1';
-                } else {
-                    finalUrl += '?mute=1';
-                }
-            }
+            // Updated sandbox permissions
+            const sandboxPermissions = [
+                "allow-scripts",
+                "allow-same-origin",
+                "allow-presentation",
+                "allow-fullscreen"
+            ].join(" ");
+            
+            // Apply sandbox if user does NOT have ad removal perk
+            const useSandbox = !session?.user.isVip && !(session?.user.adRemovalExpiresAt && new Date(session.user.adRemovalExpiresAt) > new Date());
+
             return <iframe
-                src={finalUrl}
+                key={activeSource.id}
+                src={activeSource.url}
                 allow="autoplay; encrypted-media; fullscreen; presentation"
-                sandbox="allow-scripts allow-same-origin allow-presentation allow-fullscreen"
+                sandbox={useSandbox ? sandboxPermissions : undefined}
                 className="w-full h-full border-0"
             />;
         }
@@ -170,7 +193,7 @@ export default function StreamPage() {
     };
     
     return (
-        <div className="relative w-screen h-screen bg-black overflow-hidden">
+        <div className={cn("relative w-screen h-screen bg-black overflow-hidden", isIdle && "cursor-none")}>
             {stream.isIntervalActive && <IntervalOverlay discordInviteUrl={discordInviteUrl} />}
             
             <div className={stream.isIntervalActive ? 'hidden' : 'w-full h-full'}>
@@ -188,8 +211,11 @@ export default function StreamPage() {
                 />
             </div>
 
-            {(stream.sources?.length ?? 0) > 1 && (
-                 <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50">
+            <div className={cn(
+                "fixed top-4 left-1/2 -translate-x-1/2 z-50 transition-opacity duration-500",
+                isIdle ? "opacity-0" : "opacity-100"
+            )}>
+                {(stream.sources?.length ?? 0) > 1 && (
                     <Card className="bg-background/80 backdrop-blur-sm">
                         <div className="p-2 flex items-center gap-2">
                             {stream.sources.map(source => (
@@ -203,8 +229,8 @@ export default function StreamPage() {
                             ))}
                         </div>
                     </Card>
-                </div>
-            )}
+                )}
+            </div>
         </div>
     );
 }
