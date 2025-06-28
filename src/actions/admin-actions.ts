@@ -2232,9 +2232,9 @@ export async function getDbStats(): Promise<{ success: boolean; data?: DbStats, 
             db: stats.db,
             collections: stats.collections,
             objects: stats.objects,
-            dataSize: stats.dataSize.toFixed(2),
-            storageSize: stats.storageSize.toFixed(2),
-            totalSize: stats.totalSize.toFixed(2),
+            dataSize: (stats.dataSize ?? 0).toFixed(2),
+            storageSize: (stats.storageSize ?? 0).toFixed(2),
+            totalSize: (stats.totalSize ?? 0).toFixed(2),
         };
 
         return { success: true, data: dbStats };
@@ -2242,5 +2242,45 @@ export async function getDbStats(): Promise<{ success: boolean; data?: DbStats, 
         const errorMessage = (error instanceof Error) ? error.message : "An unknown error occurred.";
         console.error("Error fetching DB stats:", error);
         return { success: false, error: `Failed to fetch database statistics: ${errorMessage}` };
+    }
+}
+
+export async function cleanupOldData(): Promise<{ success: boolean; message: string; details: string[] }> {
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    
+    const ninetyDaysAgo = new Date();
+    ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
+    const ninetyDaysAgoTimestamp = Math.floor(ninetyDaysAgo.getTime() / 1000);
+
+    try {
+        const client = await clientPromise;
+        const db = client.db('timaocord');
+        
+        const notificationsCollection = db.collection('notifications');
+        const matchesCollection = db.collection('matches');
+        const mvpVotingsCollection = db.collection('mvp_votings');
+
+        const deletedNotifications = await notificationsCollection.deleteMany({ date: { $lt: thirtyDaysAgo } });
+        const deletedMatches = await matchesCollection.deleteMany({ timestamp: { $lt: ninetyDaysAgoTimestamp }, isProcessed: true });
+        const deletedVotings = await mvpVotingsCollection.deleteMany({ createdAt: { $lt: ninetyDaysAgo }, status: { $in: ['Finalizado', 'Cancelado'] } });
+
+        const details = [
+            `${deletedNotifications.deletedCount} notificações antigas foram excluídas.`,
+            `${deletedMatches.deletedCount} partidas antigas foram excluídas.`,
+            `${deletedVotings.deletedCount} votações MVP antigas foram excluídas.`
+        ];
+        
+        revalidatePath('/admin/server');
+
+        return {
+            success: true,
+            message: "Limpeza de dados concluída com sucesso.",
+            details: details
+        };
+    } catch (error) {
+        const errorMessage = (error instanceof Error) ? error.message : "An unknown error occurred.";
+        console.error("Error cleaning up old data:", error);
+        return { success: false, message: `Falha ao limpar dados antigos: ${errorMessage}`, details: [] };
     }
 }

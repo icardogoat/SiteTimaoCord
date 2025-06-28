@@ -4,11 +4,16 @@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import type { GuildDetails, RoleWithMemberCount, DbStats } from "@/types";
-import { Users, UserCheck, Gem, Calendar, Terminal, Database, ServerCrash } from "lucide-react";
+import { Users, UserCheck, Gem, Calendar, Terminal, Database, ServerCrash, Trash2, Loader2 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Progress } from "./ui/progress";
+import { useState } from "react";
+import { useToast } from "@/hooks/use-toast";
+import { Button } from "./ui/button";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "./ui/alert-dialog";
+import { cleanupOldData } from "@/actions/admin-actions";
 
 interface AdminServerPanelClientProps {
     initialGuildDetails: GuildDetails | null;
@@ -20,7 +25,33 @@ interface AdminServerPanelClientProps {
 const formatNumber = (num: number) => new Intl.NumberFormat('pt-BR').format(num);
 
 export function AdminServerPanelClient({ initialGuildDetails, initialRolesWithCounts, initialDbStats, error }: AdminServerPanelClientProps) {
-    
+    const { toast } = useToast();
+    const [isCleaning, setIsCleaning] = useState(false);
+    const [isCleanDialogOpen, setIsCleanDialogOpen] = useState(false);
+
+    const handleCleanup = async () => {
+        setIsCleaning(true);
+        setIsCleanDialogOpen(false);
+        toast({ title: "Iniciando limpeza...", description: "Aguarde enquanto os dados antigos são removidos." });
+
+        const result = await cleanupOldData();
+
+        if (result.success) {
+            toast({
+                title: "Limpeza Concluída!",
+                description: result.details.join(' '),
+                duration: 9000
+            });
+        } else {
+            toast({
+                title: "Erro na Limpeza",
+                description: result.message,
+                variant: "destructive",
+            });
+        }
+        setIsCleaning(false);
+    };
+
     const toHexColor = (decimal: number) => {
         if (decimal === 0) return 'hsl(var(--muted-foreground))';
         return `#${decimal.toString(16).padStart(6, '0')}`;
@@ -184,33 +215,80 @@ export function AdminServerPanelClient({ initialGuildDetails, initialRolesWithCo
     );
 
     return (
-        <div className="flex flex-col gap-8">
-            {error && (
-                <Alert variant="destructive">
-                    <Terminal className="h-4 w-4" />
-                    <AlertTitle>Erro ao Carregar Painel do Servidor</AlertTitle>
-                    <AlertDescription>
-                        {error.split('\n').map((line, i) => <p key={i}>{line}</p>)}
-                        {error.includes("não está configurado") &&
-                            <Link href="/admin/bot" className="font-bold underline ml-1">Ir para configurações</Link>
-                        }
-                    </AlertDescription>
-                </Alert>
-            )}
-            
-            {!initialGuildDetails && !error && (
-                <Alert>
-                    <Terminal className="h-4 w-4" />
-                    <AlertTitle>Carregando...</AlertTitle>
-                    <AlertDescription>
-                        Buscando informações do servidor... Isso pode levar alguns segundos.
-                    </AlertDescription>
-                </Alert>
-            )}
-            
-            {dbStatsContent}
-            {initialGuildDetails && guildDetailsContent}
-            {initialGuildDetails && rolesContent}
-        </div>
+        <>
+            <div className="flex flex-col gap-8">
+                {error && (
+                    <Alert variant="destructive">
+                        <Terminal className="h-4 w-4" />
+                        <AlertTitle>Erro ao Carregar Painel do Servidor</AlertTitle>
+                        <AlertDescription>
+                            {error.split('\n').map((line, i) => <p key={i}>{line}</p>)}
+                            {error.includes("não está configurado") &&
+                                <Link href="/admin/bot" className="font-bold underline ml-1">Ir para configurações</Link>
+                            }
+                        </AlertDescription>
+                    </Alert>
+                )}
+                
+                {!initialGuildDetails && !error && (
+                    <Alert>
+                        <Terminal className="h-4 w-4" />
+                        <AlertTitle>Carregando...</AlertTitle>
+                        <AlertDescription>
+                            Buscando informações do servidor... Isso pode levar alguns segundos.
+                        </AlertDescription>
+                    </Alert>
+                )}
+                
+                {dbStatsContent}
+
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2"><Trash2 /> Manutenção do Banco de Dados</CardTitle>
+                        <CardDescription>
+                            Remova dados antigos para otimizar o espaço e a performance.
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <p className="text-sm text-muted-foreground mb-4">
+                            Esta ação excluirá permanentemente:
+                        </p>
+                        <ul className="list-disc pl-5 text-sm space-y-1 mb-6 text-muted-foreground">
+                            <li>Notificações com mais de 30 dias.</li>
+                            <li>Partidas finalizadas com mais de 90 dias.</li>
+                            <li>Votações de MVP encerradas com mais de 90 dias.</li>
+                        </ul>
+                        <Button
+                            variant="destructive"
+                            onClick={() => setIsCleanDialogOpen(true)}
+                            disabled={isCleaning}
+                        >
+                            {isCleaning ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Trash2 className="mr-2 h-4 w-4" />}
+                            Iniciar Limpeza de Dados
+                        </Button>
+                    </CardContent>
+                </Card>
+
+                {initialGuildDetails && guildDetailsContent}
+                {initialGuildDetails && rolesContent}
+            </div>
+
+            <AlertDialog open={isCleanDialogOpen} onOpenChange={setIsCleanDialogOpen}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Confirmar Limpeza de Dados</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Esta ação é irreversível e excluirá dados permanentemente. Você tem certeza que deseja continuar?
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleCleanup} className="bg-destructive hover:bg-destructive/90">
+                            Confirmar e Excluir
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+        </>
     );
 }
