@@ -7,13 +7,23 @@ import { getActiveBoloes } from '@/actions/bolao-actions';
 import { BolaoClient } from '@/components/bolao-client';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '../api/auth/[...nextauth]/route';
+import { LockedFeatureCard } from '@/components/locked-feature-card';
 
 export default async function BolaoPage() {
     const session = await getServerSession(authOptions);
-    const [availableLeagues, activeBoloes] = await Promise.all([
+    const [availableLeagues] = await Promise.all([
         getAvailableLeagues(),
-        getActiveBoloes(),
     ]);
+
+    if (!session?.user?.canAccessBolao) {
+        return (
+            <AppLayout availableLeagues={availableLeagues}>
+                <LockedFeatureCard feature="bolao" />
+            </AppLayout>
+        );
+    }
+
+    const activeBoloes = await getActiveBoloes();
 
     return (
         <AppLayout availableLeagues={availableLeagues}>

@@ -10,16 +10,16 @@ import { cache } from 'react';
 const CONFIG_ID = new ObjectId('66a500a8a7c3d2e3c4f5b6a8'); // Fixed ID for the single level config document
 
 const DEFAULT_LEVELS: LevelThreshold[] = [
-    { level: 1, xp: 0, name: 'Iniciante', rewardType: 'none' },
-    { level: 2, xp: 500, name: 'Amador', rewardType: 'money', rewardAmount: 100 },
-    { level: 3, xp: 1500, name: 'Regular', rewardType: 'money', rewardAmount: 250 },
-    { level: 4, xp: 3000, name: 'Experiente', rewardType: 'money', rewardAmount: 500 },
-    { level: 5, xp: 5000, name: 'Veterano', rewardType: 'role', rewardRoleId: 'YOUR_VETERAN_ROLE_ID_HERE' },
-    { level: 6, xp: 10000, name: 'Mestre', rewardType: 'money', rewardAmount: 1000 },
-    { level: 7, xp: 20000, name: 'Grão-Mestre', rewardType: 'money', rewardAmount: 2000 },
-    { level: 8, xp: 40000, name: 'Lendário', rewardType: 'money', rewardAmount: 4000 },
-    { level: 9, xp: 75000, name: 'Mítico', rewardType: 'money', rewardAmount: 7500 },
-    { level: 10, xp: 150000, name: 'Divino', rewardType: 'role', rewardRoleId: 'YOUR_DIVINE_ROLE_ID_HERE' },
+    { level: 1, xp: 0, name: 'Iniciante', rewardType: 'none', unlocksFeature: 'none' },
+    { level: 2, xp: 500, name: 'Amador', rewardType: 'money', rewardAmount: 100, unlocksFeature: 'bolao' },
+    { level: 3, xp: 1500, name: 'Regular', rewardType: 'money', rewardAmount: 250, unlocksFeature: 'mvp' },
+    { level: 4, xp: 3000, name: 'Experiente', rewardType: 'money', rewardAmount: 500, unlocksFeature: 'none' },
+    { level: 5, xp: 5000, name: 'Veterano', rewardType: 'role', rewardRoleId: 'YOUR_VETERAN_ROLE_ID_HERE', unlocksFeature: 'none' },
+    { level: 6, xp: 10000, name: 'Mestre', rewardType: 'money', rewardAmount: 1000, unlocksFeature: 'none' },
+    { level: 7, xp: 20000, name: 'Grão-Mestre', rewardType: 'money', rewardAmount: 2000, unlocksFeature: 'none' },
+    { level: 8, xp: 40000, name: 'Lendário', rewardType: 'money', rewardAmount: 4000, unlocksFeature: 'none' },
+    { level: 9, xp: 75000, name: 'Mítico', rewardType: 'money', rewardAmount: 7500, unlocksFeature: 'none' },
+    { level: 10, xp: 150000, name: 'Divino', rewardType: 'role', rewardRoleId: 'YOUR_DIVINE_ROLE_ID_HERE', unlocksFeature: 'none' },
 ];
 
 export const getLevelConfig = cache(async (): Promise<LevelThreshold[]> => {

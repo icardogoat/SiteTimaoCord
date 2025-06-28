@@ -7,13 +7,23 @@ import { getActiveVotings } from '@/actions/mvp-actions';
 import { MvpClient } from '@/components/mvp-client';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '../api/auth/[...nextauth]/route';
+import { LockedFeatureCard } from '@/components/locked-feature-card';
 
 export default async function MvpPage() {
     const session = await getServerSession(authOptions);
-    const [availableLeagues, activeVotings] = await Promise.all([
+    const [availableLeagues] = await Promise.all([
         getAvailableLeagues(),
-        getActiveVotings(),
     ]);
+
+    if (!session?.user?.canAccessMvp) {
+         return (
+            <AppLayout availableLeagues={availableLeagues}>
+                <LockedFeatureCard feature="mvp" />
+            </AppLayout>
+        );
+    }
+
+    const activeVotings = await getActiveVotings();
 
     return (
         <AppLayout availableLeagues={availableLeagues}>

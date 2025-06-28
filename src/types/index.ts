@@ -122,6 +122,7 @@ export type LevelThreshold = {
     rewardType: 'none' | 'money' | 'role';
     rewardAmount?: number;
     rewardRoleId?: string;
+    unlocksFeature?: 'none' | 'bolao' | 'mvp';
 };
 
 export type UserLevel = {

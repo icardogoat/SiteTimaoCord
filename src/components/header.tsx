@@ -15,7 +15,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { LogOut, User, Wallet, Ticket, Bell, Trophy, LayoutGrid, Store, ShieldCheck, Swords, Star, Megaphone, Newspaper, UserPlus, Tv } from 'lucide-react';
+import { LogOut, User, Wallet, Ticket, Bell, Trophy, LayoutGrid, Store, ShieldCheck, Swords, Star, Megaphone, Newspaper, UserPlus, Tv, Lock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useSession, signOut } from 'next-auth/react';
@@ -134,6 +134,8 @@ export function Header() {
   const userBalance = user?.balance ?? 0;
   const userLevel = user?.level?.level ?? 1;
   const isVip = user?.isVip ?? false;
+  const canAccessBolao = session?.user?.canAccessBolao ?? false;
+  const canAccessMvp = session?.user?.canAccessMvp ?? false;
 
   return (
     <div className="sticky top-0 z-10">
@@ -177,7 +179,8 @@ export function Header() {
                   href="/bolao" 
                   className={cn(
                       "transition-colors hover:text-foreground",
-                      pathname === "/bolao" ? "text-foreground font-semibold" : "text-muted-foreground"
+                      pathname === "/bolao" ? "text-foreground font-semibold" : "text-muted-foreground",
+                      !canAccessBolao && "pointer-events-none opacity-50"
                   )}
               >
                   Bolão
@@ -186,7 +189,8 @@ export function Header() {
                   href="/mvp" 
                   className={cn(
                       "transition-colors hover:text-foreground",
-                      pathname === "/mvp" ? "text-foreground font-semibold" : "text-muted-foreground"
+                      pathname === "/mvp" ? "text-foreground font-semibold" : "text-muted-foreground",
+                       !canAccessMvp && "pointer-events-none opacity-50"
                   )}
               >
                   MVP
@@ -301,16 +305,18 @@ export function Header() {
                   <span>Notícias</span>
                 </Link>
               </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link href="/bolao">
+              <DropdownMenuItem asChild disabled={!canAccessBolao}>
+                <Link href="/bolao" className={cn(!canAccessBolao && "pointer-events-none")}>
                   <Swords className="mr-2 h-4 w-4" />
                   <span>Bolão</span>
+                  {!canAccessBolao && <Lock className="ml-auto h-3 w-3" />}
                 </Link>
               </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link href="/mvp">
+              <DropdownMenuItem asChild disabled={!canAccessMvp}>
+                <Link href="/mvp" className={cn(!canAccessMvp && "pointer-events-none")}>
                   <Star className="mr-2 h-4 w-4" />
                   <span>MVP</span>
+                  {!canAccessMvp && <Lock className="ml-auto h-3 w-3" />}
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>

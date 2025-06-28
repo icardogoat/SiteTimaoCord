@@ -10,7 +10,7 @@ import { updateLevelConfig } from '@/actions/level-actions';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Loader2, PlusCircle, Trash2 } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -23,6 +23,7 @@ const levelSchema = z.object({
   rewardType: z.enum(['none', 'money', 'role']),
   rewardAmount: z.coerce.number().optional(),
   rewardRoleId: z.string().optional(),
+  unlocksFeature: z.enum(['none', 'bolao', 'mvp']).optional(),
 });
 
 const formSchema = z.object({
@@ -74,7 +75,8 @@ export default function AdminLevelClient({ initialLevels }: { initialLevels: Lev
             level: lastLevel.level + 1,
             name: `Nível ${lastLevel.level + 1}`,
             xp: lastLevel.xp + 50000,
-            rewardType: 'none'
+            rewardType: 'none',
+            unlocksFeature: 'none',
         });
     };
 
@@ -83,7 +85,7 @@ export default function AdminLevelClient({ initialLevels }: { initialLevels: Lev
             <CardHeader>
                 <CardTitle>Gerenciar Níveis e Recompensas</CardTitle>
                 <CardDescription>
-                    Defina os nomes, XP e recompensas para cada nível. A recompensa é entregue quando o usuário atinge o nível.
+                    Defina os nomes, XP, recompensas e recursos desbloqueados para cada nível.
                 </CardDescription>
             </CardHeader>
             <CardContent>
@@ -102,7 +104,7 @@ export default function AdminLevelClient({ initialLevels }: { initialLevels: Lev
                                             control={form.control}
                                             name={`levels.${index}.name`}
                                             render={({ field }) => (
-                                                <FormItem className="col-span-6 sm:col-span-3">
+                                                <FormItem className="col-span-6 sm:col-span-2">
                                                     <FormLabel>Nome</FormLabel>
                                                     <FormControl><Input {...field} /></FormControl>
                                                     <FormMessage />
@@ -138,7 +140,7 @@ export default function AdminLevelClient({ initialLevels }: { initialLevels: Lev
                                                 </FormItem>
                                             )}
                                         />
-                                        <div className="col-span-6 sm:col-span-3">
+                                        <div className="col-span-6 sm:col-span-2">
                                             {rewardType === 'money' && (
                                                 <FormField control={form.control} name={`levels.${index}.rewardAmount`} render={({ field }) => (
                                                     <FormItem>
@@ -151,13 +153,31 @@ export default function AdminLevelClient({ initialLevels }: { initialLevels: Lev
                                             {rewardType === 'role' && (
                                                  <FormField control={form.control} name={`levels.${index}.rewardRoleId`} render={({ field }) => (
                                                     <FormItem>
-                                                        <FormLabel>ID do Cargo (Discord)</FormLabel>
+                                                        <FormLabel>ID do Cargo</FormLabel>
                                                         <FormControl><Input {...field} placeholder="ID do cargo no Discord" /></FormControl>
                                                         <FormMessage />
                                                     </FormItem>
                                                 )}/>
                                             )}
                                         </div>
+                                        <FormField
+                                            control={form.control}
+                                            name={`levels.${index}.unlocksFeature`}
+                                            render={({ field }) => (
+                                                 <FormItem className="col-span-6 sm:col-span-2">
+                                                    <FormLabel>Desbloqueia</FormLabel>
+                                                    <Select onValueChange={field.onChange} defaultValue={field.value || 'none'}>
+                                                        <FormControl><SelectTrigger><SelectValue placeholder="Recurso" /></SelectTrigger></FormControl>
+                                                        <SelectContent>
+                                                            <SelectItem value="none">Nada</SelectItem>
+                                                            <SelectItem value="bolao">Bolão</SelectItem>
+                                                            <SelectItem value="mvp">MVP</SelectItem>
+                                                        </SelectContent>
+                                                    </Select>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
                                         <div className="col-span-12 sm:col-span-1 flex justify-end">
                                             <Button type="button" variant="destructive" size="icon" onClick={() => remove(index)} disabled={fields.length <= 1 || index === 0}>
                                                 <Trash2 className="h-4 w-4" />

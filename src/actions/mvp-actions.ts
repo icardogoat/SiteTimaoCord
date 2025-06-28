@@ -33,6 +33,9 @@ export async function castVote(votingId: string, playerId: number): Promise<{ su
     if (!session?.user) {
         return { success: false, message: 'Você precisa estar logado para votar.' };
     }
+    if (!session.user.canAccessMvp) {
+        return { success: false, message: 'Você não tem nível suficiente para participar da votação MVP.' };
+    }
     const { discordId } = session.user;
 
     const client = await clientPromise;

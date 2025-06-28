@@ -5,6 +5,7 @@ import type { ReactNode } from 'react';
 import { Suspense } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 import {
   SidebarProvider,
   Sidebar,
@@ -16,6 +17,9 @@ import {
   SidebarMenu,
   SidebarMenuItem,
   SidebarMenuButton,
+  SidebarMenuSub,
+  SidebarMenuSubItem,
+  SidebarMenuSubButton,
   SidebarTrigger,
   SidebarInset,
   SidebarMenuSkeleton,
@@ -25,7 +29,7 @@ import { Header } from '@/components/header';
 import { ChampionshipSidebarMenu } from '@/components/championship-sidebar-menu';
 import { BetSlipProvider } from '@/context/bet-slip-context';
 import { BetSlip } from '@/components/bet-slip';
-import { Store, ShieldCheck, Swords, Star, Megaphone, Newspaper, UserPlus, Tv } from 'lucide-react';
+import { Store, ShieldCheck, Swords, Star, Newspaper, UserPlus, Tv, Lock } from 'lucide-react';
 import { AdBanner } from './ad-banner';
 
 interface AppLayoutProps {
@@ -51,6 +55,10 @@ const ChampionshipMenuFallback = () => {
 
 export function AppLayout({ children, availableLeagues }: AppLayoutProps) {
     const pathname = usePathname();
+    const { data: session } = useSession();
+
+    const canAccessBolao = session?.user?.canAccessBolao ?? false;
+    const canAccessMvp = session?.user?.canAccessMvp ?? false;
 
     return (
         <SidebarProvider>
@@ -82,13 +90,21 @@ export function AppLayout({ children, availableLeagues }: AppLayoutProps) {
                                         </SidebarMenuButton>
                                     </SidebarMenuItem>
                                     <SidebarMenuItem>
-                                        <SidebarMenuButton asChild isActive={pathname?.startsWith('/bolao')}>
-                                            <Link href="/bolao"><Swords /><span>Bolão</span></Link>
+                                        <SidebarMenuButton asChild={canAccessBolao} disabled={!canAccessBolao} tooltip={!canAccessBolao ? "Recurso Bloqueado" : undefined}>
+                                            {canAccessBolao ? (
+                                                <Link href="/bolao"><Swords /><span>Bolão</span></Link>
+                                            ) : (
+                                                <span className="flex w-full items-center gap-2"><Swords /><span>Bolão</span><Lock className="ml-auto" /></span>
+                                            )}
                                         </SidebarMenuButton>
                                     </SidebarMenuItem>
                                      <SidebarMenuItem>
-                                        <SidebarMenuButton asChild isActive={pathname?.startsWith('/mvp')}>
-                                            <Link href="/mvp"><Star /><span>MVP</span></Link>
+                                        <SidebarMenuButton asChild={canAccessMvp} disabled={!canAccessMvp} tooltip={!canAccessMvp ? "Recurso Bloqueado" : undefined}>
+                                             {canAccessMvp ? (
+                                                <Link href="/mvp"><Star /><span>MVP</span></Link>
+                                             ) : (
+                                                <span className="flex w-full items-center gap-2"><Star /><span>MVP</span><Lock className="ml-auto" /></span>
+                                             )}
                                         </SidebarMenuButton>
                                     </SidebarMenuItem>
                                     <SidebarMenuItem>

@@ -9,6 +9,7 @@ import { getUserLevel } from '@/actions/user-actions';
 import { getBotConfig } from '@/actions/bot-config-actions';
 import { grantAchievement } from '@/actions/achievement-actions';
 import { ObjectId } from 'mongodb';
+import { getLevelConfig } from '@/actions/level-actions';
 
 async function checkUserInGuild(discordId: string): Promise<boolean> {
     try {
@@ -302,10 +303,19 @@ export const authOptions: AuthOptions = {
           const levelData = await getUserLevel(token.discordId as string);
           session.user.level = levelData;
 
+          const levelConfig = await getLevelConfig();
+          const requiredBolaoLevel = levelConfig.find(l => l.unlocksFeature === 'bolao')?.level ?? Infinity;
+          const requiredMvpLevel = levelConfig.find(l => l.unlocksFeature === 'mvp')?.level ?? Infinity;
+
+          session.user.canAccessBolao = levelData.level >= requiredBolaoLevel;
+          session.user.canAccessMvp = levelData.level >= requiredMvpLevel;
+
         } catch (error) {
             console.error("Failed to fetch user balance/level for session:", error);
             session.user.balance = 0;
             session.user.level = { level: 1, levelName: 'Iniciante', xp: 0, xpForNextLevel: 500, progress: 0 };
+            session.user.canAccessBolao = false;
+            session.user.canAccessMvp = false;
         }
       }
       return session;

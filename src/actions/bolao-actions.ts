@@ -152,6 +152,9 @@ export async function joinBolao(bolaoId: string, guess: { home: number, away: nu
     if (!session?.user) {
         return { success: false, message: 'Você precisa estar logado para participar.' };
     }
+     if (!session.user.canAccessBolao) {
+        return { success: false, message: 'Você não tem nível suficiente para participar do bolão.' };
+    }
     const { discordId, name, image } = session.user;
 
     if (guess.home < 0 || guess.away < 0 || !Number.isInteger(guess.home) || !Number.isInteger(guess.away)) {
