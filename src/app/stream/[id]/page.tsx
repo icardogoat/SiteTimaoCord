@@ -131,22 +131,38 @@ export default function StreamPage() {
                             priority
                             data-ai-hint="logo"
                         />
-                        <p className="mt-4 text-muted-foreground">Selecione uma fonte abaixo para assistir</p>
+                        <p className="mt-4 text-muted-foreground">Selecione uma fonte acima para assistir</p>
                     </div>
                 </div>
             );
         }
 
         if (activeSource.type === 'hls') {
-            return <HlsPlayer key={activeSource.id} src={activeSource.url} controls autoPlay playsInline className="w-full h-full object-contain" />;
+            return <HlsPlayer key={activeSource.id} src={activeSource.url} controls autoPlay playsInline muted className="w-full h-full object-contain" />;
         }
 
         if (activeSource.type === 'iframe') {
-            return <iframe 
-                src={activeSource.url} 
-                allow="autoplay; encrypted-media; fullscreen; presentation" 
+            // Common convention for muting embeddable players
+            let finalUrl = activeSource.url;
+             if (!finalUrl.includes('autoplay=1')) {
+                if (finalUrl.includes('?')) {
+                    finalUrl += '&autoplay=1';
+                } else {
+                    finalUrl += '?autoplay=1';
+                }
+            }
+            if (!finalUrl.includes('mute=1')) {
+                if (finalUrl.includes('?')) {
+                    finalUrl += '&mute=1';
+                } else {
+                    finalUrl += '?mute=1';
+                }
+            }
+            return <iframe
+                src={finalUrl}
+                allow="autoplay; encrypted-media; fullscreen; presentation"
                 sandbox="allow-scripts allow-same-origin allow-presentation allow-fullscreen"
-                className="w-full h-full border-0" 
+                className="w-full h-full border-0"
             />;
         }
 
@@ -161,7 +177,7 @@ export default function StreamPage() {
                 {renderPlayer()}
             </div>
 
-            <div className="absolute top-4 right-4 z-20 pointer-events-none">
+            <div className="absolute top-4 left-4 z-20 pointer-events-none">
                 <Image
                     src="https://i.imgur.com/xD76hcl.png"
                     alt="FielBet Logo"
@@ -173,7 +189,7 @@ export default function StreamPage() {
             </div>
 
             {(stream.sources?.length ?? 0) > 1 && (
-                 <div className="fixed bottom-0 left-1/2 -translate-x-1/2 p-4 z-50">
+                 <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50">
                     <Card className="bg-background/80 backdrop-blur-sm">
                         <div className="p-2 flex items-center gap-2">
                             {stream.sources.map(source => (
