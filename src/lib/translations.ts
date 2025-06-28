@@ -20,10 +20,6 @@ const marketNameTranslations: { [key: string]: string } = {
     'Odd/Even': 'Ímpar/Par',
     'Corners 1x2': 'Escanteios 1x2',
     'Corners Over Under': 'Escanteios Acima/Abaixo',
-    'Home Team Total Goals(1st Half)': 'Total de Gols da Casa (1º Tempo)',
-    'Away Team Total Goals(1st Half)': 'Total de Gols do Visitante (1º Tempo)',
-    'Draw No Bet (1st Half)': 'Aposta sem Empate (1º Tempo)',
-    'Draw No Bet (2nd Half)': 'Aposta sem Empate (2º Tempo)',
     'Home Corners Over/Under': 'Escanteios da Casa Acima/Abaixo',
     'Away Corners Over/Under': 'Escanteios do Visitante Acima/Abaixo',
     'Total Corners (1st Half)': 'Total de Escanteios (1º Tempo)',
@@ -41,24 +37,32 @@ const oddsLabelTranslations: { [key: string]: string } = {
 };
 
 const translateComplexLabel = (label: string, marketName: string): string => {
+    // Ensure label is a string before trying to replace parts of it.
+    // This handles cases where the label might be a number (e.g., for Over/Under markets).
+    const labelAsString = String(label);
+
     if (marketName.includes('Double Chance')) {
-        return label.replace('Home', 'Casa').replace('Away', 'Fora').replace('Draw', 'Empate').replace('/', ' ou ');
+        return labelAsString.replace('Home', 'Casa').replace('Away', 'Fora').replace('Draw', 'Empate').replace('/', ' ou ');
     }
     if (marketName === 'HT/FT Double') {
-        return label.replace('Home', 'Casa').replace('Away', 'Fora').replace('Draw', 'Empate');
+        return labelAsString.replace('Home', 'Casa').replace('Away', 'Fora').replace('Draw', 'Empate');
     }
     // For Over/Under, Handicap, etc.
-    return label.replace('Over', 'Acima').replace('Under', 'Abaixo').replace('Home', 'Casa').replace('Away', 'Fora');
+    return labelAsString.replace('Over', 'Acima').replace('Under', 'Abaixo').replace('Home', 'Casa').replace('Away', 'Fora');
 };
 
 export const translateMarketData = (market: { name: string; odds: { label: string; value: string }[] }) => {
     const translatedMarketName = marketNameTranslations[market.name] || market.name;
 
     const translatedOdds = market.odds.map(odd => {
+        // First, check if the label itself is one of the simple, direct translations
         const simpleTranslation = oddsLabelTranslations[odd.label];
         if (simpleTranslation) {
             return { ...odd, label: simpleTranslation };
         }
+        
+        // If not, it's likely a complex label (e.g., 'Over 2.5', 'Home / Draw')
+        // that needs parts of it translated.
         return { ...odd, label: translateComplexLabel(odd.label, market.name) };
     });
 
