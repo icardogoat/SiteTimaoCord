@@ -6,9 +6,9 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Trophy, Medal, Zap, Wallet } from "lucide-react";
+import { Trophy, Medal, Zap, Wallet, UserPlus } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { UserRanking, ActiveBettorRanking, TopLevelUserRanking, RichestUserRanking } from "@/types";
+import type { UserRanking, ActiveBettorRanking, TopLevelUserRanking, RichestUserRanking, InviterRanking } from "@/types";
 import { Button } from './ui/button';
 
 const ITEMS_PER_PAGE = 10;
@@ -179,19 +179,58 @@ const TopLevelsTable = ({ data }: { data: TopLevelUserRanking[] }) => (
     </Table>
 );
 
+const InvitersTable = ({ data }: { data: InviterRanking[] }) => (
+    <Table>
+        <TableHeader>
+            <TableRow>
+                <TableHead className="w-16 text-center">Rank</TableHead>
+                <TableHead>Usuário</TableHead>
+                <TableHead className="text-right">Convites</TableHead>
+            </TableRow>
+        </TableHeader>
+        <TableBody>
+            {data.length > 0 ? data.map((user) => (
+                <TableRow key={user.rank}>
+                    <TableCell className="text-center"><RankBadge rank={user.rank} /></TableCell>
+                    <TableCell>
+                        <div className="flex items-center gap-3">
+                            <Avatar className={cn(user.isVip && "ring-2 ring-vip")}>
+                                <AvatarImage src={user.avatar ?? undefined} alt={user.name} data-ai-hint="user avatar" />
+                                <AvatarFallback>{user.name.substring(0, 2).toUpperCase()}</AvatarFallback>
+                            </Avatar>
+                            <span className="font-medium">{user.name}</span>
+                        </div>
+                    </TableCell>
+                    <TableCell className="text-right font-semibold">
+                        {user.inviteCount}
+                    </TableCell>
+                </TableRow>
+            )) : (
+                <TableRow>
+                    <TableCell colSpan={3} className="py-8 text-center text-muted-foreground">
+                        Ninguém convidou usuários ainda.
+                    </TableCell>
+                </TableRow>
+            )}
+        </TableBody>
+    </Table>
+);
+
 
 interface RankingClientProps {
     topWinners: UserRanking[];
     mostActiveBettors: ActiveBettorRanking[];
     topLevelUsers: TopLevelUserRanking[];
     richestUsers: RichestUserRanking[];
+    topInviters: InviterRanking[];
 }
 
-export function RankingClient({ topWinners, mostActiveBettors, topLevelUsers, richestUsers }: RankingClientProps) {
+export function RankingClient({ topWinners, mostActiveBettors, topLevelUsers, richestUsers, topInviters }: RankingClientProps) {
     const [visibleWinners, setVisibleWinners] = useState(ITEMS_PER_PAGE);
     const [visibleRichest, setVisibleRichest] = useState(ITEMS_PER_PAGE);
     const [visibleActive, setVisibleActive] = useState(ITEMS_PER_PAGE);
     const [visibleLevels, setVisibleLevels] = useState(ITEMS_PER_PAGE);
+    const [visibleInviters, setVisibleInviters] = useState(ITEMS_PER_PAGE);
 
     return (
         <div className="flex-1 space-y-8 p-4 sm:p-6 lg:p-8">
@@ -201,7 +240,7 @@ export function RankingClient({ topWinners, mostActiveBettors, topLevelUsers, ri
             </div>
 
             <Tabs defaultValue="winners" className="w-full">
-                <TabsList className="grid w-full grid-cols-1 sm:grid-cols-4">
+                <TabsList className="grid w-full grid-cols-2 sm:grid-cols-5">
                     <TabsTrigger value="winners">
                         <Trophy className="mr-2 h-4 w-4" /> Maiores Ganhadores
                     </TabsTrigger>
@@ -213,6 +252,9 @@ export function RankingClient({ topWinners, mostActiveBettors, topLevelUsers, ri
                     </TabsTrigger>
                     <TabsTrigger value="top_levels">
                         <Zap className="mr-2 h-4 w-4" /> Top Níveis
+                    </TabsTrigger>
+                    <TabsTrigger value="inviters">
+                        <UserPlus className="mr-2 h-4 w-4" /> Top Convites
                     </TabsTrigger>
                 </TabsList>
 
@@ -285,6 +327,25 @@ export function RankingClient({ topWinners, mostActiveBettors, topLevelUsers, ri
                          {visibleLevels < topLevelUsers.length && (
                              <CardFooter className="justify-center">
                                 <Button onClick={() => setVisibleLevels(prev => prev + ITEMS_PER_PAGE)} variant="outline">
+                                    Mostrar mais
+                                </Button>
+                            </CardFooter>
+                        )}
+                    </Card>
+                </TabsContent>
+                
+                 <TabsContent value="inviters">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Top Convites</CardTitle>
+                            <CardDescription>Usuários que mais convidaram novos membros para o servidor.</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <InvitersTable data={topInviters.slice(0, visibleInviters)} />
+                        </CardContent>
+                         {visibleInviters < topInviters.length && (
+                             <CardFooter className="justify-center">
+                                <Button onClick={() => setVisibleInviters(prev => prev + ITEMS_PER_PAGE)} variant="outline">
                                     Mostrar mais
                                 </Button>
                             </CardFooter>
