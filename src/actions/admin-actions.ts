@@ -2224,7 +2224,7 @@ export async function deleteEvent(eventId: string): Promise<{ success: boolean; 
 export async function getDbStats(): Promise<{ success: boolean; data?: DbStats, error?: string }> {
     try {
         const client = await clientPromise;
-        const db = client.db(); // Get the default database from the connection string
+        const db = client.db('timaocord'); // Get the main database for stats
         
         const stats = await db.command({ dbStats: 1, scale: 1024 * 1024 }); // Scale to MB
         
