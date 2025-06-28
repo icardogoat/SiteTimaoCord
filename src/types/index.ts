@@ -339,33 +339,16 @@ export type ProfitLossData = {
     profit: number;
 }[];
 
-export type LiveStreamPollOption = {
+export type StreamSource = {
   id: string;
-  text: string;
-  votes: number;
-};
-
-export type LiveStreamPoll = {
-  question: string;
-  options: LiveStreamPollOption[];
-  isActive: boolean;
-  updatedAt: Date | string;
-  voters: string[];
-};
-
-export type LiveStreamAlert = {
-  text: string;
-  isActive: boolean;
-  updatedAt: Date | string;
+  name: string;
+  type: 'iframe' | 'hls';
+  url: string; 
 };
 
 export type LiveStream = {
   _id: string | ObjectId;
   name: string;
-  streamType: 'iframe' | 'hls';
-  embedCode?: string;
-  streamUrl?: string;
+  sources: StreamSource[];
   createdAt: Date | string;
-  liveAlert: LiveStreamAlert | null;
-  livePoll: LiveStreamPoll | null;
 };
