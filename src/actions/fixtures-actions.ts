@@ -3,7 +3,7 @@
 
 import clientPromise from '@/lib/mongodb';
 import { revalidatePath } from 'next/cache';
-import { translateMarketData } from '@/lib/utils';
+import { translateMarketData } from '@/lib/translations';
 import { getAvailableUpdateApiKey, setLastUpdateTimestamp } from './settings-actions';
 import type { Market } from '@/types';
 
