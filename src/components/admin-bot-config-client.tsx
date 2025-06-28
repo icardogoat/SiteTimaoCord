@@ -600,7 +600,6 @@ export default function AdminBotConfigClient({ initialConfig, initialChannels, i
                                                 </SelectTrigger>
                                             </FormControl>
                                             <SelectContent>
-                                                 <SelectItem value="">Nenhum</SelectItem>
                                                 {roles.map(role => (
                                                     <SelectItem key={role.id} value={role.id}>
                                                         {role.name}
@@ -628,7 +627,6 @@ export default function AdminBotConfigClient({ initialConfig, initialChannels, i
                                                 </SelectTrigger>
                                             </FormControl>
                                             <SelectContent>
-                                                <SelectItem value="">Nenhum</SelectItem>
                                                 {roles.map(role => (
                                                     <SelectItem key={role.id} value={role.id}>
                                                         {role.name}
