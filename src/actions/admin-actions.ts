@@ -2,7 +2,7 @@
 'use server';
 
 import clientPromise from '@/lib/mongodb';
-import type { Post, AuthorInfo, PlacedBet, Transaction, UserRanking, MvpVoting, MvpPlayer, MvpTeamLineup, Notification, StoreItem, Bolao, Advertisement, UserInventoryItem, PurchaseAdminView } from '@/types';
+import type { Post, AuthorInfo, PlacedBet, Transaction, UserRanking, MvpVoting, MvpPlayer, MvpTeamLineup, Notification, StoreItem, Bolao, Advertisement, UserInventoryItem, PurchaseAdminView, BetVolumeData, ProfitLossData } from '@/types';
 import { ObjectId, WithId } from 'mongodb';
 import { revalidatePath } from 'next/cache';
 import { getBotConfig } from './bot-config-actions';
@@ -91,11 +91,6 @@ export type DashboardStats = {
     totalBets: number;
     grossProfit: number;
 };
-
-export type WeeklyBetVolume = {
-    date: string;
-    total: number;
-}[];
 
 export type TopBettor = {
     name: string;
@@ -938,55 +933,72 @@ export async function getDashboardStats(): Promise<DashboardStats> {
     }
 }
 
-// Function to fetch weekly bet volume
-export async function getWeeklyBetVolume(): Promise<WeeklyBetVolume> {
+export async function getChartData(period: 'weekly' | 'monthly' = 'weekly'): Promise<{ volume: BetVolumeData; profit: ProfitLossData; }> {
     try {
         const client = await clientPromise;
         const db = client.db('timaocord');
         const betsCollection = db.collection('bets');
         
-        const weekDayMap = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
-        const volumeMap = new Map<string, number>();
-        const sevenDaysAgo = new Date();
-        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6);
-        sevenDaysAgo.setHours(0, 0, 0, 0);
+        const now = new Date();
+        let startDate: Date;
+        const dateFormat = "%Y-%m-%d";
 
-        // Initialize map for the last 7 days
-        for (let i = 6; i >= 0; i--) {
-            const d = new Date();
-            d.setDate(d.getDate() - i);
-            const key = d.toISOString().split('T')[0];
-            volumeMap.set(key, 0);
+        if (period === 'monthly') {
+            startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+        } else { // weekly
+            startDate = new Date();
+            startDate.setDate(startDate.getDate() - 6);
+            startDate.setHours(0, 0, 0, 0);
         }
-
+        
         const aggregationResult = await betsCollection.aggregate([
-            { $match: { createdAt: { $gte: sevenDaysAgo } } },
+            { $match: { createdAt: { $gte: startDate } } },
             {
                 $group: {
-                    _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt", timezone: "America/Sao_Paulo" } },
-                    total: { $sum: "$stake" }
+                    _id: { $dateToString: { format: dateFormat, date: "$createdAt", timezone: "America/Sao_Paulo" } },
+                    totalWagered: { $sum: '$stake' },
+                    totalBets: { $sum: 1 },
+                    winnings: { $sum: { $cond: [{ $eq: ['$status', 'Ganha'] }, '$potentialWinnings', 0] } }
                 }
             },
+            { $sort: { _id: 1 } }
         ]).toArray();
-
-        aggregationResult.forEach(item => {
-            if (volumeMap.has(item._id)) {
-                volumeMap.set(item._id, item.total);
-            }
-        });
         
-        return Array.from(volumeMap.entries()).map(([dateStr, total]) => {
-            const dateParts = dateStr.split('-').map(Number);
-            // new Date('YYYY-MM-DD') can have timezone issues. Use UTC to be safe.
-            const date = new Date(Date.UTC(dateParts[0], dateParts[1] - 1, dateParts[2]));
-            return { date: weekDayMap[date.getUTCDay()], total };
-        });
+        const dataMap = new Map<string, any>();
+        aggregationResult.forEach(item => { dataMap.set(item._id, item); });
 
+        const volume: BetVolumeData = [];
+        const profit: ProfitLossData = [];
+        const days = period === 'weekly' ? 7 : new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+        const weekDayMap = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+
+        for (let i = 0; i < days; i++) {
+            const d = new Date(now);
+            if (period === 'weekly') {
+                d.setDate(now.getDate() - (days - 1 - i));
+            } else {
+                d.setFullYear(now.getFullYear());
+                d.setMonth(now.getMonth());
+                d.setDate(i + 1);
+            }
+            d.setHours(12, 0, 0, 0); 
+
+            const key = d.toISOString().split('T')[0];
+            const data = dataMap.get(key) || { totalWagered: 0, totalBets: 0, winnings: 0 };
+            const label = period === 'weekly' ? weekDayMap[d.getDay()] : (i + 1).toString().padStart(2, '0');
+            
+            volume.push({ date: label, totalWagered: data.totalWagered, totalBets: data.totalBets });
+            profit.push({ date: label, wagered: data.totalWagered, winnings: data.winnings, profit: data.totalWagered - data.winnings });
+        }
+        
+        return { volume, profit };
+        
     } catch (error) {
-        console.error("Error fetching weekly bet volume:", error);
-        return ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'].map(d => ({ date: d, total: 0}));
+        console.error(`Error fetching chart data for period ${period}:`, error);
+        return { volume: [], profit: [] };
     }
 }
+
 
 // Function to fetch top bettors by amount wagered
 export async function getTopBettors(): Promise<TopBettor[]> {

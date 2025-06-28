@@ -326,3 +326,15 @@ export type InviterRanking = {
   isVip?: boolean;
 };
     
+export type BetVolumeData = {
+    date: string;
+    totalWagered: number;
+    totalBets: number;
+}[];
+
+export type ProfitLossData = {
+    date: string;
+    wagered: number;
+    winnings: number;
+    profit: number;
+}[];
