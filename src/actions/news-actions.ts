@@ -23,7 +23,8 @@ export async function sendDiscordPostNotification(post: Post, author: AuthorInfo
     const publishedDate = new Date(post.publishedAt).toLocaleDateString('pt-BR', {
         year: 'numeric',
         month: 'long',
-        day: 'numeric'
+        day: 'numeric',
+        timeZone: 'America/Sao_Paulo'
     });
 
     const header = `# 📢 ${post.title}\n\n`;
