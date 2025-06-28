@@ -1,7 +1,7 @@
 
 'use client'
 
-import { Activity, CreditCard, DollarSign, Users, Loader2, RefreshCw, BellRing, Send } from "lucide-react"
+import { Activity, CreditCard, DollarSign, Users, Loader2, RefreshCw, BellRing, Send, ShieldCheck } from "lucide-react"
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis, Tooltip, Legend } from "recharts"
 import { useState } from "react"
 import { useForm } from 'react-hook-form';
@@ -24,6 +24,7 @@ import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { processAllFinishedMatches, sendAnnouncement, getChartData } from "@/actions/admin-actions";
 import { sendUpcomingMatchNotifications } from "@/actions/match-notifications";
+import { updateFixturesFromApi } from "@/actions/fixtures-actions";
 import { Separator } from "./ui/separator";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "./ui/form";
 import { Input } from "./ui/input";
@@ -84,6 +85,7 @@ export function AdminDashboardClient({ stats, initialChartData, topBettors, rece
     const { toast } = useToast();
     const [isProcessingAll, setIsProcessingAll] = useState(false);
     const [isNotifying, setIsNotifying] = useState(false);
+    const [isUpdatingFixtures, setIsUpdatingFixtures] = useState(false);
     const [isSendingAnnouncement, setIsSendingAnnouncement] = useState(false);
     const [chartData, setChartData] = useState(initialChartData);
     const [isChartLoading, setIsChartLoading] = useState(false);
@@ -114,6 +116,14 @@ export function AdminDashboardClient({ stats, initialChartData, topBettors, rece
         toast({ title: "Verificação Concluída", description: result.message, variant: result.success ? "default" : "destructive" });
         setIsNotifying(false);
     };
+    
+    const handleUpdateFixtures = async () => {
+        setIsUpdatingFixtures(true);
+        toast({ title: "Iniciando Atualização", description: "Buscando novas partidas e odds da API..." });
+        const result = await updateFixturesFromApi();
+        toast({ title: "Atualização Concluída", description: result.message, variant: result.success ? "default" : "destructive" });
+        setIsUpdatingFixtures(false);
+    };
 
     const onAnnouncementSubmit = async (values: z.infer<typeof announcementSchema>) => {
         setIsSendingAnnouncement(true);
@@ -138,6 +148,8 @@ export function AdminDashboardClient({ stats, initialChartData, topBettors, rece
     const formatCurrency = (value: number) => `R$ ${value.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
     const getChangeColor = (value: number) => value >= 0 ? "text-green-500" : "text-red-500";
+    
+    const anyActionRunning = isProcessingAll || isNotifying || isUpdatingFixtures;
 
   return (
     <div className="grid auto-rows-max items-start gap-4 md:gap-8 lg:grid-cols-3">
@@ -282,11 +294,15 @@ export function AdminDashboardClient({ stats, initialChartData, topBettors, rece
             </CardHeader>
             <CardContent className="grid gap-4">
                 <div className="flex flex-col sm:flex-row gap-2">
-                    <Button onClick={handleProcessAll} disabled={isProcessingAll || isNotifying} className="flex-1">
-                        {isProcessingAll ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
-                        Processar Partidas
+                    <Button onClick={handleUpdateFixtures} disabled={anyActionRunning} className="flex-1">
+                        {isUpdatingFixtures ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
+                        Atualizar Partidas
                     </Button>
-                    <Button onClick={handleNotifyUpcoming} disabled={isProcessingAll || isNotifying} variant="outline" className="flex-1">
+                    <Button onClick={handleProcessAll} disabled={anyActionRunning} variant="outline" className="flex-1">
+                        {isProcessingAll ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ShieldCheck className="mr-2 h-4 w-4" />}
+                        Processar Finalizadas
+                    </Button>
+                    <Button onClick={handleNotifyUpcoming} disabled={anyActionRunning} variant="outline" className="flex-1">
                         {isNotifying ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <BellRing className="mr-2 h-4 w-4" />}
                         Notificar Próximas
                     </Button>
