@@ -253,7 +253,7 @@ export function AdminDashboardClient({ stats, initialChartData, topBettors, rece
             </CardContent>
         </Card>
 
-      <div className="grid gap-4 md:gap-8 lg:col-span-2">
+      <div className="grid auto-rows-max gap-4 md:gap-8 lg:col-span-2">
          <Card>
               <CardHeader>
                 <CardTitle>Top Apostadores</CardTitle>

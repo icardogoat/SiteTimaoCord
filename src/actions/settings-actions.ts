@@ -142,36 +142,25 @@ async function getAvailableKeyFromPool(keyPool: 'updateApiKeys' | 'paymentApiKey
         settings = { ...settings, [keyPool]: keys };
     }
 
-    const sortedKeys = keys.sort((a: any, b: any) => a.usage - b.usage);
-    const availableKey = sortedKeys.find((k: any) => k.usage < 90);
+    const sortedKeys = keys.sort((a: any, b: any) => (a.usage || 0) - (b.usage || 0));
+    const availableKey = sortedKeys.find((k: any) => (k.usage || 0) < 90);
 
     if (!availableKey) {
         throw new Error(`Todas as chaves de API para '${keyPool}' atingiram o limite de uso diário.`);
     }
     
-    // Increment usage for the specific key in the specific pool
-    const updateQuery = { $inc: { [`${keyPool}.$.usage`]: 1 } };
-    const arrayFilter = { 'arrayFilters': [{ 'elem.id': availableKey.id }] };
-
+    // Use arrayFilters for a safe and robust update of the specific key's usage.
     await settingsCollection.updateOne(
-        { _id: new ObjectId(SETTINGS_ID), [`${keyPool}.id`]: availableKey.id },
-        updateQuery,
-        // The arrayFilters syntax is more robust for nested arrays if needed, but this works for simple arrays.
-        // For direct updates to nested array elements without arrayFilters, you might need a different approach.
-        // However, the positional $ operator is the standard way. Let's adjust to be safer.
+        { _id: new ObjectId(SETTINGS_ID) },
+        { $inc: { [`${keyPool}.$[elem].usage`]: 1 } },
+        { arrayFilters: [{ 'elem.id': availableKey.id }] }
     );
-     // Correcting the update to use positional operator on the found key.
-    await settingsCollection.updateOne(
-        { _id: new ObjectId(SETTINGS_ID), [`${keyPool}.id`]: availableKey.id },
-        { $inc: { [`${keyPool}.$.usage`]: 1 } }
-    );
-
 
     return availableKey.key;
 }
 
-export const getAvailableUpdateApiKey = async () => getAvailableKeyFromPool('updateApiKeys');
-export const getAvailablePaymentApiKey = async () => getAvailableKeyFromPool('paymentApiKeys');
+export async function getAvailableUpdateApiKey() { return getAvailableKeyFromPool('updateApiKeys'); }
+export async function getAvailablePaymentApiKey() { return getAvailableKeyFromPool('paymentApiKeys'); }
 
 
 export async function setLastUpdateTimestamp(): Promise<void> {

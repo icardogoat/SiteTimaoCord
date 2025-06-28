@@ -13,7 +13,7 @@ const UPDATE_INTERVAL_BASE_MS = 15 * 60 * 1000; // 15 minutes in milliseconds
 
 export function UpdateCountdownTimer({ apiSettings }: UpdateCountdownTimerProps) {
   const [timeLeft, setTimeLeft] = useState('00:00');
-  const [nextUpdate, setNextUpdate] = useState<Date | null>(null);
+  let nextUpdateRef = new Date();
 
   useEffect(() => {
     const keyCount = apiSettings.updateApiKeys?.length || 1;
@@ -22,19 +22,17 @@ export function UpdateCountdownTimer({ apiSettings }: UpdateCountdownTimerProps)
         ? new Date(apiSettings.lastUpdateTimestamp) 
         : new Date(Date.now() - intervalMs); // Assume last update was one interval ago if not set
 
-    const nextUpdateTime = new Date(lastUpdate.getTime() + intervalMs);
-    setNextUpdate(nextUpdateTime);
+    nextUpdateRef = new Date(lastUpdate.getTime() + intervalMs);
 
     const timer = setInterval(() => {
       const now = new Date();
-      const difference = nextUpdateTime.getTime() - now.getTime();
+      let difference = nextUpdateRef.getTime() - now.getTime();
       
       if (difference <= 0) {
         setTimeLeft('Atualizando...');
-        // Refresh the page or relevant data after a delay
-        setTimeout(() => window.location.reload(), 5000);
-        clearInterval(timer);
-        return;
+        // Set the next update time for the next cycle
+        nextUpdateRef = new Date(nextUpdateRef.getTime() + intervalMs);
+        difference = nextUpdateRef.getTime() - now.getTime();
       }
       
       const minutes = Math.floor((difference / 1000 / 60) % 60);
