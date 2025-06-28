@@ -22,7 +22,8 @@ import type { DashboardStats, TopBettor, RecentBet, WeeklyBetVolume } from "@/ac
 import { useToast } from "@/hooks/use-toast"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
-import { processAllFinishedMatches, sendUpcomingMatchNotifications, sendAnnouncement } from "@/actions/admin-actions";
+import { processAllFinishedMatches, sendAnnouncement } from "@/actions/admin-actions";
+import { sendUpcomingMatchNotifications } from "@/actions/match-notifications";
 import { Separator } from "./ui/separator";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "./ui/form";
 import { Input } from "./ui/input";
