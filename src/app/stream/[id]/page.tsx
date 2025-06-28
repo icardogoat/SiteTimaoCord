@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -8,8 +7,9 @@ import HlsPlayer from '@/components/hls-player';
 import type { LiveStream, StreamSource } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2, Lock } from 'lucide-react';
+import { Lock } from 'lucide-react';
 import { notFound, useRouter } from 'next/navigation';
+import { FielBetLogo } from '@/components/icons';
 
 export default function StreamPage({ params }: { params: { id: string } }) {
     const { data: session, status } = useSession();
@@ -37,7 +37,7 @@ export default function StreamPage({ params }: { params: { id: string } }) {
                     if (streamData) {
                         setStream(streamData);
                         if (streamData.sources && streamData.sources.length > 0) {
-                            setActiveSource(streamData.sources[0]);
+                            // Do not auto-select a source. Let the user choose.
                         }
                     } else {
                         setError('Stream not found');
@@ -55,7 +55,7 @@ export default function StreamPage({ params }: { params: { id: string } }) {
     if (status === 'loading' || loading) {
         return (
             <div className="flex items-center justify-center h-screen bg-black text-white">
-                <Loader2 className="h-8 w-8 animate-spin" />
+                <FielBetLogo className="h-24 w-24 text-primary animate-pulse" />
             </div>
         );
     }
@@ -95,7 +95,14 @@ export default function StreamPage({ params }: { params: { id: string } }) {
 
     const renderPlayer = () => {
         if (!activeSource) {
-            return <div className="w-full h-full flex items-center justify-center text-white bg-black"><p>Nenhuma fonte de transmissão selecionada.</p></div>;
+             return (
+                <div className="w-full h-full flex items-center justify-center text-white bg-black">
+                    <div className="text-center">
+                        <FielBetLogo className="h-24 w-24 text-primary mx-auto" />
+                        <p className="mt-4 text-muted-foreground">Selecione uma fonte abaixo para assistir</p>
+                    </div>
+                </div>
+            );
         }
 
         if (activeSource.type === 'hls') {

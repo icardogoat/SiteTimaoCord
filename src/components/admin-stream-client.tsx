@@ -22,6 +22,7 @@ import {
 import {
   Dialog,
   DialogContent,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
@@ -50,7 +51,6 @@ import type { LiveStream, StreamSource } from '@/types';
 import Link from 'next/link';
 import { RadioGroup, RadioGroupItem } from './ui/radio-group';
 import { Separator } from './ui/separator';
-import { DialogFooter } from './ui/dialog';
 
 const sourceSchema = z.object({
   id: z.string(), // a UUID for react-hook-form
@@ -98,7 +98,7 @@ export function AdminStreamClient({ initialStreams }: { initialStreams: LiveStre
     form.reset({ 
         id: stream?._id.toString(),
         name: stream?.name || '',
-        sources: stream?.sources || [{ id: crypto.randomUUID(), name: '', type: 'iframe', url: '' }],
+        sources: stream?.sources?.length ? stream.sources : [{ id: crypto.randomUUID(), name: 'Opção 1', type: 'iframe', url: '' }],
     });
     setIsDialogOpen(true);
   };
@@ -241,7 +241,7 @@ export function AdminStreamClient({ initialStreams }: { initialStreams: LiveStre
                         </Card>
                     ))}
                 </div>
-                 <Button type="button" variant="outline" size="sm" className="mt-4" onClick={() => append({ id: crypto.randomUUID(), name: '', type: 'iframe', url: '' })}>
+                 <Button type="button" variant="outline" size="sm" className="mt-4" onClick={() => append({ id: crypto.randomUUID(), name: `Opção ${fields.length + 1}`, type: 'iframe', url: '' })}>
                     <PlusCircle className="mr-2 h-4 w-4" /> Adicionar Fonte
                 </Button>
               </div>
