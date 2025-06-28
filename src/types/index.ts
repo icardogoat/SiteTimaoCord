@@ -354,3 +354,13 @@ export type LiveStream = {
   isIntervalActive?: boolean;
   createdAt: Date | string;
 };
+
+export type SiteEvent = {
+  _id: string | ObjectId;
+  name: string;
+  description: string;
+  xpAmount: number;
+  isActive: boolean;
+  createdAt: Date | string;
+  updatedAt: Date | string;
+};

@@ -2,7 +2,7 @@
 'use server';
 
 import clientPromise from '@/lib/mongodb';
-import type { Post, AuthorInfo, PlacedBet, Transaction, UserRanking, MvpVoting, MvpPlayer, MvpTeamLineup, Notification, StoreItem, Bolao, Advertisement, UserInventoryItem, PurchaseAdminView, BetVolumeData, ProfitLossData } from '@/types';
+import type { Post, AuthorInfo, PlacedBet, Transaction, UserRanking, MvpVoting, MvpPlayer, MvpTeamLineup, Notification, StoreItem, Bolao, Advertisement, UserInventoryItem, PurchaseAdminView, BetVolumeData, ProfitLossData, SiteEvent } from '@/types';
 import { ObjectId, WithId } from 'mongodb';
 import { revalidatePath } from 'next/cache';
 import { getBotConfig } from './bot-config-actions';
@@ -2046,4 +2046,108 @@ export async function syncPostsFromDiscord(): Promise<{ success: boolean; messag
         revalidatePath('/');
     }
     return { success: result.success, message: result.message };
+}
+
+// ---- ADMIN EVENT ACTIONS ----
+
+export async function getAdminEvents(): Promise<SiteEvent[]> {
+    try {
+        const client = await clientPromise;
+        const db = client.db('timaocord');
+        const events = await db.collection<SiteEvent>('site_events')
+            .find({})
+            .sort({ createdAt: -1 })
+            .toArray();
+
+        return JSON.parse(JSON.stringify(events));
+    } catch (error) {
+        console.error("Error fetching admin events:", error);
+        return [];
+    }
+}
+
+export async function upsertEvent(data: Omit<SiteEvent, '_id' | 'createdAt' | 'updatedAt' | 'isActive'> & { id?: string }): Promise<{ success: boolean; message: string }> {
+    const { id, ...eventData } = data;
+    
+    try {
+        const client = await clientPromise;
+        const db = client.db('timaocord');
+        const collection = db.collection<SiteEvent>('site_events');
+        
+        const dataToSave: Partial<SiteEvent> = { ...eventData, updatedAt: new Date() };
+
+        if (id) {
+            await collection.updateOne(
+                { _id: new ObjectId(id) },
+                { $set: dataToSave }
+            );
+        } else {
+            // New events are created as inactive by default
+            await collection.insertOne(
+                { ...dataToSave, isActive: false, createdAt: new Date() } as SiteEvent
+            );
+        }
+        revalidatePath('/admin/events');
+        return { success: true, message: `Evento ${id ? 'atualizado' : 'criado'} com sucesso!` };
+
+    } catch (error) {
+        console.error("Error upserting event:", error);
+        return { success: false, message: "Ocorreu um erro ao salvar o evento." };
+    }
+}
+
+export async function toggleEventStatus(eventId: string, currentStatus: boolean): Promise<{ success: boolean, message: string }> {
+    const client = await clientPromise;
+    const db = client.db('timaocord');
+    const collection = db.collection<SiteEvent>('site_events');
+    const mongoSession = client.startSession();
+
+    const newStatus = !currentStatus;
+
+    try {
+        let result: { success: boolean; message: string } | undefined;
+        await mongoSession.withTransaction(async () => {
+            if (newStatus) { // If activating this event
+                // Deactivate all other events
+                await collection.updateMany(
+                    { _id: { $ne: new ObjectId(eventId) } },
+                    { $set: { isActive: false, updatedAt: new Date() } },
+                    { session: mongoSession }
+                );
+            }
+            
+            // Activate/deactivate the target event
+            await collection.updateOne(
+                { _id: new ObjectId(eventId) },
+                { $set: { isActive: newStatus, updatedAt: new Date() } },
+                { session: mongoSession }
+            );
+            result = { success: true, message: `Evento ${newStatus ? 'ativado' : 'desativado'}.` };
+        });
+        await mongoSession.endSession();
+        revalidatePath('/admin/events');
+        if (result) return result;
+        throw new Error("Transaction failed to complete.");
+    } catch (error) {
+        await mongoSession.endSession();
+        console.error("Error toggling event status:", error);
+        return { success: false, message: 'Falha ao alterar o status do evento.' };
+    }
+}
+
+
+export async function deleteEvent(eventId: string): Promise<{ success: boolean; message: string }> {
+     try {
+        const client = await clientPromise;
+        const db = client.db('timaocord');
+        const collection = db.collection<SiteEvent>('site_events');
+
+        await collection.deleteOne({ _id: new ObjectId(eventId) });
+
+        revalidatePath('/admin/events');
+        return { success: true, message: "Evento excluído com sucesso." };
+    } catch (error) {
+        console.error("Error deleting event:", error);
+        return { success: false, message: "Ocorreu um erro ao excluir o evento." };
+    }
 }

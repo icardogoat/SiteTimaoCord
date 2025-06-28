@@ -4,7 +4,7 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import type { ReactNode } from "react"
-import { Bot, Home, Megaphone, Menu, Receipt, Server, Settings, ShoppingBag, Star, Ticket, Trophy, Users, FilePen, Tv } from "lucide-react"
+import { Bot, Home, Megaphone, Menu, Receipt, Server, Settings, ShoppingBag, Star, Ticket, Trophy, Users, FilePen, Tv, PartyPopper } from "lucide-react"
 import { useSession, signOut } from "next-auth/react"
 
 import { Button } from "@/components/ui/button"
@@ -45,6 +45,7 @@ const allNavGroups = [
         { href: "/admin/mvp", label: "MVP Votação", icon: Star, adminOnly: true },
         { href: "/admin/announcements", label: "Posts", icon: FilePen, adminOnly: false },
         { href: "/admin/stream", label: "Transmissão", icon: Tv, adminOnly: true },
+        { href: "/admin/events", label: "Eventos", icon: PartyPopper, adminOnly: true },
     ]
   },
   {
