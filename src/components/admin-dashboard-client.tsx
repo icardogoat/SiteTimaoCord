@@ -1,4 +1,3 @@
-
 'use client'
 
 import { Activity, CreditCard, DollarSign, Users, Loader2, RefreshCw, BellRing, Send, ShieldCheck } from "lucide-react"
@@ -22,9 +21,8 @@ import type { DashboardStats, TopBettor, RecentBet, BetVolumeData, ProfitLossDat
 import { useToast } from "@/hooks/use-toast"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
-import { processAllFinishedMatches, sendAnnouncement, getChartData } from "@/actions/admin-actions";
+import { processAllFinishedMatches, sendAnnouncement, getChartData, updateFixturesFromApi } from "@/actions/admin-actions";
 import { sendUpcomingMatchNotifications } from "@/actions/match-notifications";
-import { updateFixturesFromApi } from "@/actions/fixtures-actions";
 import { Separator } from "./ui/separator";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "./ui/form";
 import { Input } from "./ui/input";
@@ -261,7 +259,7 @@ export function AdminDashboardClient({ stats, initialChartData, topBettors, rece
                   Usuários com maior volume de apostas.
                 </CardDescription>
               </CardHeader>
-              <CardContent className="grid gap-8">
+              <CardContent className="grid gap-4">
                 {topBettors.map(user => (
                     <div className="flex items-center gap-4" key={user.email}>
                       <Avatar className={cn("hidden h-9 w-9 sm:flex", user.isVip && "ring-2 ring-vip")}>
@@ -293,16 +291,16 @@ export function AdminDashboardClient({ stats, initialChartData, topBettors, rece
                 <CardDescription>Execute tarefas manuais e envie comunicados.</CardDescription>
             </CardHeader>
             <CardContent className="grid gap-4">
-                <div className="flex flex-col sm:flex-row gap-2">
-                    <Button onClick={handleUpdateFixtures} disabled={anyActionRunning} className="flex-1">
+                <div className="flex flex-wrap gap-2">
+                    <Button onClick={handleUpdateFixtures} disabled={anyActionRunning}>
                         {isUpdatingFixtures ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
                         Atualizar Partidas
                     </Button>
-                    <Button onClick={handleProcessAll} disabled={anyActionRunning} variant="outline" className="flex-1">
+                    <Button onClick={handleProcessAll} disabled={anyActionRunning} variant="outline">
                         {isProcessingAll ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ShieldCheck className="mr-2 h-4 w-4" />}
                         Processar Finalizadas
                     </Button>
-                    <Button onClick={handleNotifyUpcoming} disabled={anyActionRunning} variant="outline" className="flex-1">
+                    <Button onClick={handleNotifyUpcoming} disabled={anyActionRunning} variant="outline">
                         {isNotifying ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <BellRing className="mr-2 h-4 w-4" />}
                         Notificar Próximas
                     </Button>
