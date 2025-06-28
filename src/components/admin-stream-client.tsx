@@ -22,7 +22,6 @@ import {
 import {
   Dialog,
   DialogContent,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
@@ -51,6 +50,7 @@ import type { LiveStream, StreamSource } from '@/types';
 import Link from 'next/link';
 import { RadioGroup, RadioGroupItem } from './ui/radio-group';
 import { Separator } from './ui/separator';
+import { DialogFooter } from './ui/dialog';
 
 const sourceSchema = z.object({
   id: z.string(), // a UUID for react-hook-form
@@ -145,7 +145,7 @@ export function AdminStreamClient({ initialStreams }: { initialStreams: LiveStre
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
-            {streams.length > 0 ? streams.map(stream => (
+            {streams.map(stream => (
                 <Card key={stream._id.toString()} className="overflow-hidden">
                     <div className="p-4 flex flex-col sm:flex-row justify-between sm:items-center gap-4">
                         <div className='flex items-center gap-3'>
@@ -153,7 +153,7 @@ export function AdminStreamClient({ initialStreams }: { initialStreams: LiveStre
                             <div>
                                 <p className="font-semibold">{stream.name}</p>
                                 <p className="text-xs text-muted-foreground">
-                                    {stream.sources.length} fonte(s) | Criado em: {new Date(stream.createdAt).toLocaleDateString('pt-BR')}
+                                    {stream.sources?.length || 0} fonte(s) | Criado em: {new Date(stream.createdAt).toLocaleDateString('pt-BR')}
                                 </p>
                             </div>
                         </div>
@@ -175,7 +175,8 @@ export function AdminStreamClient({ initialStreams }: { initialStreams: LiveStre
                         </div>
                     </div>
                 </Card>
-            )) : (
+            ))}
+            {streams.length === 0 && (
                 <div className="text-center py-12 text-muted-foreground">
                     <Tv className="mx-auto h-12 w-12" />
                     <p className="mt-4">Nenhuma transmissão criada ainda.</p>

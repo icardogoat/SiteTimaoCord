@@ -63,7 +63,7 @@ export default function StreamPage({ params }: { params: { id: string } }) {
         <div className="relative w-screen h-screen bg-black overflow-hidden">
             {renderPlayer()}
 
-            {stream.sources.length > 1 && (
+            {(stream.sources?.length ?? 0) > 1 && (
                  <div className="fixed bottom-0 left-1/2 -translate-x-1/2 p-4 z-50">
                     <Card className="bg-background/80 backdrop-blur-sm">
                         <div className="p-2 flex items-center gap-2">
