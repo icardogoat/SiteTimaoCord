@@ -103,8 +103,6 @@ export default function StreamPage() {
         return null; // Should be handled by loading/error states
     }
 
-    const adBlockActive = session?.user?.adRemovalExpiresAt && new Date(session.user.adRemovalExpiresAt) > new Date();
-
     const renderPlayer = () => {
         if (!activeSource) {
              return (
@@ -132,8 +130,8 @@ export default function StreamPage() {
         if (activeSource.type === 'iframe') {
             return <iframe 
                 src={activeSource.url} 
-                allow="autoplay; encrypted-media; fullscreen" 
-                sandbox={adBlockActive ? "allow-scripts allow-fullscreen" : undefined}
+                allow="autoplay; encrypted-media; fullscreen; presentation" 
+                sandbox="allow-scripts allow-same-origin allow-presentation allow-fullscreen"
                 className="w-full h-full border-0" 
             />;
         }
