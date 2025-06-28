@@ -75,12 +75,12 @@ export function IntervalOverlay({ discordInviteUrl }: IntervalOverlayProps) {
         });
     }, []);
 
-    // Rotate ad every 15 seconds
+    // Rotate ad every 5 seconds
     useEffect(() => {
         if (ads.length <= 1) return;
         const interval = setInterval(() => {
             setCurrentAdIndex(prev => (prev + 1) % ads.length);
-        }, 15000);
+        }, 5000);
         return () => clearInterval(interval);
     }, [ads]);
 
