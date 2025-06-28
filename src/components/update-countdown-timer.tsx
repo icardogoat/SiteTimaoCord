@@ -46,7 +46,7 @@ export function UpdateCountdownTimer({ apiSettings }: UpdateCountdownTimerProps)
   
   return (
     <Badge variant="secondary" className="whitespace-nowrap">
-      Próxima atualização em: {timeLeft}
+      Jogos atualizam em: {timeLeft}
     </Badge>
   );
 }
