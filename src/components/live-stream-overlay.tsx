@@ -93,7 +93,7 @@ export function LiveStreamOverlay({ streamId, initialAlert, initialPoll }: LiveS
     const totalVotes = poll?.options.reduce((sum, opt) => sum + opt.votes, 0) || 0;
 
     return (
-        <div className="absolute inset-0 pointer-events-none grid grid-rows-3 grid-cols-5 p-8">
+        <div className="fixed inset-0 pointer-events-none grid grid-rows-3 grid-cols-5 p-8 z-50">
             {/* Poll */}
             <AnimatePresence>
                 {poll && poll.isActive && (
