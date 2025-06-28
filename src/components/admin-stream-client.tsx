@@ -26,7 +26,6 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
@@ -57,6 +56,7 @@ import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import { Progress } from './ui/progress';
 import { RadioGroup, RadioGroupItem } from './ui/radio-group';
+import HlsPlayer from './hls-player';
 
 const streamFormSchema = z.object({
   id: z.string().optional(),
@@ -264,14 +264,19 @@ export function AdminStreamClient({ initialStreams }: { initialStreams: LiveStre
 
   const form = useForm<z.infer<typeof streamFormSchema>>({
     resolver: zodResolver(streamFormSchema),
-    defaultValues: { streamType: 'iframe' }
+    defaultValues: { name: '', embedCode: '', streamUrl: '', streamType: 'iframe' }
   });
   
   const streamType = form.watch('streamType');
 
   const handleOpenDialog = (stream: LiveStream | null) => {
     setCurrentStream(stream);
-    form.reset(stream ? { ...stream, id: stream._id.toString() } : { name: '', embedCode: '', streamUrl: '', streamType: 'iframe' });
+    form.reset(stream ? { 
+        ...stream, 
+        id: stream._id.toString(),
+        embedCode: stream.embedCode || '',
+        streamUrl: stream.streamUrl || ''
+    } : { name: '', embedCode: '', streamUrl: '', streamType: 'iframe' });
     setIsDialogOpen(true);
   };
 
@@ -486,3 +491,5 @@ export function AdminStreamClient({ initialStreams }: { initialStreams: LiveStre
     </>
   );
 }
+
+    
