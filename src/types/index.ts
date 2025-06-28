@@ -309,7 +309,8 @@ export type ApiKeyEntry = {
 export type ApiSettings = {
     _id: string | ObjectId;
     siteUrl?: string;
-    apiKeys?: ApiKeyEntry[];
+    updateApiKeys?: ApiKeyEntry[];
+    paymentApiKeys?: ApiKeyEntry[];
     lastUpdateTimestamp?: Date | string | null;
 };
 

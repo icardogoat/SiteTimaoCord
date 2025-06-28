@@ -8,6 +8,27 @@ import { randomBytes } from 'crypto';
 
 const SETTINGS_ID = '66a4f2b9a7c3d2e3c4f5b6a7'; // A fixed ID for the single settings document
 
+// Helper function to reset API key usage if a new day has started
+const resetApiKeysUsage = (keys: ApiKeyEntry[] | undefined): [ApiKeyEntry[], boolean] => {
+    if (!keys) return [[], false];
+
+    const today = new Date();
+    today.setUTCHours(0, 0, 0, 0);
+    let keysWereReset = false;
+
+    const updatedKeys = keys.map(k => {
+        const lastReset = k.lastReset ? new Date(k.lastReset) : new Date(0);
+        if (lastReset < today) {
+            keysWereReset = true;
+            return { ...k, usage: 0, lastReset: today.toISOString() };
+        }
+        return k;
+    });
+
+    return [updatedKeys, keysWereReset];
+};
+
+
 export async function getApiSettings(): Promise<Partial<ApiSettings>> {
     try {
         const client = await clientPromise;
@@ -15,36 +36,28 @@ export async function getApiSettings(): Promise<Partial<ApiSettings>> {
         const settingsCollection = db.collection('api_settings');
         const settings = await settingsCollection.findOne({ _id: new ObjectId(SETTINGS_ID) });
 
-        const today = new Date();
-        today.setUTCHours(0, 0, 0, 0);
+        const [updateApiKeys, updateKeysWereReset] = resetApiKeysUsage(settings?.updateApiKeys);
+        const [paymentApiKeys, paymentKeysWereReset] = resetApiKeysUsage(settings?.paymentApiKeys);
 
-        let keysWereReset = false;
-        const apiKeys = (settings?.apiKeys || []).map((k: any) => {
-            const lastReset = k.lastReset ? new Date(k.lastReset) : new Date(0);
-            if (lastReset < today) {
-                keysWereReset = true;
-                return { ...k, usage: 0, lastReset: today.toISOString() };
-            }
-            return k;
-        });
-
-        if (keysWereReset && settings) {
+        if (updateKeysWereReset || paymentKeysWereReset) {
             await settingsCollection.updateOne(
                 { _id: new ObjectId(SETTINGS_ID) },
-                { $set: { apiKeys } }
+                { $set: { updateApiKeys, paymentApiKeys } }
             );
         }
 
         return {
             siteUrl: settings?.siteUrl || process.env.NEXTAUTH_URL || '',
-            apiKeys: apiKeys,
+            updateApiKeys: updateApiKeys,
+            paymentApiKeys: paymentApiKeys,
             lastUpdateTimestamp: settings?.lastUpdateTimestamp || null,
         };
     } catch (error) {
         console.error("Error fetching API settings:", error);
         return {
             siteUrl: process.env.NEXTAUTH_URL || '',
-            apiKeys: [],
+            updateApiKeys: [],
+            paymentApiKeys: [],
             lastUpdateTimestamp: null,
         };
     }
@@ -52,7 +65,8 @@ export async function getApiSettings(): Promise<Partial<ApiSettings>> {
 
 type UpdateSettingsData = {
     siteUrl: string;
-    apiKeys: { key: string }[];
+    updateApiKeys: { key: string }[];
+    paymentApiKeys: { key: string }[];
 };
 
 export async function updateApiSettings(data: UpdateSettingsData): Promise<{ success: boolean; message: string }> {
@@ -62,27 +76,32 @@ export async function updateApiSettings(data: UpdateSettingsData): Promise<{ suc
         const settingsCollection = db.collection('api_settings');
         const currentSettings = await settingsCollection.findOne({ _id: new ObjectId(SETTINGS_ID) });
 
-        const existingKeysMap = new Map((currentSettings?.apiKeys || []).map((k: any) => [k.key, k]));
-        
-        const newApiKeys = data.apiKeys
-            .filter(k => k.key) // Filter out empty keys from the form
-            .map(k => {
-                if (existingKeysMap.has(k.key)) {
-                    return existingKeysMap.get(k.key);
-                }
-                return {
-                    id: randomBytes(8).toString('hex'),
-                    key: k.key,
-                    usage: 0,
-                    lastReset: new Date(0).toISOString(),
-                };
-            });
+        const mapAndPreserveKeys = (newKeys: {key: string}[], existingKeys: ApiKeyEntry[] | undefined) => {
+            const existingKeysMap = new Map((existingKeys || []).map(k => [k.key, k]));
+            return newKeys
+                .filter(k => k.key)
+                .map(k => {
+                    if (existingKeysMap.has(k.key)) {
+                        return existingKeysMap.get(k.key)!;
+                    }
+                    return {
+                        id: randomBytes(8).toString('hex'),
+                        key: k.key,
+                        usage: 0,
+                        lastReset: new Date(0).toISOString(),
+                    };
+                });
+        };
+
+        const newUpdateApiKeys = mapAndPreserveKeys(data.updateApiKeys, currentSettings?.updateApiKeys);
+        const newPaymentApiKeys = mapAndPreserveKeys(data.paymentApiKeys, currentSettings?.paymentApiKeys);
             
         await settingsCollection.updateOne(
             { _id: new ObjectId(SETTINGS_ID) },
             { $set: { 
                 siteUrl: data.siteUrl, 
-                apiKeys: newApiKeys, 
+                updateApiKeys: newUpdateApiKeys,
+                paymentApiKeys: newPaymentApiKeys,
             } },
             { upsert: true }
         );
@@ -95,7 +114,7 @@ export async function updateApiSettings(data: UpdateSettingsData): Promise<{ suc
     }
 }
 
-export async function getAvailableApiKey(): Promise<string> {
+async function getAvailableKeyFromPool(keyPool: 'updateApiKeys' | 'paymentApiKeys'): Promise<string> {
     const client = await clientPromise;
     const db = client.db('timaocord_settings');
     const settingsCollection = db.collection('api_settings');
@@ -105,44 +124,54 @@ export async function getAvailableApiKey(): Promise<string> {
 
     let settings = await settingsCollection.findOne({ _id: new ObjectId(SETTINGS_ID) });
 
-    if (!settings || !settings.apiKeys || settings.apiKeys.length === 0) {
+    if (!settings || !settings[keyPool] || settings[keyPool].length === 0) {
         if (process.env.API_FOOTBALL_KEY) {
-            console.log("Using API_FOOTBALL_KEY from .env as a fallback.");
+            console.warn(`No keys in pool '${keyPool}'. Using API_FOOTBALL_KEY from .env as a fallback.`);
             return process.env.API_FOOTBALL_KEY;
         }
-        throw new Error('Nenhuma chave de API configurada no painel de admin e nenhuma chave de fallback encontrada no .env.');
+        throw new Error(`Nenhuma chave de API configurada no painel de admin para a função '${keyPool}' e nenhuma chave de fallback encontrada no .env.`);
     }
 
-    const keysNeedReset = settings.apiKeys.some((k: any) => !k.lastReset || new Date(k.lastReset) < today);
+    const [keys, keysNeedReset] = resetApiKeysUsage(settings[keyPool]);
     if (keysNeedReset) {
-        const resetKeys = settings.apiKeys.map((k: any) => ({
-            ...k,
-            usage: 0,
-            lastReset: today.toISOString(),
-        }));
-
-        await settingsCollection.updateOne(
+         await settingsCollection.updateOne(
             { _id: new ObjectId(SETTINGS_ID) },
-            { $set: { apiKeys: resetKeys } }
+            { $set: { [keyPool]: keys } }
         );
-        settings.apiKeys = resetKeys;
+        settings = { ...settings, [keyPool]: keys };
     }
 
-    // Sort by usage to use the least used key
-    const sortedKeys = settings.apiKeys.sort((a: any, b: any) => a.usage - b.usage);
+    const sortedKeys = keys.sort((a: any, b: any) => a.usage - b.usage);
     const availableKey = sortedKeys.find((k: any) => k.usage < 90);
 
     if (!availableKey) {
-        throw new Error('Todas as chaves de API configuradas atingiram o limite de uso diário.');
+        throw new Error(`Todas as chaves de API para '${keyPool}' atingiram o limite de uso diário.`);
     }
     
+    // Increment usage for the specific key in the specific pool
+    const updateQuery = { $inc: { [`${keyPool}.$.usage`]: 1 } };
+    const arrayFilter = { 'arrayFilters': [{ 'elem.id': availableKey.id }] };
+
     await settingsCollection.updateOne(
-        { _id: new ObjectId(SETTINGS_ID), 'apiKeys.id': availableKey.id },
-        { $inc: { 'apiKeys.$.usage': 1 } }
+        { _id: new ObjectId(SETTINGS_ID), [`${keyPool}.id`]: availableKey.id },
+        updateQuery,
+        // The arrayFilters syntax is more robust for nested arrays if needed, but this works for simple arrays.
+        // For direct updates to nested array elements without arrayFilters, you might need a different approach.
+        // However, the positional $ operator is the standard way. Let's adjust to be safer.
     );
+     // Correcting the update to use positional operator on the found key.
+    await settingsCollection.updateOne(
+        { _id: new ObjectId(SETTINGS_ID), [`${keyPool}.id`]: availableKey.id },
+        { $inc: { [`${keyPool}.$.usage`]: 1 } }
+    );
+
 
     return availableKey.key;
 }
+
+export const getAvailableUpdateApiKey = () => getAvailableKeyFromPool('updateApiKeys');
+export const getAvailablePaymentApiKey = () => getAvailableKeyFromPool('paymentApiKeys');
+
 
 export async function setLastUpdateTimestamp(): Promise<void> {
     try {

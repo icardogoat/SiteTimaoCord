@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from "react";
@@ -15,7 +16,7 @@ export function UpdateCountdownTimer({ apiSettings }: UpdateCountdownTimerProps)
   const [nextUpdate, setNextUpdate] = useState<Date | null>(null);
 
   useEffect(() => {
-    const keyCount = apiSettings.apiKeys?.length || 1;
+    const keyCount = apiSettings.updateApiKeys?.length || 1;
     const intervalMs = UPDATE_INTERVAL_BASE_MS / keyCount;
     const lastUpdate = apiSettings.lastUpdateTimestamp 
         ? new Date(apiSettings.lastUpdateTimestamp) 

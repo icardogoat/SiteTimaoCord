@@ -21,13 +21,16 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { useToast } from "@/hooks/use-toast";
 import type { ApiSettings, SiteSettings } from "@/types";
 import { updateApiSettings, updateGeneralSiteSettings, updateBetaVipSettings } from "@/actions/settings-actions";
-import { Loader2, PlusCircle, Trash2 } from "lucide-react";
+import { Loader2, PlusCircle, RefreshCw, Trash2, ShieldCheck, HelpCircle } from "lucide-react";
 import { Switch } from "./ui/switch";
 import { Textarea } from "./ui/textarea";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./ui/tooltip";
+import { Separator } from "./ui/separator";
 
 const apiFormSchema = z.object({
   siteUrl: z.string().url({ message: "Por favor, insira uma URL válida." }).optional().or(z.literal('')),
-  apiKeys: z.array(z.object({ key: z.string() })).max(15, { message: "Você pode adicionar no máximo 15 chaves de API." }).optional(),
+  updateApiKeys: z.array(z.object({ key: z.string() })).max(15, { message: "Você pode adicionar no máximo 15 chaves de API." }).optional(),
+  paymentApiKeys: z.array(z.object({ key: z.string() })).max(15, { message: "Você pode adicionar no máximo 15 chaves de API." }).optional(),
 });
 
 const siteSettingsFormSchema = z.object({
@@ -59,13 +62,16 @@ export default function AdminSettingsClient({ initialApiSettings, initialSiteSet
         resolver: zodResolver(apiFormSchema),
         defaultValues: {
             siteUrl: initialApiSettings.siteUrl || "",
-            apiKeys: initialApiSettings.apiKeys?.map(k => ({ key: k.key })) || [{ key: '' }],
+            updateApiKeys: initialApiSettings.updateApiKeys?.map(k => ({ key: k.key })) || [{ key: '' }],
+            paymentApiKeys: initialApiSettings.paymentApiKeys?.map(k => ({ key: k.key })) || [{ key: '' }],
         },
     });
 
-    const { fields: apiKeyFields, append: appendApiKey, remove: removeApiKey } = useFieldArray({
-        control: apiForm.control,
-        name: "apiKeys"
+    const { fields: updateApiFields, append: appendUpdateApi, remove: removeUpdateApi } = useFieldArray({
+        control: apiForm.control, name: "updateApiKeys"
+    });
+    const { fields: paymentApiFields, append: appendPaymentApi, remove: removePaymentApi } = useFieldArray({
+        control: apiForm.control, name: "paymentApiKeys"
     });
     
     const siteSettingsForm = useForm<SiteSettingsFormValues>({
@@ -86,10 +92,10 @@ export default function AdminSettingsClient({ initialApiSettings, initialSiteSet
 
     async function onApiSubmit(values: ApiFormValues) {
         setIsApiSubmitting(true);
-        // Filter out empty apiKeys before submitting
         const dataToSubmit = {
             ...values,
-            apiKeys: values.apiKeys?.filter(k => k.key.trim() !== '') || []
+            updateApiKeys: values.updateApiKeys?.filter(k => k.key.trim() !== '') || [],
+            paymentApiKeys: values.paymentApiKeys?.filter(k => k.key.trim() !== '') || [],
         };
         const result = await updateApiSettings(dataToSubmit);
 
@@ -124,6 +130,65 @@ export default function AdminSettingsClient({ initialApiSettings, initialSiteSet
         }
         setIsBetaVipSubmitting(false);
     }
+
+    const renderApiKeySection = (
+        fieldArray: any,
+        removeFn: (index: number) => void,
+        appendFn: () => void,
+        fieldName: "updateApiKeys" | "paymentApiKeys",
+        allKeys: any[],
+        title: string,
+        description: string,
+        initialData: any[] | undefined
+    ) => (
+         <div className="space-y-4 rounded-lg border p-4">
+            <div className="flex items-center gap-2">
+                <FormLabel className="text-base">{title}</FormLabel>
+                 <TooltipProvider>
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <HelpCircle className="h-4 w-4 text-muted-foreground cursor-help" />
+                        </TooltipTrigger>
+                        <TooltipContent>
+                            <p>{description}</p>
+                        </TooltipContent>
+                    </Tooltip>
+                </TooltipProvider>
+            </div>
+            {fieldArray.map((field: { id: string }, index: number) => {
+                const currentKeyData = initialData?.find(k => k.key === apiForm.watch(`${fieldName}.${index}.key`));
+                return (
+                <FormField
+                    control={apiForm.control}
+                    key={field.id}
+                    name={`${fieldName}.${index}.key`}
+                    render={({ field: renderField }) => (
+                        <FormItem>
+                            <FormLabel className="sr-only">Chave {index+1}</FormLabel>
+                            <div className="flex items-center gap-2">
+                                <FormControl>
+                                    <Input type="password" placeholder={`Chave da API ${index + 1}`} {...renderField} />
+                                </FormControl>
+                                <div className="p-2 border rounded-md bg-muted text-muted-foreground text-sm font-mono whitespace-nowrap">
+                                    {currentKeyData?.usage ?? 0} / 90
+                                </div>
+                                <Button type="button" variant="destructive" size="icon" onClick={() => removeFn(index)} disabled={allKeys.length <= 1}>
+                                    <Trash2 className="h-4 w-4" />
+                                </Button>
+                            </div>
+                            <FormMessage />
+                        </FormItem>
+                    )}
+                />
+            )})}
+            {allKeys.length < 15 && (
+                <Button type="button" variant="outline" size="sm" className="mt-2" onClick={appendFn}>
+                    <PlusCircle className="mr-2 h-4 w-4" /> Adicionar Chave
+                </Button>
+            )}
+            <FormMessage>{apiForm.formState.errors[fieldName]?.message}</FormMessage>
+        </div>
+    );
 
     return (
         <div className="grid gap-6">
@@ -244,47 +309,30 @@ export default function AdminSettingsClient({ initialApiSettings, initialSiteSet
                                 )}
                             />
                             
-                            <div className="space-y-4">
-                                <FormLabel>Chaves da API-Football</FormLabel>
-                                <FormDescription>Adicione múltiplas chaves (até 15). O sistema rotacionará automaticamente para evitar o limite de 90 usos diários por chave.</FormDescription>
-                                {apiKeyFields.map((field, index) => {
-                                    const currentKeyData = initialApiSettings.apiKeys?.find(k => k.key === apiForm.watch(`apiKeys.${index}.key`));
-                                    return (
-                                    <FormField
-                                        control={apiForm.control}
-                                        key={field.id}
-                                        name={`apiKeys.${index}.key`}
-                                        render={({ field: renderField }) => (
-                                            <FormItem>
-                                                <div className="flex items-center gap-2">
-                                                    <FormControl>
-                                                        <Input type="password" placeholder={`Chave da API ${index + 1}`} {...renderField} />
-                                                    </FormControl>
-                                                    <div className="p-2 border rounded-md bg-muted text-muted-foreground text-sm font-mono whitespace-nowrap">
-                                                        {currentKeyData?.usage ?? 0} / 90
-                                                    </div>
-                                                    <Button type="button" variant="destructive" size="icon" onClick={() => removeApiKey(index)} disabled={apiKeyFields.length <= 1}>
-                                                        <Trash2 className="h-4 w-4" />
-                                                    </Button>
-                                                </div>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
-                                )})}
-                                {apiKeyFields.length < 15 && (
-                                    <Button
-                                        type="button"
-                                        variant="outline"
-                                        size="sm"
-                                        className="mt-2"
-                                        onClick={() => appendApiKey({ key: '' })}
-                                    >
-                                        <PlusCircle className="mr-2 h-4 w-4" />
-                                        Adicionar Chave
-                                    </Button>
+                            <Separator />
+
+                            <div className="grid md:grid-cols-2 gap-6">
+                               {renderApiKeySection(
+                                    updateApiFields,
+                                    removeUpdateApi,
+                                    () => appendUpdateApi({ key: '' }),
+                                    "updateApiKeys",
+                                    apiForm.watch('updateApiKeys') || [],
+                                    "Chaves de Atualização",
+                                    "Usadas pelos cron jobs para buscar novas partidas e odds.",
+                                    initialApiSettings.updateApiKeys
                                 )}
-                                <FormMessage>{apiForm.formState.errors.apiKeys?.message}</FormMessage>
+
+                                {renderApiKeySection(
+                                    paymentApiFields,
+                                    removePaymentApi,
+                                    () => appendPaymentApi({ key: '' }),
+                                    "paymentApiKeys",
+                                    apiForm.watch('paymentApiKeys') || [],
+                                    "Chaves de Pagamento/Resolução",
+                                    "Usadas para ações críticas como resolver partidas e criar votações MVP.",
+                                    initialApiSettings.paymentApiKeys
+                                )}
                             </div>
                             
                             <Button type="submit" disabled={isApiSubmitting}>

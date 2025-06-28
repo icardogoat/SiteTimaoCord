@@ -4,7 +4,7 @@
 import clientPromise from '@/lib/mongodb';
 import { revalidatePath } from 'next/cache';
 import { translateMarketData } from '@/lib/utils';
-import { getAvailableApiKey, setLastUpdateTimestamp } from './settings-actions';
+import { getAvailableUpdateApiKey, setLastUpdateTimestamp } from './settings-actions';
 import type { Market } from '@/types';
 
 // Simplified types for API response
@@ -44,7 +44,7 @@ interface ApiOdd {
 
 // Function to fetch fixtures for a given date from the external API
 async function fetchFixturesByDate(date: string) {
-    const apiKey = await getAvailableApiKey();
+    const apiKey = await getAvailableUpdateApiKey();
     const url = `https://api-football-v1.p.rapidapi.com/v3/fixtures?date=${date}`;
     const options = {
         method: 'GET',
@@ -64,7 +64,7 @@ async function fetchFixturesByDate(date: string) {
 
 // Function to fetch odds for a given fixture ID
 async function fetchOddsByFixtureId(fixtureId: number): Promise<Market[]> {
-    const apiKey = await getAvailableApiKey();
+    const apiKey = await getAvailableUpdateApiKey();
     const url = `https://api-football-v1.p.rapidapi.com/v3/odds?fixture=${fixtureId}`;
      const options = {
         method: 'GET',

@@ -7,7 +7,7 @@ import { ObjectId, WithId } from 'mongodb';
 import { revalidatePath } from 'next/cache';
 import { getBotConfig } from './bot-config-actions';
 import { grantAchievement } from './achievement-actions';
-import { getApiSettings, getAvailableApiKey } from './settings-actions';
+import { getApiSettings, getAvailablePaymentApiKey } from './settings-actions';
 import { sendDiscordPostNotification, syncDiscordNews } from './news-actions';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
@@ -390,7 +390,7 @@ interface FixtureApiResponse {
 async function getFixtureFromApi(fixtureId: number): Promise<{ success: boolean; data?: FixtureApiResponse; message?: string }> {
     let apiKey;
     try {
-      apiKey = await getAvailableApiKey();
+      apiKey = await getAvailablePaymentApiKey();
     } catch (error: any) {
       console.error('API Key Error:', error.message);
       return { success: false, message: error.message };
@@ -1185,7 +1185,7 @@ const getTeamIdFromLogo = (url: string | undefined): number | null => {
 async function getMatchLineups(fixtureId: number): Promise<{ success: boolean; data?: MvpTeamLineup[]; message?: string }> {
     let apiKey;
     try {
-      apiKey = await getAvailableApiKey();
+      apiKey = await getAvailablePaymentApiKey();
     } catch (error: any) {
       console.error('API Key Error:', error.message);
       return { success: false, message: error.message };
