@@ -169,7 +169,7 @@ export default function StreamPage() {
         }
 
         if (activeSource.type === 'iframe') {
-            // Updated sandbox permissions
+            // Apply sandbox to all users to prevent malicious redirects
             const sandboxPermissions = [
                 "allow-scripts",
                 "allow-same-origin",
@@ -177,14 +177,11 @@ export default function StreamPage() {
                 "allow-fullscreen"
             ].join(" ");
             
-            // Apply sandbox if user does NOT have ad removal perk
-            const useSandbox = !session?.user.isVip && !(session?.user.adRemovalExpiresAt && new Date(session.user.adRemovalExpiresAt) > new Date());
-
             return <iframe
                 key={activeSource.id}
                 src={activeSource.url}
                 allow="autoplay; encrypted-media; fullscreen; presentation"
-                sandbox={useSandbox ? sandboxPermissions : undefined}
+                sandbox={sandboxPermissions}
                 className="w-full h-full border-0"
             />;
         }
@@ -213,7 +210,8 @@ export default function StreamPage() {
 
             <div className={cn(
                 "fixed top-4 left-1/2 -translate-x-1/2 z-50 transition-opacity duration-500",
-                isIdle ? "opacity-0" : "opacity-100"
+                isIdle ? "opacity-0" : "opacity-100",
+                stream.isIntervalActive && "hidden"
             )}>
                 {(stream.sources?.length ?? 0) > 1 && (
                     <Card className="bg-background/80 backdrop-blur-sm">
