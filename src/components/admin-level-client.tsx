@@ -1,7 +1,8 @@
+
 'use client';
 
 import { useState } from 'react';
-import { useForm, useFieldArray } from 'react-hook-form';
+import { useForm, useFieldArray, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useToast } from '@/hooks/use-toast';
@@ -9,17 +10,35 @@ import { updateLevelConfig } from '@/actions/level-actions';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Loader2, PlusCircle, Trash2 } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import type { LevelThreshold } from '@/types';
 
+const levelSchema = z.object({
+  level: z.number(),
+  name: z.string().min(1, { message: 'O nome é obrigatório.' }),
+  xp: z.coerce.number().min(0, { message: 'O XP não pode ser negativo.' }),
+  rewardType: z.enum(['none', 'money', 'role']),
+  rewardAmount: z.coerce.number().optional(),
+  rewardRoleId: z.string().optional(),
+});
+
 const formSchema = z.object({
-  levels: z.array(z.object({
-    level: z.number(),
-    name: z.string().min(1, { message: 'O nome é obrigatório.' }),
-    xp: z.coerce.number().min(0, { message: 'O XP não pode ser negativo.' }),
-  })),
+  levels: z.array(levelSchema).refine(levels => {
+    for (const level of levels) {
+      if (level.rewardType === 'money' && (!level.rewardAmount || level.rewardAmount <= 0)) {
+        return false;
+      }
+      if (level.rewardType === 'role' && (!level.rewardRoleId || level.rewardRoleId.trim() === '')) {
+        return false;
+      }
+    }
+    return true;
+  }, {
+    message: "Valores de recompensa inválidos. Certifique-se de que o valor em dinheiro seja maior que 0 e que o ID do cargo seja preenchido quando necessário.",
+  }),
 });
 
 export default function AdminLevelClient({ initialLevels }: { initialLevels: LevelThreshold[] }) {
@@ -31,10 +50,12 @@ export default function AdminLevelClient({ initialLevels }: { initialLevels: Lev
         defaultValues: { levels: initialLevels },
     });
 
-    const { fields, append, remove } = useFieldArray({
+    const { fields, append, remove, control } = useFieldArray({
         control: form.control,
         name: "levels",
     });
+
+    const watchedLevels = useWatch({ control, name: "levels" });
 
     const onSubmit = async (values: z.infer<typeof formSchema>) => {
         setIsSubmitting(true);
@@ -53,64 +74,98 @@ export default function AdminLevelClient({ initialLevels }: { initialLevels: Lev
             level: lastLevel.level + 1,
             name: `Nível ${lastLevel.level + 1}`,
             xp: lastLevel.xp + 50000,
+            rewardType: 'none'
         });
     };
 
     return (
         <Card>
             <CardHeader>
-                <CardTitle>Gerenciar Níveis</CardTitle>
-                <CardDescription>Defina os nomes e a quantidade de XP necessária para cada nível. O Nível 1 deve sempre começar com 0 XP.</CardDescription>
+                <CardTitle>Gerenciar Níveis e Recompensas</CardTitle>
+                <CardDescription>
+                    Defina os nomes, XP e recompensas para cada nível. A recompensa é entregue quando o usuário atinge o nível.
+                </CardDescription>
             </CardHeader>
             <CardContent>
                 <Form {...form}>
                     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
                         <div className="space-y-4">
-                            {fields.map((field, index) => (
-                                <div key={field.id} className="grid grid-cols-12 gap-4 items-end">
-                                    <div className="col-span-1">
-                                        <FormLabel>Nível</FormLabel>
-                                        <Input value={index + 1} disabled />
+                            {fields.map((field, index) => {
+                                const rewardType = watchedLevels[index]?.rewardType;
+                                return (
+                                    <div key={field.id} className="grid grid-cols-12 gap-4 items-end p-4 border rounded-lg bg-card-foreground/5">
+                                        <div className="col-span-12 sm:col-span-1">
+                                            <FormLabel>Nível</FormLabel>
+                                            <Input value={index + 1} disabled />
+                                        </div>
+                                        <FormField
+                                            control={form.control}
+                                            name={`levels.${index}.name`}
+                                            render={({ field }) => (
+                                                <FormItem className="col-span-6 sm:col-span-3">
+                                                    <FormLabel>Nome</FormLabel>
+                                                    <FormControl><Input {...field} /></FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+                                        <FormField
+                                            control={form.control}
+                                            name={`levels.${index}.xp`}
+                                            render={({ field }) => (
+                                                <FormItem className="col-span-6 sm:col-span-2">
+                                                    <FormLabel>XP Mínimo</FormLabel>
+                                                    <FormControl><Input type="number" {...field} disabled={index === 0} /></FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+                                         <FormField
+                                            control={form.control}
+                                            name={`levels.${index}.rewardType`}
+                                            render={({ field }) => (
+                                                 <FormItem className="col-span-6 sm:col-span-2">
+                                                    <FormLabel>Recompensa</FormLabel>
+                                                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                                        <FormControl><SelectTrigger><SelectValue placeholder="Tipo" /></SelectTrigger></FormControl>
+                                                        <SelectContent>
+                                                            <SelectItem value="none">Nenhuma</SelectItem>
+                                                            <SelectItem value="money">Dinheiro</SelectItem>
+                                                            <SelectItem value="role">Cargo (Discord)</SelectItem>
+                                                        </SelectContent>
+                                                    </Select>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+                                        <div className="col-span-6 sm:col-span-3">
+                                            {rewardType === 'money' && (
+                                                <FormField control={form.control} name={`levels.${index}.rewardAmount`} render={({ field }) => (
+                                                    <FormItem>
+                                                        <FormLabel>Valor (R$)</FormLabel>
+                                                        <FormControl><Input type="number" {...field} placeholder="Ex: 500" /></FormControl>
+                                                        <FormMessage />
+                                                    </FormItem>
+                                                )}/>
+                                            )}
+                                            {rewardType === 'role' && (
+                                                 <FormField control={form.control} name={`levels.${index}.rewardRoleId`} render={({ field }) => (
+                                                    <FormItem>
+                                                        <FormLabel>ID do Cargo (Discord)</FormLabel>
+                                                        <FormControl><Input {...field} placeholder="ID do cargo no Discord" /></FormControl>
+                                                        <FormMessage />
+                                                    </FormItem>
+                                                )}/>
+                                            )}
+                                        </div>
+                                        <div className="col-span-12 sm:col-span-1 flex justify-end">
+                                            <Button type="button" variant="destructive" size="icon" onClick={() => remove(index)} disabled={fields.length <= 1 || index === 0}>
+                                                <Trash2 className="h-4 w-4" />
+                                            </Button>
+                                        </div>
                                     </div>
-                                    <FormField
-                                        control={form.control}
-                                        name={`levels.${index}.name`}
-                                        render={({ field }) => (
-                                            <FormItem className="col-span-6">
-                                                <FormLabel>Nome do Nível</FormLabel>
-                                                <FormControl>
-                                                    <Input {...field} />
-                                                </FormControl>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
-                                    <FormField
-                                        control={form.control}
-                                        name={`levels.${index}.xp`}
-                                        render={({ field }) => (
-                                            <FormItem className="col-span-4">
-                                                <FormLabel>XP Necessário</FormLabel>
-                                                <FormControl>
-                                                    <Input type="number" {...field} disabled={index === 0} />
-                                                </FormControl>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
-                                    <div className="col-span-1">
-                                        <Button
-                                            type="button"
-                                            variant="destructive"
-                                            size="icon"
-                                            onClick={() => remove(index)}
-                                            disabled={fields.length <= 1 || index === 0}
-                                        >
-                                            <Trash2 className="h-4 w-4" />
-                                        </Button>
-                                    </div>
-                                </div>
-                            ))}
+                                )}
+                            )}
                         </div>
                         <div className="flex items-center gap-4">
                              <Button type="button" variant="outline" onClick={addLevel}>

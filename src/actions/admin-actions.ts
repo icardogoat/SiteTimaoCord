@@ -2,7 +2,7 @@
 'use server';
 
 import clientPromise from '@/lib/mongodb';
-import type { Post, AuthorInfo, PlacedBet, Transaction, UserRanking, MvpVoting, MvpPlayer, MvpTeamLineup, Notification, StoreItem, Bolao, Advertisement, UserInventoryItem, PurchaseAdminView, BetVolumeData, ProfitLossData, SiteEvent } from '@/types';
+import type { Post, AuthorInfo, PlacedBet, Transaction, UserRanking, MvpVoting, MvpPlayer, MvpTeamLineup, Notification, StoreItem, Bolao, Advertisement, UserInventoryItem, PurchaseAdminView, BetVolumeData, ProfitLossData, SiteEvent, LevelThreshold } from '@/types';
 import { ObjectId, WithId } from 'mongodb';
 import { revalidatePath } from 'next/cache';
 import { getBotConfig } from './bot-config-actions';
@@ -12,6 +12,7 @@ import { sendDiscordPostNotification, syncDiscordNews } from './news-actions';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import { getActiveEvent } from './event-actions';
+import { getLevelConfig } from './level-actions';
 
 // Base type for a match in the DB (for admin list view)
 type MatchFromDb = {
@@ -544,6 +545,20 @@ function evaluateSelection(selection: PlacedBet['bets'][0], goals: { home: numbe
     }
 }
 
+function determineUserLevel(xp: number, levelThresholds: LevelThreshold[]): { level: number; levelName: string } {
+    let currentLevel = 1;
+    let currentLevelName = levelThresholds[0]?.name ?? 'Iniciante';
+
+    for (let i = levelThresholds.length - 1; i >= 0; i--) {
+        if (xp >= levelThresholds[i].xp) {
+            currentLevel = levelThresholds[i].level;
+            currentLevelName = levelThresholds[i].name;
+            break;
+        }
+    }
+    return { level: currentLevel, levelName: currentLevelName };
+}
+
 // Main action to resolve a match and settle bets
 export async function resolveMatch(fixtureId: number, options: { revalidate: boolean } = { revalidate: true }): Promise<{ success: boolean; message: string }> {
     const client = await clientPromise;
@@ -588,6 +603,9 @@ export async function resolveMatch(fixtureId: number, options: { revalidate: boo
             const notificationsCollection = db.collection('notifications');
             const usersCollection = db.collection('users');
             const boloesCollection = db.collection<Bolao>('boloes');
+            const pendingRewardsCollection = db.collection('pending_rewards');
+            const levelConfig = await getLevelConfig();
+
 
             // Mark as processed inside the transaction, and update with fresh API data
             await matchesCollection.updateOne(
@@ -652,19 +670,62 @@ export async function resolveMatch(fixtureId: number, options: { revalidate: boo
 
                         const user = await usersCollection.findOne({ discordId: bet.userId }, { session: mongoSession });
                         
-                        // New XP Logic
+                        // New XP & Level Up Logic
                         const activeEvent = await getActiveEvent();
                         const eventMultiplier = activeEvent ? activeEvent.xpMultiplier : 1;
                         const vipMultiplier = user?.isVip ? 2 : 1;
                         const totalMultiplier = eventMultiplier * vipMultiplier;
                         const xpGain = bet.stake * totalMultiplier;
+                        const oldLevel = user?.level ?? 1;
                         
                         // Add user XP for won bet
-                        await usersCollection.updateOne(
+                        const { value: updatedUser } = await usersCollection.findOneAndUpdate(
                             { discordId: bet.userId },
                             { $inc: { xp: xpGain } },
-                            { session: mongoSession }
+                            { session: mongoSession, returnDocument: 'after' }
                         );
+
+                        if (updatedUser) {
+                           const newLevelData = determineUserLevel(updatedUser.xp, levelConfig);
+                           if (newLevelData.level > oldLevel) {
+                               await usersCollection.updateOne({ _id: updatedUser._id }, { $set: { level: newLevelData.level } }, { session: mongoSession });
+                               
+                               const levelReward = levelConfig.find(l => l.level === newLevelData.level);
+                               let rewardDescription = '';
+                               
+                               if (levelReward) {
+                                   if (levelReward.rewardType === 'money' && levelReward.rewardAmount) {
+                                       const moneyRewardTx: Transaction = {
+                                           id: new ObjectId().toString(), type: 'Bônus',
+                                           description: `Recompensa por atingir Nível ${newLevelData.level}: ${newLevelData.levelName}`,
+                                           amount: levelReward.rewardAmount, date: new Date().toISOString(), status: 'Concluído',
+                                       };
+                                       await walletsCollection.updateOne(
+                                           { userId: bet.userId },
+                                           { $inc: { balance: levelReward.rewardAmount }, $push: { transactions: { $each: [moneyRewardTx], $sort: { date: -1 } } } },
+                                           { session: mongoSession }
+                                       );
+                                       rewardDescription = ` Você ganhou uma recompensa de R$ ${levelReward.rewardAmount.toFixed(2)}!`;
+                                   } else if (levelReward.rewardType === 'role' && levelReward.rewardRoleId) {
+                                        await pendingRewardsCollection.insertOne({
+                                           userId: bet.userId, type: 'role', roleId: levelReward.rewardRoleId,
+                                           reason: `Atingiu Nível ${newLevelData.level}`, createdAt: new Date(),
+                                       }, { session: mongoSession });
+                                       rewardDescription = ` Você ganhou um novo cargo no Discord!`;
+                                   }
+                               }
+                               
+                               const levelUpNotification: Omit<Notification, '_id'> = {
+                                    userId: bet.userId, title: `🎉 Nível ${newLevelData.level} Alcançado!`,
+                                    description: `Parabéns, você agora é ${newLevelData.levelName}!${rewardDescription}`,
+                                    date: new Date(), read: false, link: '/profile', isPriority: true,
+                               };
+                               await notificationsCollection.insertOne(levelUpNotification as any, { session: mongoSession });
+
+                               if (newLevelData.level === 5) await grantAchievement(bet.userId, 'level_5');
+                               if (newLevelData.level === 10) await grantAchievement(bet.userId, 'level_10');
+                           }
+                        }
                         
                         if (user) {
                            await sendWinNotification(bet, user as any, winnings);

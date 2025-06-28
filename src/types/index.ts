@@ -119,6 +119,9 @@ export type LevelThreshold = {
     level: number;
     xp: number;
     name: string;
+    rewardType: 'none' | 'money' | 'role';
+    rewardAmount?: number;
+    rewardRoleId?: string;
 };
 
 export type UserLevel = {
@@ -172,6 +175,15 @@ export type UserInventoryItem = {
     purchasedAt: Date | string;
     redeemedAt?: Date | string;
     expiresAt?: Date | string;
+};
+
+export type PendingReward = {
+    _id: string | ObjectId;
+    userId: string;
+    type: 'role';
+    roleId: string;
+    reason: string;
+    createdAt: Date | string;
 };
 
 export type Bolao = {

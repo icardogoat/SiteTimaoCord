@@ -1,3 +1,4 @@
+
 'use server';
 
 import clientPromise from '@/lib/mongodb';
@@ -9,16 +10,16 @@ import { cache } from 'react';
 const CONFIG_ID = new ObjectId('66a500a8a7c3d2e3c4f5b6a8'); // Fixed ID for the single level config document
 
 const DEFAULT_LEVELS: LevelThreshold[] = [
-    { level: 1, xp: 0, name: 'Iniciante' },
-    { level: 2, xp: 500, name: 'Amador' },
-    { level: 3, xp: 1500, name: 'Regular' },
-    { level: 4, xp: 3000, name: 'Experiente' },
-    { level: 5, xp: 5000, name: 'Veterano' },
-    { level: 6, xp: 10000, name: 'Mestre' },
-    { level: 7, xp: 20000, name: 'Grão-Mestre' },
-    { level: 8, xp: 40000, name: 'Lendário' },
-    { level: 9, xp: 75000, name: 'Mítico' },
-    { level: 10, xp: 150000, name: 'Divino' },
+    { level: 1, xp: 0, name: 'Iniciante', rewardType: 'none' },
+    { level: 2, xp: 500, name: 'Amador', rewardType: 'money', rewardAmount: 100 },
+    { level: 3, xp: 1500, name: 'Regular', rewardType: 'money', rewardAmount: 250 },
+    { level: 4, xp: 3000, name: 'Experiente', rewardType: 'money', rewardAmount: 500 },
+    { level: 5, xp: 5000, name: 'Veterano', rewardType: 'role', rewardRoleId: 'YOUR_VETERAN_ROLE_ID_HERE' },
+    { level: 6, xp: 10000, name: 'Mestre', rewardType: 'money', rewardAmount: 1000 },
+    { level: 7, xp: 20000, name: 'Grão-Mestre', rewardType: 'money', rewardAmount: 2000 },
+    { level: 8, xp: 40000, name: 'Lendário', rewardType: 'money', rewardAmount: 4000 },
+    { level: 9, xp: 75000, name: 'Mítico', rewardType: 'money', rewardAmount: 7500 },
+    { level: 10, xp: 150000, name: 'Divino', rewardType: 'role', rewardRoleId: 'YOUR_DIVINE_ROLE_ID_HERE' },
 ];
 
 export const getLevelConfig = cache(async (): Promise<LevelThreshold[]> => {
@@ -61,7 +62,15 @@ export async function updateLevelConfig(levels: LevelThreshold[]): Promise<{ suc
             return { success: false, message: 'Os níveis devem ser sequenciais.' };
         }
     }
-
+    // Validation for rewards
+    for (const level of levels) {
+        if (level.rewardType === 'money' && (!level.rewardAmount || level.rewardAmount <= 0)) {
+            return { success: false, message: `O Nível ${level.level} com recompensa em dinheiro deve ter um valor maior que zero.` };
+        }
+        if (level.rewardType === 'role' && (!level.rewardRoleId || level.rewardRoleId.trim() === '')) {
+            return { success: false, message: `O Nível ${level.level} com recompensa de cargo deve ter um ID de Cargo.` };
+        }
+    }
 
     try {
         const client = await clientPromise;
