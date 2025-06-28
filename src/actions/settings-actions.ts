@@ -1,4 +1,3 @@
-
 'use server';
 
 import clientPromise from '@/lib/mongodb';
@@ -12,7 +11,7 @@ const SETTINGS_ID = '66a4f2b9a7c3d2e3c4f5b6a7'; // A fixed ID for the single set
 export async function getApiSettings(): Promise<Partial<ApiSettings>> {
     try {
         const client = await clientPromise;
-        const db = client.db('timaocord');
+        const db = client.db('timaocord_settings');
         const settingsCollection = db.collection('api_settings');
         const settings = await settingsCollection.findOne({ _id: new ObjectId(SETTINGS_ID) });
 
@@ -57,7 +56,7 @@ type UpdateSettingsData = {
 export async function updateApiSettings(data: UpdateSettingsData): Promise<{ success: boolean; message: string }> {
     try {
         const client = await clientPromise;
-        const db = client.db('timaocord');
+        const db = client.db('timaocord_settings');
         const settingsCollection = db.collection('api_settings');
         const currentSettings = await settingsCollection.findOne({ _id: new ObjectId(SETTINGS_ID) });
 
@@ -96,7 +95,7 @@ export async function updateApiSettings(data: UpdateSettingsData): Promise<{ suc
 
 export async function getAvailableApiKey(): Promise<string> {
     const client = await clientPromise;
-    const db = client.db('timaocord');
+    const db = client.db('timaocord_settings');
     const settingsCollection = db.collection('api_settings');
     
     const today = new Date();
@@ -146,7 +145,7 @@ export async function getAvailableApiKey(): Promise<string> {
 export async function getSiteSettings() {
     try {
         const client = await clientPromise;
-        const db = client.db('timaocord');
+        const db = client.db('timaocord_settings');
         const settingsCollection = db.collection('site_settings');
         const settings = await settingsCollection.findOne({});
         
@@ -178,7 +177,7 @@ export async function updateGeneralSiteSettings(data: {
 }) {
     try {
         const client = await clientPromise;
-        const db = client.db('timaocord');
+        const db = client.db('timaocord_settings');
         const settingsCollection = db.collection('site_settings');
         
         // There is only one settings document, so we can use an empty query to update/upsert it.
@@ -203,7 +202,7 @@ export async function updateBetaVipSettings(data: {
 }) {
     try {
         const client = await clientPromise;
-        const db = client.db('timaocord');
+        const db = client.db('timaocord_settings');
         const settingsCollection = db.collection('site_settings');
 
         await settingsCollection.updateOne(
