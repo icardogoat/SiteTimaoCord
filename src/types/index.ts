@@ -338,3 +338,32 @@ export type ProfitLossData = {
     winnings: number;
     profit: number;
 }[];
+
+export type LiveStreamPollOption = {
+  id: string;
+  text: string;
+  votes: number;
+};
+
+export type LiveStreamPoll = {
+  question: string;
+  options: LiveStreamPollOption[];
+  isActive: boolean;
+  updatedAt: Date | string;
+  voters: string[];
+};
+
+export type LiveStreamAlert = {
+  text: string;
+  isActive: boolean;
+  updatedAt: Date | string;
+};
+
+export type LiveStream = {
+  _id: string | ObjectId;
+  name: string;
+  embedCode: string;
+  createdAt: Date | string;
+  liveAlert: LiveStreamAlert | null;
+  livePoll: LiveStreamPoll | null;
+};
