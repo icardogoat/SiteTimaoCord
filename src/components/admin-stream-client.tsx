@@ -36,6 +36,7 @@ import {
   FormMessage,
   FormDescription
 } from '@/components/ui/form';
+import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import {
   AlertDialog,
@@ -193,7 +194,7 @@ export function AdminStreamClient({ initialStreams }: { initialStreams: LiveStre
                      <div className="px-4 pb-4">
                         <div className="flex items-center justify-between rounded-lg border bg-muted/50 p-3">
                             <div className="space-y-0.5">
-                                <FormLabel>Modo Intervalo</FormLabel>
+                                <Label>Modo Intervalo</Label>
                                 <p className="text-xs text-muted-foreground">
                                     Exibe uma tela de intervalo para os espectadores.
                                 </p>
@@ -244,7 +245,7 @@ export function AdminStreamClient({ initialStreams }: { initialStreams: LiveStre
                 <Separator />
 
                 <div>
-                    <label className="text-sm font-medium">Fontes da Transmissão</label>
+                    <Label className="text-sm font-medium">Fontes da Transmissão</Label>
                     <FormDescription className="mb-4">Adicione uma ou mais fontes para os espectadores escolherem.</FormDescription>
                     <div className="space-y-4">
                         {fields.map((field, index) => (
@@ -260,12 +261,22 @@ export function AdminStreamClient({ initialStreams }: { initialStreams: LiveStre
                                         <FormItem><FormLabel>Nome da Opção</FormLabel><FormControl><Input {...field} placeholder={`Opção ${index + 1}`} /></FormControl><FormMessage /></FormItem>
                                     )}/>
                                     <FormField control={form.control} name={`sources.${index}.type`} render={({ field }) => (
-                                        <FormItem className="space-y-3"><FormLabel>Tipo</FormLabel><FormControl>
-                                            <RadioGroup onValueChange={field.onChange} defaultValue={field.value} className="flex space-x-4">
-                                                <FormItem className="flex items-center space-x-2 space-y-0"><FormControl><RadioGroupItem value="iframe" /></FormControl><FormLabel className="font-normal">iFrame</FormLabel></FormItem>
-                                                <FormItem className="flex items-center space-x-2 space-y-0"><FormControl><RadioGroupItem value="hls" /></FormControl><FormLabel className="font-normal">HLS (.m3u8)</FormLabel></FormItem>
-                                            </RadioGroup>
-                                        </FormControl><FormMessage /></FormItem>
+                                        <FormItem className="space-y-3">
+                                            <FormLabel>Tipo</FormLabel>
+                                            <FormControl>
+                                                <RadioGroup onValueChange={field.onChange} defaultValue={field.value} className="flex space-x-4">
+                                                    <div className="flex items-center space-x-2 space-y-0">
+                                                        <RadioGroupItem value="iframe" id={`iframe-${field.id}`} />
+                                                        <Label htmlFor={`iframe-${field.id}`} className="font-normal">iFrame</Label>
+                                                    </div>
+                                                    <div className="flex items-center space-x-2 space-y-0">
+                                                        <RadioGroupItem value="hls" id={`hls-${field.id}`} />
+                                                        <Label htmlFor={`hls-${field.id}`} className="font-normal">HLS (.m3u8)</Label>
+                                                    </div>
+                                                </RadioGroup>
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
                                     )}/>
                                     <FormField control={form.control} name={`sources.${index}.url`} render={({ field }) => (
                                         <FormItem><FormLabel>URL</FormLabel><FormControl><Input {...field} placeholder="https://..." /></FormControl>
