@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -50,20 +51,40 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Loader2, PlusCircle, Trash2, Edit, Tv, ChevronDown, Send, BarChart2, Eye, Link as LinkIcon, AlertCircle, Vote } from 'lucide-react';
-import type { LiveStream, LiveStreamPoll } from '@/types';
+import { Loader2, PlusCircle, Trash2, Edit, Tv, ChevronDown, BarChart2, Eye, AlertCircle, Vote } from 'lucide-react';
+import type { LiveStream } from '@/types';
 import Link from 'next/link';
-import { Separator } from './ui/separator';
 import { cn } from '@/lib/utils';
 import { Progress } from './ui/progress';
+import { RadioGroup, RadioGroupItem } from './ui/radio-group';
 
 const streamFormSchema = z.object({
   id: z.string().optional(),
   name: z.string().min(3, { message: 'O nome deve ter pelo menos 3 caracteres.' }),
-  embedCode: z.string().min(10, { message: 'O código embed é muito curto.' }).refine(
-      (val) => val.trim().startsWith('<iframe'), 
-      { message: 'O código deve ser um <iframe> válido.' }
-  ),
+  streamType: z.enum(['iframe', 'hls']).default('iframe'),
+  embedCode: z.string().optional(),
+  streamUrl: z.string().optional(),
+}).refine(data => {
+    if (data.streamType === 'iframe') {
+        return !!data.embedCode && data.embedCode.trim().startsWith('<iframe');
+    }
+    return true;
+}, {
+    message: 'O código embed deve ser um <iframe> válido.',
+    path: ['embedCode'],
+}).refine(data => {
+    if (data.streamType === 'hls') {
+        try {
+            new URL(data.streamUrl || '');
+            return (data.streamUrl || '').endsWith('.m3u8');
+        } catch {
+            return false;
+        }
+    }
+    return true;
+}, {
+    message: 'Por favor, insira uma URL HLS (.m3u8) válida.',
+    path: ['streamUrl'],
 });
 
 const alertFormSchema = z.object({
@@ -243,11 +264,14 @@ export function AdminStreamClient({ initialStreams }: { initialStreams: LiveStre
 
   const form = useForm<z.infer<typeof streamFormSchema>>({
     resolver: zodResolver(streamFormSchema),
+    defaultValues: { streamType: 'iframe' }
   });
+  
+  const streamType = form.watch('streamType');
 
   const handleOpenDialog = (stream: LiveStream | null) => {
     setCurrentStream(stream);
-    form.reset(stream ? { ...stream, id: stream._id.toString() } : { name: '', embedCode: '' });
+    form.reset(stream ? { ...stream, id: stream._id.toString() } : { name: '', embedCode: '', streamUrl: '', streamType: 'iframe' });
     setIsDialogOpen(true);
   };
 
@@ -311,7 +335,7 @@ export function AdminStreamClient({ initialStreams }: { initialStreams: LiveStre
                              <Button variant="outline" size="sm" asChild>
                                 <Link href={`/stream/${stream._id.toString()}`} target="_blank">
                                     <Eye className="mr-2 h-4 w-4"/>
-                                    Abrir Tela de Transmissão
+                                    Abrir Página Pública
                                 </Link>
                             </Button>
                              <Button variant="secondary" size="sm" onClick={() => handleOpenDialog(stream)}>
@@ -358,22 +382,78 @@ export function AdminStreamClient({ initialStreams }: { initialStreams: LiveStre
                   </FormItem>
                 )}
               />
-              <FormField
-                control={form.control}
-                name="embedCode"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Código Embed do Player</FormLabel>
-                    <FormControl>
-                      <Textarea {...field} rows={6} placeholder='<iframe src="..."></iframe>' />
-                    </FormControl>
-                     <FormDescription>
-                        Cole o código completo do iframe fornecido pelo seu serviço de streaming.
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
+
+                <FormField
+                  control={form.control}
+                  name="streamType"
+                  render={({ field }) => (
+                    <FormItem className="space-y-3">
+                      <FormLabel>Tipo de Transmissão</FormLabel>
+                      <FormControl>
+                        <RadioGroup
+                          onValueChange={field.onChange}
+                          defaultValue={field.value}
+                          className="flex space-x-4"
+                        >
+                          <FormItem className="flex items-center space-x-2 space-y-0">
+                            <FormControl>
+                              <RadioGroupItem value="iframe" />
+                            </FormControl>
+                            <FormLabel className="font-normal">
+                              Código iFrame
+                            </FormLabel>
+                          </FormItem>
+                          <FormItem className="flex items-center space-x-2 space-y-0">
+                            <FormControl>
+                              <RadioGroupItem value="hls" />
+                            </FormControl>
+                            <FormLabel className="font-normal">
+                              URL HLS (.m3u8)
+                            </FormLabel>
+                          </FormItem>
+                        </RadioGroup>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                {streamType === 'iframe' ? (
+                  <FormField
+                    control={form.control}
+                    name="embedCode"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Código Embed do Player</FormLabel>
+                        <FormControl>
+                          <Textarea {...field} rows={6} placeholder='<iframe src="..."></iframe>' />
+                        </FormControl>
+                        <FormDescription>
+                            Cole o código completo do iframe fornecido pelo seu serviço de streaming.
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                ) : (
+                   <FormField
+                    control={form.control}
+                    name="streamUrl"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>URL do Stream HLS</FormLabel>
+                        <FormControl>
+                           <Input {...field} placeholder="https://exemplo.com/stream.m3u8" />
+                        </FormControl>
+                         <FormDescription>
+                            Cole a URL direta para o arquivo .m3u8.
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
                 )}
-              />
+              
               <DialogFooter>
                 <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
                   Cancelar

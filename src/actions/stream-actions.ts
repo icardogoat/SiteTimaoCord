@@ -1,3 +1,4 @@
+
 'use server';
 
 import clientPromise from '@/lib/mongodb';
@@ -34,7 +35,13 @@ export async function getLiveStream(id: string): Promise<LiveStream | null> {
     }
 }
 
-export async function upsertLiveStream(data: { id?: string; name: string; embedCode: string }): Promise<{ success: boolean; message: string; streamId?: string }> {
+export async function upsertLiveStream(data: {
+    id?: string;
+    name: string;
+    streamType: 'iframe' | 'hls';
+    embedCode?: string;
+    streamUrl?: string;
+}): Promise<{ success: boolean; message: string; streamId?: string }> {
     const { id, ...streamData } = data;
     try {
         const client = await clientPromise;

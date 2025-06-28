@@ -44,6 +44,7 @@
     "firebase": "^11.9.1",
     "framer-motion": "^11.3.8",
     "genkit": "^1.8.0",
+    "hls.js": "^1.5.11",
     "lucide-react": "^0.475.0",
     "mongodb": "^5.9.2",
     "next": "15.3.3",
@@ -59,6 +60,7 @@
     "zod": "^3.24.2"
   },
   "devDependencies": {
+    "@types/hls.js": "^1.0.0",
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",

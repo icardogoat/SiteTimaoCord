@@ -362,7 +362,9 @@ export type LiveStreamAlert = {
 export type LiveStream = {
   _id: string | ObjectId;
   name: string;
-  embedCode: string;
+  streamType: 'iframe' | 'hls';
+  embedCode?: string;
+  streamUrl?: string;
   createdAt: Date | string;
   liveAlert: LiveStreamAlert | null;
   livePoll: LiveStreamPoll | null;
