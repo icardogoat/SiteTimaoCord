@@ -244,7 +244,7 @@ export function AdminStreamClient({ initialStreams }: { initialStreams: LiveStre
                 <Separator />
 
                 <div>
-                    <FormLabel>Fontes da Transmissão</FormLabel>
+                    <label className="text-sm font-medium">Fontes da Transmissão</label>
                     <FormDescription className="mb-4">Adicione uma ou mais fontes para os espectadores escolherem.</FormDescription>
                     <div className="space-y-4">
                         {fields.map((field, index) => (
