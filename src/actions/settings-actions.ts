@@ -1,3 +1,4 @@
+
 'use server';
 
 import clientPromise from '@/lib/mongodb';
@@ -169,8 +170,8 @@ async function getAvailableKeyFromPool(keyPool: 'updateApiKeys' | 'paymentApiKey
     return availableKey.key;
 }
 
-export const getAvailableUpdateApiKey = () => getAvailableKeyFromPool('updateApiKeys');
-export const getAvailablePaymentApiKey = () => getAvailableKeyFromPool('paymentApiKeys');
+export const getAvailableUpdateApiKey = async () => getAvailableKeyFromPool('updateApiKeys');
+export const getAvailablePaymentApiKey = async () => getAvailableKeyFromPool('paymentApiKeys');
 
 
 export async function setLastUpdateTimestamp(): Promise<void> {
