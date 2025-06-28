@@ -1,6 +1,5 @@
 
 import { NextResponse } from 'next/server';
-import { deleteOldNews } from '@/actions/news-actions';
 
 export async function GET(request: Request) {
   const authHeader = request.headers.get('authorization');
@@ -8,10 +7,9 @@ export async function GET(request: Request) {
     return new Response('Unauthorized', { status: 401 });
   }
   
-  const newsResult = await deleteOldNews();
-  
-  // The casino cleanup is disabled, so we just return the news result.
-  const message = `Cleanup jobs finished. News: ${newsResult.message}`;
+  // News cleanup is now handled by Discord message history.
+  // Casino functionality is removed.
+  const message = `Cleanup job ran successfully. No actions are currently configured.`;
   console.log(message);
-  return NextResponse.json({ success: newsResult.success, message });
+  return NextResponse.json({ success: true, message });
 }

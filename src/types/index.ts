@@ -317,6 +317,7 @@ export type Post = {
   imageUrl?: string | null;
   isPinned: boolean;
   publishedAt: Date | string;
+  discordMessageId?: string;
   author?: AuthorInfo; // Populated field from 'users' collection
 };
     

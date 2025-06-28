@@ -10,7 +10,8 @@ import {
     getAdminPosts, 
     upsertPost,
     deletePost,
-    getPostForEdit
+    getPostForEdit,
+    syncPostsFromDiscord
 } from '@/actions/admin-actions';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -21,7 +22,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { Loader2, PlusCircle, Trash2, Edit, Pin } from 'lucide-react';
+import { Loader2, PlusCircle, Trash2, Edit, Pin, Rss } from 'lucide-react';
 import type { Post } from '@/types';
 
 // Schema for Post form
@@ -37,12 +38,26 @@ export default function AdminPostsClient({ initialPosts }: { initialPosts: Post[
     const { toast } = useToast();
     const [posts, setPosts] = useState(initialPosts);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [isSyncing, setIsSyncing] = useState(false);
     
     // Dialog states
     const [isPostDialogOpen, setIsPostDialogOpen] = useState(false);
     const [isDeletePostOpen, setIsDeletePostOpen] = useState<string | null>(null);
 
     const postForm = useForm<z.infer<typeof postFormSchema>>({ resolver: zodResolver(postFormSchema) });
+
+    const handleSync = async () => {
+        setIsSyncing(true);
+        toast({ title: 'Sincronizando...', description: 'Buscando novos posts do Discord.' });
+        const result = await syncPostsFromDiscord();
+        if (result.success) {
+            toast({ title: 'Sucesso!', description: result.message });
+            setPosts(await getAdminPosts());
+        } else {
+            toast({ title: 'Erro', description: result.message, variant: 'destructive' });
+        }
+        setIsSyncing(false);
+    }
 
     // Post Handlers
     const handleOpenPostDialog = async (post: Post | null) => {
@@ -91,7 +106,13 @@ export default function AdminPostsClient({ initialPosts }: { initialPosts: Post[
                             <CardTitle>Posts</CardTitle>
                             <CardDescription>Crie e gerencie as notícias e comunicados do seu site.</CardDescription>
                         </div>
-                        <Button onClick={() => handleOpenPostDialog(null)}><PlusCircle className="mr-2 h-4 w-4" /> Novo Post</Button>
+                        <div className="flex gap-2">
+                            <Button onClick={handleSync} disabled={isSyncing} variant="outline">
+                                {isSyncing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Rss className="mr-2 h-4 w-4" />}
+                                Sincronizar com Discord
+                            </Button>
+                            <Button onClick={() => handleOpenPostDialog(null)}><PlusCircle className="mr-2 h-4 w-4" /> Novo Post</Button>
+                        </div>
                     </div>
                 </CardHeader>
                 <CardContent>

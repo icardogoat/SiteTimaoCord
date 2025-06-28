@@ -185,3 +185,99 @@ export async function getPostById(id: string): Promise<Post | null> {
         return null;
     }
 }
+
+export async function syncDiscordNews(): Promise<{ success: boolean; message: string; details: string[] }> {
+    const { newsChannelId } = await getBotConfig();
+    const botToken = process.env.DISCORD_BOT_TOKEN;
+
+    if (!newsChannelId || !botToken || botToken === 'YOUR_BOT_TOKEN_HERE') {
+        const msg = 'Canal de notícias do Discord ou token do bot não configurado. Sincronização ignorada.';
+        console.log(msg);
+        return { success: false, message: msg, details: [] };
+    }
+
+    try {
+        const client = await clientPromise;
+        const db = client.db('timaocord');
+        const postsCollection = db.collection('posts');
+        const usersCollection = db.collection('users');
+
+        // Fetch last 50 messages from the news channel
+        const response = await fetch(`https://discord.com/api/v10/channels/${newsChannelId}/messages?limit=50`, {
+            headers: { 'Authorization': `Bot ${botToken}` },
+            cache: 'no-store',
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(`Falha ao buscar mensagens do Discord: ${JSON.stringify(errorData)}`);
+        }
+
+        const messages: any[] = await response.json();
+        let importedCount = 0;
+        const details: string[] = [];
+
+        // Process messages from oldest to newest to maintain order
+        for (const message of messages.reverse()) {
+            // Skip messages from bots or without content
+            if (message.author.bot || !message.content) {
+                continue;
+            }
+
+            // Check if post already exists by discordMessageId
+            const existingPost = await postsCollection.findOne({ discordMessageId: message.id });
+            if (existingPost) {
+                continue;
+            }
+
+            // Check if the author is a registered user on the site
+            const authorInDb = await usersCollection.findOne({ discordId: message.author.id });
+            if (!authorInDb) {
+                details.push(`Mensagem de ${message.author.username} ignorada (usuário não registrado).`);
+                continue;
+            }
+
+            const lines = message.content.trim().split('\n');
+            const title = lines[0];
+            const content = lines.slice(1).join('\n');
+            const imageUrl = message.attachments?.[0]?.url || null;
+
+            // Don't import if title is empty
+            if (!title) {
+                details.push(`Mensagem ${message.id} ignorada (título vazio).`);
+                continue;
+            }
+
+            const newPost: Omit<Post, '_id' | 'author'> = {
+                title,
+                content: content || " ", // Ensure content is not empty for consistency
+                imageUrl,
+                authorId: authorInDb.discordId,
+                discordMessageId: message.id,
+                isPinned: false,
+                publishedAt: new Date(message.timestamp),
+            };
+
+            await postsCollection.insertOne(newPost as any);
+            importedCount++;
+            details.push(`Post importado: "${title}"`);
+        }
+        
+        if (importedCount > 0) {
+            revalidatePath('/news');
+            revalidatePath('/');
+            revalidatePath('/admin/announcements');
+        }
+
+        return {
+            success: true,
+            message: `Sincronização concluída. ${importedCount} novo(s) post(s) importado(s).`,
+            details,
+        };
+
+    } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        console.error("Error syncing news from Discord:", error);
+        return { success: false, message: "Falha na sincronização com o Discord.", details: [errorMessage] };
+    }
+}

@@ -8,7 +8,7 @@ import { revalidatePath } from 'next/cache';
 import { getBotConfig } from './bot-config-actions';
 import { grantAchievement } from './achievement-actions';
 import { getApiSettings, getAvailableApiKey } from './settings-actions';
-import { sendDiscordPostNotification } from './news-actions';
+import { sendDiscordPostNotification, syncDiscordNews } from './news-actions';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 
@@ -2018,4 +2018,15 @@ export async function deletePost(id: string): Promise<{ success: boolean; messag
         console.error('Error deleting post:', error);
         return { success: false, message: 'Falha ao excluir o post.' };
     }
+}
+
+
+export async function syncPostsFromDiscord(): Promise<{ success: boolean; message: string; }> {
+    const result = await syncDiscordNews();
+    if (result.success) {
+        revalidatePath('/admin/announcements');
+        revalidatePath('/news');
+        revalidatePath('/');
+    }
+    return { success: result.success, message: result.message };
 }
