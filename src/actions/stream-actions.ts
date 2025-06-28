@@ -38,7 +38,7 @@ export async function getLiveStream(id: string): Promise<LiveStream | null> {
 type UpsertData = {
     id?: string;
     name: string;
-    sources: { name: string; type: 'iframe' | 'hls'; url: string }[];
+    sources: { id: string, name: string; type: 'iframe' | 'hls'; url: string }[];
 };
 
 
@@ -48,7 +48,7 @@ export async function upsertLiveStream(data: UpsertData): Promise<{ success: boo
     // Ensure each source has a unique ID, creating one if it doesn't exist.
     const sourcesWithIds: StreamSource[] = sources.map(source => ({
         ...source,
-        id: (source as StreamSource).id || randomBytes(8).toString('hex')
+        id: source.id || randomBytes(8).toString('hex')
     }));
 
     try {
@@ -66,6 +66,7 @@ export async function upsertLiveStream(data: UpsertData): Promise<{ success: boo
         } else {
             const result = await collection.insertOne({
                 ...streamData,
+                isIntervalActive: false,
                 createdAt: new Date(),
             });
             revalidatePath('/admin/stream');
@@ -87,5 +88,37 @@ export async function deleteLiveStream(id: string): Promise<{ success: boolean; 
     } catch (error) {
         console.error("Error deleting live stream:", error);
         return { success: false, message: "Ocorreu um erro ao excluir a transmissão." };
+    }
+}
+
+export async function setStreamIntervalState(streamId: string, isActive: boolean): Promise<{ success: boolean; message: string }> {
+    if (!streamId) {
+        return { success: false, message: "ID da transmissão não fornecido." };
+    }
+    try {
+        const client = await clientPromise;
+        const db = client.db('timaocord');
+        const collection = db.collection('streams');
+
+        const result = await collection.updateOne(
+            { _id: new ObjectId(streamId) },
+            { $set: { isIntervalActive: isActive } }
+        );
+
+        if (result.modifiedCount === 0) {
+            const stream = await collection.findOne({ _id: new ObjectId(streamId) });
+             if (stream && stream.isIntervalActive === isActive) {
+                return { success: true, message: `O intervalo já estava ${isActive ? 'ativo' : 'inativo'}.` };
+            }
+            return { success: false, message: "A transmissão não foi encontrada ou o estado já era o mesmo." };
+        }
+
+        revalidatePath(`/stream/${streamId}`);
+        revalidatePath(`/admin/stream`);
+        return { success: true, message: `Modo intervalo ${isActive ? 'ativado' : 'desativado'} com sucesso.` };
+
+    } catch (error) {
+        console.error("Error setting stream interval state:", error);
+        return { success: false, message: "Ocorreu um erro ao alterar o estado do intervalo." };
     }
 }

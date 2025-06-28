@@ -4,6 +4,7 @@
 import { useEffect, useState, use } from 'react';
 import { useSession } from 'next-auth/react';
 import { getLiveStream } from '@/actions/stream-actions';
+import { getBotConfig } from '@/actions/bot-config-actions';
 import HlsPlayer from '@/components/hls-player';
 import type { LiveStream, StreamSource } from '@/types';
 import { Button } from '@/components/ui/button';
@@ -11,6 +12,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Lock } from 'lucide-react';
 import { notFound, useRouter, useParams } from 'next/navigation';
 import Image from 'next/image';
+import { IntervalOverlay } from '@/components/interval-overlay';
 
 export default function StreamPage() {
     const params = useParams<{ id: string }>();
@@ -20,39 +22,51 @@ export default function StreamPage() {
     const [activeSource, setActiveSource] = useState<StreamSource | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [discordInviteUrl, setDiscordInviteUrl] = useState('');
+
+    useEffect(() => {
+        async function fetchConfig() {
+            try {
+                const config = await getBotConfig();
+                setDiscordInviteUrl(config.guildInviteUrl || '');
+            } catch (e) {
+                console.error("Failed to fetch bot config:", e);
+            }
+        }
+        fetchConfig();
+    }, []);
 
     useEffect(() => {
         if (status === 'unauthenticated') {
-            router.push('/'); // Redirect to login if not authenticated
+            router.push('/');
             return;
         }
 
-        if (status === 'authenticated') {
-            if (!session.user.canViewStream) {
-                setLoading(false); // Stop loading, access is denied
-                return;
-            }
-
-            async function fetchStream() {
+        if (status === 'authenticated' && session.user.canViewStream) {
+            const fetchStreamData = async () => {
                 try {
                     const streamData = await getLiveStream(params.id);
                     if (streamData) {
                         setStream(streamData);
-                        if (streamData.sources && streamData.sources.length > 0) {
-                            // Do not auto-select a source. Let the user choose.
-                        }
                     } else {
                         setError('Stream not found');
+                        if (intervalId) clearInterval(intervalId); // Stop polling if stream not found
                     }
                 } catch (e) {
                     setError('Failed to load stream');
+                    if (intervalId) clearInterval(intervalId); // Stop polling on error
                 } finally {
-                    setLoading(false);
+                    if (loading) setLoading(false);
                 }
-            }
-            fetchStream();
+            };
+            
+            fetchStreamData(); // Initial fetch
+            const intervalId = setInterval(fetchStreamData, 15000);
+            return () => clearInterval(intervalId);
+        } else if(status === 'authenticated' && !session.user.canViewStream) {
+            setLoading(false);
         }
-    }, [status, session, params.id, router]);
+    }, [status, session, params.id, router, loading]);
 
     if (status === 'loading' || loading) {
         return (
@@ -138,10 +152,14 @@ export default function StreamPage() {
 
         return <div className="w-full h-full flex items-center justify-center text-white bg-black"><p>Tipo de fonte inválido.</p></div>;
     };
-
+    
     return (
         <div className="relative w-screen h-screen bg-black overflow-hidden">
-            {renderPlayer()}
+            {stream.isIntervalActive && <IntervalOverlay discordInviteUrl={discordInviteUrl} />}
+            
+            <div className={stream.isIntervalActive ? 'hidden' : 'w-full h-full'}>
+                {renderPlayer()}
+            </div>
 
             <div className="absolute top-4 right-4 z-20 pointer-events-none">
                 <Image

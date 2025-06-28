@@ -351,5 +351,6 @@ export type LiveStream = {
   _id: string | ObjectId;
   name: string;
   sources: StreamSource[];
+  isIntervalActive?: boolean;
   createdAt: Date | string;
 };

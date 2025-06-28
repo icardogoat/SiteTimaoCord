@@ -10,6 +10,7 @@ import {
     getLiveStreams,
     upsertLiveStream,
     deleteLiveStream,
+    setStreamIntervalState,
 } from '@/actions/stream-actions';
 import { Button } from '@/components/ui/button';
 import {
@@ -51,12 +52,13 @@ import type { LiveStream, StreamSource } from '@/types';
 import Link from 'next/link';
 import { RadioGroup, RadioGroupItem } from './ui/radio-group';
 import { Separator } from './ui/separator';
+import { Switch } from './ui/switch';
 
 const sourceSchema = z.object({
-  id: z.string(), // a UUID for react-hook-form
-  name: z.string().min(1, "O nome da opção é obrigatório."),
-  type: z.enum(['iframe', 'hls']),
-  url: z.string().url("Por favor, insira uma URL válida."),
+  id: z.string().optional(),
+  name: z.string().min(1, "O nome da opção é obrigatório.").default(''),
+  type: z.enum(['iframe', 'hls']).default('iframe'),
+  url: z.string().url("Por favor, insira uma URL válida.").default(''),
 }).refine(data => {
     if (data.type === 'hls') {
         return data.url.endsWith('.m3u8');
@@ -82,6 +84,7 @@ export function AdminStreamClient({ initialStreams }: { initialStreams: LiveStre
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [currentStream, setCurrentStream] = useState<LiveStream | null>(null);
+  const [intervalLoading, setIntervalLoading] = useState<string | null>(null);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(streamFormSchema),
@@ -130,6 +133,19 @@ export function AdminStreamClient({ initialStreams }: { initialStreams: LiveStre
     setIsDeleteDialogOpen(null);
   };
 
+  const handleIntervalToggle = async (streamId: string, currentStatus: boolean) => {
+    setIntervalLoading(streamId);
+    const result = await setStreamIntervalState(streamId, !currentStatus);
+    if (result.success) {
+        toast({ title: "Sucesso!", description: result.message });
+        setStreams(prev => prev.map(s => s._id.toString() === streamId ? { ...s, isIntervalActive: !currentStatus } : s));
+    } else {
+        toast({ title: "Erro", description: result.message, variant: "destructive" });
+    }
+    setIntervalLoading(null);
+};
+
+
   return (
     <>
       <Card>
@@ -172,6 +188,24 @@ export function AdminStreamClient({ initialStreams }: { initialStreams: LiveStre
                                 <Trash2 className="mr-2 h-4 w-4" />
                                 Excluir
                             </Button>
+                        </div>
+                    </div>
+                     <div className="px-4 pb-4">
+                        <div className="flex items-center justify-between rounded-lg border bg-muted/50 p-3">
+                            <div className="space-y-0.5">
+                                <FormLabel>Modo Intervalo</FormLabel>
+                                <p className="text-xs text-muted-foreground">
+                                    Exibe uma tela de intervalo para os espectadores.
+                                </p>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                {intervalLoading === stream._id.toString() && <Loader2 className="h-4 w-4 animate-spin" />}
+                                <Switch
+                                    checked={!!stream.isIntervalActive}
+                                    onCheckedChange={() => handleIntervalToggle(stream._id.toString(), !!stream.isIntervalActive)}
+                                    disabled={intervalLoading === stream._id.toString()}
+                                />
+                            </div>
                         </div>
                     </div>
                 </Card>
@@ -248,14 +282,16 @@ export function AdminStreamClient({ initialStreams }: { initialStreams: LiveStre
                 </div>
               </div>
               
-              <DialogFooter className="pt-4 border-t">
-                <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
-                  Cancelar
-                </Button>
-                <Button type="submit" disabled={isSubmitting}>
-                  {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Salvar
-                </Button>
-              </DialogFooter>
+              <div className="pt-4 border-t">
+                <DialogFooter>
+                    <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
+                    Cancelar
+                    </Button>
+                    <Button type="submit" disabled={isSubmitting}>
+                    {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Salvar
+                    </Button>
+                </DialogFooter>
+              </div>
             </form>
           </Form>
         </DialogContent>
