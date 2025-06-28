@@ -1,9 +1,12 @@
 
 'use client'
 
-import { Activity, CreditCard, DollarSign, Users, Rss, Loader2 } from "lucide-react"
+import { Activity, CreditCard, DollarSign, Users, Loader2, RefreshCw, BellRing, Send } from "lucide-react"
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts"
 import { useState } from "react"
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
@@ -19,6 +22,13 @@ import type { DashboardStats, TopBettor, RecentBet, WeeklyBetVolume } from "@/ac
 import { useToast } from "@/hooks/use-toast"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
+import { processAllFinishedMatches, sendUpcomingMatchNotifications, sendAnnouncement } from "@/actions/admin-actions";
+import { Separator } from "./ui/separator";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "./ui/form";
+import { Input } from "./ui/input";
+import { Textarea } from "./ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
+
 
 const chartConfig = {
   total: {
@@ -26,6 +36,13 @@ const chartConfig = {
     color: "hsl(var(--chart-1))",
   },
 } satisfies ChartConfig
+
+const announcementSchema = z.object({
+    title: z.string().min(5, "Título muito curto.").max(50, "Título muito longo."),
+    description: z.string().min(10, "Descrição muito curta.").max(200, "Descrição muito longa."),
+    target: z.enum(['all', 'vip', 'normal']),
+    link: z.string().url("URL inválida.").optional().or(z.literal('')),
+});
 
 interface AdminDashboardClientProps {
     stats: DashboardStats;
@@ -48,6 +65,47 @@ const obfuscateEmail = (email: string) => {
 
 export function AdminDashboardClient({ stats, weeklyVolume, topBettors, recentBets }: AdminDashboardClientProps) {
     const { toast } = useToast();
+    const [isProcessingAll, setIsProcessingAll] = useState(false);
+    const [isNotifying, setIsNotifying] = useState(false);
+    const [isSendingAnnouncement, setIsSendingAnnouncement] = useState(false);
+    
+    const announcementForm = useForm<z.infer<typeof announcementSchema>>({
+        resolver: zodResolver(announcementSchema),
+        defaultValues: {
+            title: '',
+            description: '',
+            target: 'all',
+            link: '',
+        },
+    });
+    
+    const handleProcessAll = async () => {
+        setIsProcessingAll(true);
+        toast({ title: "Iniciando Processamento", description: "Buscando e processando todas as partidas finalizadas..." });
+        const result = await processAllFinishedMatches();
+        toast({ title: "Processamento Concluído", description: result.message, variant: result.success ? "default" : "destructive" });
+        setIsProcessingAll(false);
+    };
+
+    const handleNotifyUpcoming = async () => {
+        setIsNotifying(true);
+        toast({ title: "Verificando Partidas", description: "Buscando partidas prestes a começar para notificar..." });
+        const result = await sendUpcomingMatchNotifications();
+        toast({ title: "Verificação Concluída", description: result.message, variant: result.success ? "default" : "destructive" });
+        setIsNotifying(false);
+    };
+
+    const onAnnouncementSubmit = async (values: z.infer<typeof announcementSchema>) => {
+        setIsSendingAnnouncement(true);
+        const result = await sendAnnouncement(values);
+        if (result.success) {
+            toast({ title: `Sucesso!`, description: result.message });
+            announcementForm.reset();
+        } else {
+            toast({ title: 'Erro', description: result.message, variant: 'destructive' });
+        }
+        setIsSendingAnnouncement(false);
+    };
     
     const formatCurrency = (value: number) => `R$ ${value.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
@@ -181,10 +239,52 @@ export function AdminDashboardClient({ stats, weeklyVolume, topBettors, recentBe
              <Card>
                 <CardHeader>
                     <CardTitle>Ações Rápidas</CardTitle>
-                    <CardDescription>Execute tarefas manuais importantes.</CardDescription>
+                    <CardDescription>Execute tarefas manuais e envie comunicados.</CardDescription>
                 </CardHeader>
-                <CardContent>
-                   <p className="text-sm text-muted-foreground">Nenhuma ação rápida disponível no momento.</p>
+                <CardContent className="grid gap-4">
+                    <div className="flex flex-col sm:flex-row gap-2">
+                        <Button onClick={handleProcessAll} disabled={isProcessingAll || isNotifying} className="flex-1">
+                            {isProcessingAll ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
+                            Processar Partidas
+                        </Button>
+                        <Button onClick={handleNotifyUpcoming} disabled={isProcessingAll || isNotifying} variant="outline" className="flex-1">
+                            {isNotifying ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <BellRing className="mr-2 h-4 w-4" />}
+                            Notificar Próximas
+                        </Button>
+                    </div>
+                    <Separator />
+                    <Form {...announcementForm}>
+                        <form onSubmit={announcementForm.handleSubmit(onAnnouncementSubmit)} className="space-y-4">
+                            <p className="text-sm font-medium">Enviar Comunicado Global</p>
+                            <FormField control={announcementForm.control} name="title" render={({ field }) => (
+                                <FormItem><FormLabel className="sr-only">Título</FormLabel><FormControl><Input placeholder="Título do comunicado" {...field} /></FormControl><FormMessage /></FormItem>
+                            )}/>
+                            <FormField control={announcementForm.control} name="description" render={({ field }) => (
+                                <FormItem><FormLabel className="sr-only">Descrição</FormLabel><FormControl><Textarea placeholder="Descrição do comunicado..." {...field} /></FormControl><FormMessage /></FormItem>
+                            )}/>
+                             <FormField control={announcementForm.control} name="link" render={({ field }) => (
+                                <FormItem><FormLabel className="sr-only">Link</FormLabel><FormControl><Input placeholder="Link opcional (ex: /store)" {...field} /></FormControl><FormMessage /></FormItem>
+                            )}/>
+                            <div className="flex flex-col sm:flex-row gap-2">
+                                <FormField control={announcementForm.control} name="target" render={({ field }) => (
+                                    <FormItem className="flex-1">
+                                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                            <FormControl><SelectTrigger><SelectValue placeholder="Público Alvo" /></SelectTrigger></FormControl>
+                                            <SelectContent>
+                                                <SelectItem value="all">Todos os Usuários</SelectItem>
+                                                <SelectItem value="vip">Apenas VIPs</SelectItem>
+                                                <SelectItem value="normal">Não-VIPs</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </FormItem>
+                                )}/>
+                                <Button type="submit" disabled={isSendingAnnouncement} className="flex-1">
+                                    {isSendingAnnouncement ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
+                                    Enviar
+                                </Button>
+                            </div>
+                        </form>
+                    </Form>
                 </CardContent>
             </Card>
           </div>
