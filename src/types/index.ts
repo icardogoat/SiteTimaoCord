@@ -359,7 +359,7 @@ export type SiteEvent = {
   _id: string | ObjectId;
   name: string;
   description: string;
-  xpAmount: number;
+  xpMultiplier: number;
   isActive: boolean;
   createdAt: Date | string;
   updatedAt: Date | string;

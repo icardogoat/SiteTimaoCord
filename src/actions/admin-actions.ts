@@ -11,6 +11,7 @@ import { getApiSettings, getAvailableApiKey } from './settings-actions';
 import { sendDiscordPostNotification, syncDiscordNews } from './news-actions';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { getActiveEvent } from './event-actions';
 
 // Base type for a match in the DB (for admin list view)
 type MatchFromDb = {
@@ -650,8 +651,13 @@ export async function resolveMatch(fixtureId: number, options: { revalidate: boo
                         );
 
                         const user = await usersCollection.findOne({ discordId: bet.userId }, { session: mongoSession });
-                        const xpMultiplier = user?.isVip ? 2 : 1;
-                        const xpGain = bet.stake * xpMultiplier;
+                        
+                        // New XP Logic
+                        const activeEvent = await getActiveEvent();
+                        const eventMultiplier = activeEvent ? activeEvent.xpMultiplier : 1;
+                        const vipMultiplier = user?.isVip ? 2 : 1;
+                        const totalMultiplier = eventMultiplier * vipMultiplier;
+                        const xpGain = bet.stake * totalMultiplier;
                         
                         // Add user XP for won bet
                         await usersCollection.updateOne(

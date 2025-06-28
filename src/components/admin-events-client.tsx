@@ -12,7 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
@@ -24,7 +24,7 @@ const formSchema = z.object({
   id: z.string().optional(),
   name: z.string().min(3, { message: 'O nome deve ter pelo menos 3 caracteres.' }),
   description: z.string().min(10, { message: 'A descrição deve ter pelo menos 10 caracteres.' }),
-  xpAmount: z.coerce.number().int().min(1, { message: 'A quantia de XP deve ser de no mínimo 1.' }),
+  xpMultiplier: z.coerce.number().int().min(1, { message: 'O multiplicador deve ser no mínimo 1.' }),
 });
 
 export default function AdminEventsClient({ initialEvents }: { initialEvents: SiteEvent[] }) {
@@ -38,12 +38,12 @@ export default function AdminEventsClient({ initialEvents }: { initialEvents: Si
 
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
-        defaultValues: { name: '', description: '', xpAmount: 100 },
+        defaultValues: { name: '', description: '', xpMultiplier: 2 },
     });
 
     const handleOpenDialog = (event: SiteEvent | null) => {
         setCurrentEvent(event);
-        form.reset(event ? { ...event, id: event._id.toString() } : { name: '', description: '', xpAmount: 100 });
+        form.reset(event ? { ...event, id: event._id.toString() } : { name: '', description: '', xpMultiplier: 2 });
         setIsDialogOpen(true);
     };
 
@@ -103,7 +103,7 @@ export default function AdminEventsClient({ initialEvents }: { initialEvents: Si
                         <TableHeader>
                             <TableRow>
                                 <TableHead>Evento</TableHead>
-                                <TableHead className="text-center">XP Base</TableHead>
+                                <TableHead className="text-center">Multiplicador</TableHead>
                                 <TableHead className="text-center">Ativo</TableHead>
                                 <TableHead className="text-right">Ações</TableHead>
                             </TableRow>
@@ -115,7 +115,7 @@ export default function AdminEventsClient({ initialEvents }: { initialEvents: Si
                                         <p className="font-medium">{event.name}</p>
                                         <p className="text-xs text-muted-foreground truncate max-w-sm">{event.description}</p>
                                     </TableCell>
-                                    <TableCell className="text-center font-mono">{event.xpAmount}</TableCell>
+                                    <TableCell className="text-center font-mono">{event.xpMultiplier}x</TableCell>
                                     <TableCell className="text-center">
                                         <div className="flex justify-center items-center gap-2">
                                             {isToggling === event._id.toString() ? (
@@ -154,7 +154,7 @@ export default function AdminEventsClient({ initialEvents }: { initialEvents: Si
                 <DialogContent>
                     <DialogHeader>
                         <DialogTitle>{currentEvent ? 'Editar Evento' : 'Novo Evento'}</DialogTitle>
-                        <DialogDescription>Preencha os detalhes do evento. Ele será criado como inativo por padrão.</DialogDescription>
+                        <DialogDescription>Preencha os detalhes do evento de XP. Ele será criado como inativo por padrão.</DialogDescription>
                     </DialogHeader>
                     <Form {...form}>
                         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
@@ -164,10 +164,11 @@ export default function AdminEventsClient({ initialEvents }: { initialEvents: Si
                              <FormField control={form.control} name="description" render={({ field }) => (
                                 <FormItem><FormLabel>Descrição</FormLabel><FormControl><Textarea {...field} /></FormControl><FormMessage /></FormItem>
                             )}/>
-                             <FormField control={form.control} name="xpAmount" render={({ field }) => (
+                             <FormField control={form.control} name="xpMultiplier" render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>Recompensa de XP</FormLabel>
+                                    <FormLabel>Multiplicador de XP</FormLabel>
                                     <FormControl><Input type="number" {...field} /></FormControl>
+                                    <FormDescription>Multiplicador para o ganho de XP em apostas. Ex: 2 para 2x. VIPs recebem o dobro (multiplicador do evento x2).</FormDescription>
                                     <FormMessage />
                                 </FormItem>
                             )}/>
