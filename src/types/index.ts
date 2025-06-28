@@ -427,3 +427,9 @@ export type RecentBet = {
     status: 'Em Aberto' | 'Ganha' | 'Perdida' | 'Cancelada';
     stake: number;
 };
+
+export type RecentUser = {
+  name: string;
+  avatar: string;
+  joinDate: string;
+};

@@ -1,16 +1,16 @@
 
 'use server';
 
-import { getDashboardStats, getChartData, getTopBettors, getRecentBets } from "@/actions/admin-actions";
+import { getDashboardStats, getChartData, getTopBettors, getRecentUsers } from "@/actions/admin-actions";
 import { getRichestUsers, getTopLevelUsers } from "@/actions/user-actions";
 import { AdminDashboardClient } from "@/components/admin-dashboard-client";
 
 export default async function Dashboard() {
-    const [stats, chartData, topBettors, recentBets, richestUsers, topLevelUsers] = await Promise.all([
+    const [stats, chartData, topBettors, recentUsers, richestUsers, topLevelUsers] = await Promise.all([
         getDashboardStats(),
         getChartData('weekly'),
         getTopBettors(),
-        getRecentBets(),
+        getRecentUsers(),
         getRichestUsers(),
         getTopLevelUsers()
     ]);
@@ -20,7 +20,7 @@ export default async function Dashboard() {
             stats={stats}
             initialChartData={chartData}
             topBettors={topBettors.slice(0, 5)}
-            recentBets={recentBets}
+            recentUsers={recentUsers}
             richestUsers={richestUsers.slice(0, 5)}
             topLevelUsers={topLevelUsers.slice(0, 5)}
         />

@@ -1,7 +1,7 @@
 
 'use client'
 
-import { Activity, CreditCard, DollarSign, Users, Loader2, RefreshCw, BellRing, Send, ShieldCheck, Wallet, Zap, Trophy } from "lucide-react"
+import { Activity, CreditCard, DollarSign, Users, Loader2, RefreshCw, BellRing, Send, ShieldCheck, Wallet, Zap, Trophy, UserPlus } from "lucide-react"
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis, Tooltip, Legend } from "recharts"
 import { useState } from "react"
 import { useForm } from 'react-hook-form';
@@ -19,7 +19,7 @@ import {
   type ChartConfig,
 } from "@/components/ui/chart"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import type { DashboardStats, TopBettor, RecentBet, BetVolumeData, ProfitLossData, RichestUserRanking, TopLevelUserRanking } from "@/types"
+import type { DashboardStats, TopBettor, RecentUser, BetVolumeData, ProfitLossData, RichestUserRanking, TopLevelUserRanking } from "@/types"
 import { useToast } from "@/hooks/use-toast"
 import { Button, buttonVariants } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
@@ -66,7 +66,7 @@ interface AdminDashboardClientProps {
     stats: DashboardStats;
     initialChartData: { volume: BetVolumeData; profit: ProfitLossData; };
     topBettors: TopBettor[];
-    recentBets: RecentBet[];
+    recentUsers: RecentUser[];
     richestUsers: RichestUserRanking[];
     topLevelUsers: TopLevelUserRanking[];
 }
@@ -83,7 +83,7 @@ const obfuscateEmail = (email: string) => {
 };
 
 
-export function AdminDashboardClient({ stats, initialChartData, topBettors, recentBets, richestUsers, topLevelUsers }: AdminDashboardClientProps) {
+export function AdminDashboardClient({ stats, initialChartData, topBettors, recentUsers, richestUsers, topLevelUsers }: AdminDashboardClientProps) {
     const { toast } = useToast();
     const [isProcessingAll, setIsProcessingAll] = useState(false);
     const [isNotifying, setIsNotifying] = useState(false);
@@ -395,57 +395,27 @@ export function AdminDashboardClient({ stats, initialChartData, topBettors, rece
 
       <div className="lg:col-span-3">
         <Card>
-            <CardHeader className="flex flex-row items-center">
-              <div className="grid gap-2">
-                <CardTitle>Apostas Recentes</CardTitle>
+            <CardHeader>
+                <CardTitle className="flex items-center gap-2"><UserPlus /> Novos Membros</CardTitle>
                 <CardDescription>
-                  As últimas 5 apostas realizadas na plataforma.
+                  Os últimos 5 usuários que se cadastraram no site.
                 </CardDescription>
-              </div>
             </CardHeader>
-            <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Usuário</TableHead>
-                    <TableHead className="hidden sm:table-cell">
-                      Aposta
-                    </TableHead>
-                    <TableHead className="hidden sm:table-cell">
-                      Status
-                    </TableHead>
-                    <TableHead className="text-right">Valor</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                    {recentBets.map((bet, index) => (
-                        <TableRow key={index}>
-                            <TableCell>
-                            <div className="font-medium">{bet.userName}</div>
-                            <div className="hidden text-sm text-muted-foreground md:inline">
-                                {obfuscateEmail(bet.userEmail)}
-                            </div>
-                            </TableCell>
-                            <TableCell className="hidden sm:table-cell">
-                                {bet.matchDescription}
-                            </TableCell>
-                            <TableCell className="hidden sm:table-cell">
-                                <Badge className="text-xs" variant={
-                                    bet.status === "Ganha" ? "outline" : bet.status === "Perdida" ? "destructive" : "secondary"
-                                }>
-                                    {bet.status}
-                                </Badge>
-                            </TableCell>
-                            <TableCell className="text-right">{formatCurrency(bet.stake)}</TableCell>
-                        </TableRow>
-                    ))}
-                    {recentBets.length === 0 && (
-                        <TableRow>
-                            <TableCell colSpan={4} className="text-center text-muted-foreground">Nenhuma aposta recente.</TableCell>
-                        </TableRow>
-                    )}
-                </TableBody>
-              </Table>
+            <CardContent className="grid gap-6">
+                {recentUsers.length > 0 ? recentUsers.map((user, index) => (
+                    <div className="flex items-center gap-4" key={index}>
+                    <Avatar className="hidden h-9 w-9 sm:flex">
+                        <AvatarImage src={user.avatar} alt="Avatar" data-ai-hint="user avatar" />
+                        <AvatarFallback>{user.name.substring(0, 2).toUpperCase()}</AvatarFallback>
+                    </Avatar>
+                    <div className="grid gap-1">
+                        <p className="text-sm font-medium leading-none">{user.name}</p>
+                    </div>
+                    <div className="ml-auto text-sm text-muted-foreground">{user.joinDate}</div>
+                    </div>
+                )) : (
+                    <p className="text-sm text-center text-muted-foreground">Nenhum usuário recente.</p>
+                )}
             </CardContent>
           </Card>
       </div>

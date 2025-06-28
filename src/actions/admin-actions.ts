@@ -2,7 +2,7 @@
 'use server';
 
 import clientPromise from '@/lib/mongodb';
-import type { Post, AuthorInfo, PlacedBet, Transaction, UserRanking, MvpVoting, MvpPlayer, MvpTeamLineup, Notification, StoreItem, Bolao, Advertisement, UserInventoryItem, PurchaseAdminView, BetVolumeData, ProfitLossData, SiteEvent, LevelThreshold, DbStats, UserStats } from '@/types';
+import type { Post, AuthorInfo, PlacedBet, Transaction, UserRanking, MvpVoting, MvpPlayer, MvpTeamLineup, Notification, StoreItem, Bolao, Advertisement, UserInventoryItem, PurchaseAdminView, BetVolumeData, ProfitLossData, SiteEvent, LevelThreshold, DbStats, UserStats, RecentUser } from '@/types';
 import { ObjectId, WithId } from 'mongodb';
 import { revalidatePath } from 'next/cache';
 import { getBotConfig } from './bot-config-actions';
@@ -2247,9 +2247,9 @@ export async function getDbStats(): Promise<{ success: boolean; data?: DbStats, 
         const stats = await db.command({ dbStats: 1, scale: 1024 * 1024 }); // Scale to MB
         
         const dbStats: DbStats = {
-            db: stats.db,
-            collections: stats.collections,
-            objects: stats.objects,
+            db: stats.db || 'timaocord',
+            collections: stats.collections || 0,
+            objects: stats.objects || 0,
             dataSize: (stats.dataSize ?? 0).toFixed(2),
             storageSize: (stats.storageSize ?? 0).toFixed(2),
             totalSize: (stats.totalSize ?? 0).toFixed(2),
@@ -2304,5 +2304,27 @@ export async function cleanupOldData(): Promise<{ success: boolean; message: str
         const errorMessage = (error instanceof Error) ? error.message : "An unknown error occurred.";
         console.error("Error cleaning up old data:", error);
         return { success: false, message: `Falha ao limpar dados antigos: ${errorMessage}`, details: [] };
+    }
+}
+
+
+export async function getRecentUsers(): Promise<RecentUser[]> {
+    try {
+        const client = await clientPromise;
+        const db = client.db('timaocord');
+        const users = await db.collection('users').find({})
+            .sort({ createdAt: -1 })
+            .limit(5)
+            .project({ name: 1, image: 1, createdAt: 1 })
+            .toArray();
+        
+        return users.map(user => ({
+            name: user.name,
+            avatar: user.image,
+            joinDate: (user.createdAt as Date).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })
+        }));
+    } catch (error) {
+        console.error('Error fetching recent users:', error);
+        return [];
     }
 }
