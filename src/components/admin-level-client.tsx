@@ -50,12 +50,12 @@ export default function AdminLevelClient({ initialLevels }: { initialLevels: Lev
         defaultValues: { levels: initialLevels },
     });
 
-    const { fields, append, remove, control } = useFieldArray({
+    const { fields, append, remove } = useFieldArray({
         control: form.control,
         name: "levels",
     });
 
-    const watchedLevels = useWatch({ control, name: "levels" });
+    const watchedLevels = useWatch({ control: form.control, name: "levels" });
 
     const onSubmit = async (values: z.infer<typeof formSchema>) => {
         setIsSubmitting(true);
