@@ -8,6 +8,7 @@ import type { Notification, Transaction } from '@/types';
 import { getUserLevel } from '@/actions/user-actions';
 import { getBotConfig } from '@/actions/bot-config-actions';
 import { grantAchievement } from '@/actions/achievement-actions';
+import { ObjectId } from 'mongodb';
 
 async function checkUserInGuild(discordId: string): Promise<boolean> {
     try {
@@ -198,7 +199,7 @@ export const authOptions: AuthOptions = {
 
         if (!existingWallet) {
           const initialTransaction: Transaction = {
-            id: new Date().getTime().toString(),
+            id: new ObjectId().toString(),
             type: 'Bônus',
             description: 'Bônus de boas-vindas!',
             amount: 1000,
