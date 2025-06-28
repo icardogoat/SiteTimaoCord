@@ -31,6 +31,7 @@ export async function getBotConfig(): Promise<Partial<BotConfig>> {
                 adminRoleId: '',
                 vipRoleIds: [],
                 postCreatorRoleId: '',
+                streamViewerRoleId: '',
             };
         }
 
@@ -49,6 +50,7 @@ export async function getBotConfig(): Promise<Partial<BotConfig>> {
             adminRoleId: config.adminRoleId || '',
             vipRoleIds: config.vipRoleIds || [],
             postCreatorRoleId: config.postCreatorRoleId || '',
+            streamViewerRoleId: config.streamViewerRoleId || '',
         };
     } catch (error) {
         console.error("Error fetching bot config:", error);
@@ -66,6 +68,7 @@ export async function getBotConfig(): Promise<Partial<BotConfig>> {
             adminRoleId: '',
             vipRoleIds: [],
             postCreatorRoleId: '',
+            streamViewerRoleId: '',
         };
     }
 }
@@ -84,6 +87,7 @@ type UpdateConfigData = {
     adminRoleId: string;
     postCreatorRoleId: string;
     vipRoleIds: string[];
+    streamViewerRoleId: string;
 };
 
 export async function updateBotConfig(data: UpdateConfigData): Promise<{ success: boolean; message: string }> {

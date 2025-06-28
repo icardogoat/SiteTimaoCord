@@ -58,6 +58,7 @@ const formSchema = z.object({
   adminRoleId: z.string().optional(),
   postCreatorRoleId: z.string().optional(),
   vipRoleIds: z.array(z.string()).max(3, { message: "Você pode selecionar no máximo 3 cargos VIP." }).optional(),
+  streamViewerRoleId: z.string().optional(),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -92,6 +93,7 @@ export default function AdminBotConfigClient({ initialConfig, initialChannels, i
             adminRoleId: initialConfig.adminRoleId || "",
             postCreatorRoleId: initialConfig.postCreatorRoleId || "",
             vipRoleIds: initialConfig.vipRoleIds || [],
+            streamViewerRoleId: initialConfig.streamViewerRoleId || "",
         },
     });
 
@@ -118,6 +120,7 @@ export default function AdminBotConfigClient({ initialConfig, initialChannels, i
             adminRoleId: '',
             postCreatorRoleId: '',
             vipRoleIds: [],
+            streamViewerRoleId: '',
         });
 
         const result = await getDiscordServerDetails(id);
@@ -230,6 +233,7 @@ export default function AdminBotConfigClient({ initialConfig, initialChannels, i
             adminRoleId: values.adminRoleId || '',
             postCreatorRoleId: values.postCreatorRoleId || '',
             vipRoleIds: values.vipRoleIds || [],
+            streamViewerRoleId: values.streamViewerRoleId || '',
         });
 
         if (result.success) {
@@ -636,6 +640,33 @@ export default function AdminBotConfigClient({ initialConfig, initialChannels, i
                                         </Select>
                                         <FormDescription>
                                             Este cargo será mencionado (@) sempre que um novo post for criado.
+                                        </FormDescription>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                            <FormField
+                                control={form.control}
+                                name="streamViewerRoleId"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Cargo para Ver Transmissão</FormLabel>
+                                        <Select onValueChange={field.onChange} value={field.value} disabled={roles.length === 0}>
+                                            <FormControl>
+                                                <SelectTrigger>
+                                                    <SelectValue placeholder="Selecione um cargo (opcional)" />
+                                                </SelectTrigger>
+                                            </FormControl>
+                                            <SelectContent>
+                                                {roles.map(role => (
+                                                    <SelectItem key={role.id} value={role.id}>
+                                                        {role.name}
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                        <FormDescription>
+                                            Membros com este cargo (e admins) poderão ver a página de transmissão.
                                         </FormDescription>
                                         <FormMessage />
                                     </FormItem>

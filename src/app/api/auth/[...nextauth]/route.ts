@@ -257,14 +257,16 @@ export const authOptions: AuthOptions = {
         }
 
         const config = await getBotConfig();
-        const [isVip, canPost] = await Promise.all([
+        const [isVip, canPost, canViewStream] = await Promise.all([
              checkUserHasRoles(discordId, config.vipRoleIds || []),
-             checkUserHasRoles(discordId, config.postCreatorRoleId ? [config.postCreatorRoleId] : [])
+             checkUserHasRoles(discordId, config.postCreatorRoleId ? [config.postCreatorRoleId] : []),
+             checkUserHasRoles(discordId, config.streamViewerRoleId ? [config.streamViewerRoleId] : [])
         ]);
 
         token.isVip = isVip;
         token.admin = dbUser.admin ?? false;
         token.canPost = canPost;
+        token.canViewStream = dbUser.admin || canViewStream;
         
         // Robust date handling
         const adRemovalDate = dbUser.adRemovalExpiresAt;
@@ -286,6 +288,7 @@ export const authOptions: AuthOptions = {
         session.user.admin = token.admin as boolean;
         session.user.isVip = token.isVip as boolean;
         session.user.canPost = token.canPost as boolean;
+        session.user.canViewStream = token.canViewStream as boolean;
         session.user.adRemovalExpiresAt = token.adRemovalExpiresAt as string | null;
         session.user.dailyRewardLastClaimed = token.dailyRewardLastClaimed as string | null;
         

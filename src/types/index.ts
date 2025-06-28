@@ -267,6 +267,7 @@ export type BotConfig = {
   adminRoleId: string;
   vipRoleIds: string[];
   postCreatorRoleId?: string;
+  streamViewerRoleId?: string;
 };
 
 export type ApiKeyEntry = {

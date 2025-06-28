@@ -16,6 +16,7 @@ declare module 'next-auth' {
       level: UserLevel;
       isVip: boolean;
       canPost: boolean;
+      canViewStream: boolean;
       adRemovalExpiresAt: string | null;
       dailyRewardLastClaimed: string | null;
     } & DefaultSession['user'];
