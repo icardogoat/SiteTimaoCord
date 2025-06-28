@@ -17,18 +17,18 @@ interface IntervalOverlayProps {
 const DiscordInviteCard = ({ discordInviteUrl }: { discordInviteUrl: string }) => {
     if (!discordInviteUrl) return null;
     return (
-        <Card className="mt-12 bg-background/50 border-border/50 max-w-sm w-full">
+        <Card className="mt-8 bg-background/50 border-border/50 max-w-md w-full">
             <CardHeader>
-                <CardTitle className="flex items-center justify-center gap-2">
-                    <DiscordLogo className="h-6 w-6" />
+                <CardTitle className="flex items-center justify-center gap-3 text-xl">
+                    <DiscordLogo className="h-7 w-7" />
                     Junte-se à nossa comunidade
                 </CardTitle>
             </CardHeader>
             <CardContent>
-                    <p className="text-muted-foreground text-center">
+                    <p className="text-base text-muted-foreground text-center">
                     Discuta o jogo, participe de sorteios e muito mais no nosso servidor do Discord!
                 </p>
-                <Button asChild className="mt-4 w-full">
+                <Button asChild size="lg" className="mt-6 w-full">
                     <Link href={discordInviteUrl} target="_blank" rel="noopener noreferrer">
                         Entrar no Servidor
                     </Link>
@@ -39,24 +39,22 @@ const DiscordInviteCard = ({ discordInviteUrl }: { discordInviteUrl: string }) =
 };
 
 const AdCard = ({ ad }: { ad: Advertisement }) => (
-    <Link href={ad.linkUrl} target="_blank" rel="noopener noreferrer" className="block max-w-sm w-full">
-        <Card className="mt-12 bg-background/50 border-border/50 group overflow-hidden">
+    <Link href={ad.linkUrl} target="_blank" rel="noopener noreferrer" className="block max-w-md w-full">
+        <Card className="mt-8 bg-background/50 border-border/50 group overflow-hidden">
             <div className="relative">
                  <Image
                     src={ad.imageUrl}
                     alt={ad.title}
-                    width={400}
-                    height={200}
-                    className="w-full h-40 object-cover group-hover:scale-105 transition-transform duration-300"
+                    width={500}
+                    height={281}
+                    className="w-full h-auto object-cover group-hover:scale-105 transition-transform duration-300"
                     data-ai-hint="advertisement banner"
                 />
             </div>
-            <CardHeader>
-                <CardTitle>{ad.title}</CardTitle>
-            </CardHeader>
-            <CardContent>
-                <p className="text-muted-foreground line-clamp-2">{ad.description}</p>
-            </CardContent>
+            <div className="p-6">
+                <h3 className="text-xl font-bold">{ad.title}</h3>
+                <p className="text-base text-muted-foreground mt-2 line-clamp-2">{ad.description}</p>
+            </div>
         </Card>
     </Link>
 );
@@ -106,7 +104,7 @@ export function IntervalOverlay({ discordInviteUrl }: IntervalOverlayProps) {
                 <h1 className="text-4xl font-bold font-headline tracking-tight">Estamos no Intervalo</h1>
                 <p className="text-lg text-muted-foreground mt-2">Voltamos em breve com o segundo tempo!</p>
                 
-                <div className="min-h-[340px] flex items-center justify-center">
+                <div className="min-h-[480px] flex items-center justify-center">
                     {adToDisplay ? (
                         <div key={adToDisplay._id as string} className="animate-in fade-in-50 duration-500">
                            <AdCard ad={adToDisplay} />
