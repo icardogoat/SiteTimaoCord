@@ -40,7 +40,7 @@ const WinnersTable = ({ data }: { data: UserRanking[] }) => (
         </TableHeader>
         <TableBody>
             {data.length > 0 ? data.map((user) => (
-                <TableRow key={user.rank}>
+                <TableRow key={user.discordId}>
                     <TableCell className="text-center"><RankBadge rank={user.rank} /></TableCell>
                     <TableCell>
                         <div className="flex items-center gap-3">
@@ -77,7 +77,7 @@ const RichestTable = ({ data }: { data: RichestUserRanking[] }) => (
         </TableHeader>
         <TableBody>
             {data.length > 0 ? data.map((user) => (
-                <TableRow key={user.rank}>
+                <TableRow key={user.discordId}>
                     <TableCell className="text-center"><RankBadge rank={user.rank} /></TableCell>
                     <TableCell>
                         <div className="flex items-center gap-3">
@@ -114,7 +114,7 @@ const MostActiveTable = ({ data }: { data: ActiveBettorRanking[] }) => (
         </TableHeader>
         <TableBody>
             {data.length > 0 ? data.map((user) => (
-                <TableRow key={user.rank}>
+                <TableRow key={user.discordId}>
                     <TableCell className="text-center"><RankBadge rank={user.rank} /></TableCell>
                     <TableCell>
                         <div className="flex items-center gap-3">
@@ -152,7 +152,7 @@ const TopLevelsTable = ({ data }: { data: TopLevelUserRanking[] }) => (
         </TableHeader>
         <TableBody>
             {data.length > 0 ? data.map((user) => (
-                <TableRow key={user.rank}>
+                <TableRow key={user.discordId}>
                     <TableCell className="text-center"><RankBadge rank={user.rank} /></TableCell>
                     <TableCell>
                         <div className="flex items-center gap-3">
@@ -190,7 +190,7 @@ const InvitersTable = ({ data }: { data: InviterRanking[] }) => (
         </TableHeader>
         <TableBody>
             {data.length > 0 ? data.map((user) => (
-                <TableRow key={user.rank}>
+                <TableRow key={user.inviterId}>
                     <TableCell className="text-center"><RankBadge rank={user.rank} /></TableCell>
                     <TableCell>
                         <div className="flex items-center gap-3">

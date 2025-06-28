@@ -161,6 +161,7 @@ export const getTopLevelUsers = cache(async (): Promise<TopLevelUserRanking[]> =
         
         return rankingsData.map((user, index) => ({
             rank: index + 1,
+            discordId: user.discordId as string,
             name: user.name as string,
             avatar: user.image as string,
             level: user.level ?? 1,

@@ -98,6 +98,7 @@ export type ActiveBettorRanking = {
 
 export type TopLevelUserRanking = {
   rank: number;
+  discordId: string;
   name: string;
   avatar: string;
   level: number;
