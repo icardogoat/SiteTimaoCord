@@ -17,51 +17,59 @@ export async function sendDiscordPostNotification(post: Post, author: AuthorInfo
         console.log('Discord News channel or bot token not configured. Skipping post notification.');
         return;
     }
-    
+
     const postUrl = siteUrl ? `${siteUrl}/news/${post._id.toString()}` : undefined;
 
-    const embed = {
-        color: 0x0ea5e9, // sky-500
-        author: {
-            name: author.name,
-            icon_url: author.avatarUrl,
-        },
-        title: post.title,
-        url: postUrl,
-        description: post.content.substring(0, 2048), // Truncate content for Discord embed limit
-        image: post.imageUrl ? { url: post.imageUrl } : undefined,
-        timestamp: new Date(post.publishedAt).toISOString(),
+    const publishedDate = new Date(post.publishedAt).toLocaleDateString('pt-BR', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+    });
+
+    const header = `# 📢 ${post.title}\n\n`;
+    const footer = `\n\n---\n📰 *Publicado por: ${author.name}*\n📅 *${publishedDate}*`;
+    
+    // Discord message content limit is 2000 characters.
+    const mention = newsMentionRoleId ? `<@&${newsMentionRoleId}>` : '';
+    const maxContentLength = 2000 - header.length - footer.length - mention.length - 2; // -2 for newlines
+    
+    const truncatedContent = post.content.length > maxContentLength
+        ? post.content.substring(0, maxContentLength - 3) + '...'
+        : post.content;
+    
+    const messageContent = `${header}${truncatedContent}${footer}`;
+    
+    const imageEmbed = post.imageUrl ? [{
+        url: postUrl, // Link the image to the post
+        image: {
+            url: post.imageUrl
+        }
+    }] : [];
+
+    const components = postUrl ? [{
+        type: 1, // Action Row
+        components: [{
+            type: 2, // Button
+            style: 5, // Link
+            label: 'Ler post completo',
+            url: postUrl
+        }]
+    }] : [];
+
+    const finalPayload = {
+        content: `${messageContent}\n${mention}`,
+        embeds: imageEmbed,
+        components: components,
+        allowed_mentions: {
+            parse: ['roles']
+        }
     };
-
-    const payload: { content?: string, embeds: any[], components?: any[] } = {
-        embeds: [embed],
-    };
-
-    if (newsMentionRoleId) {
-        payload.content = `<@&${newsMentionRoleId}>`;
-    }
-
-    if (postUrl) {
-         payload.components = [
-            {
-                type: 1, // Action Row
-                components: [
-                    {
-                        type: 2, // Button
-                        style: 5, // Link
-                        label: 'Ler post completo',
-                        url: postUrl
-                    }
-                ]
-            }
-        ];
-    }
 
     try {
         const response = await fetch(`https://discord.com/api/v10/channels/${newsChannelId}/messages`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'Authorization': `Bot ${botToken}` },
-            body: JSON.stringify(payload),
+            body: JSON.stringify(finalPayload),
             cache: 'no-store'
         });
 
