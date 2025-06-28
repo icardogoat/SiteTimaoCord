@@ -24,6 +24,7 @@ import { getNotificationsForUser, markNotificationsAsRead } from '@/actions/noti
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { AvatarFallbackText } from './avatar-fallback-text';
+import { EventHeaderBanner } from './event-banner';
 
 // Sub-component to safely render the formatted date only on the client
 function NotificationDropdownItem({ notification }: { notification: Notification }) {
@@ -135,215 +136,218 @@ export function Header() {
   const isVip = user?.isVip ?? false;
 
   return (
-    <header className="sticky top-0 z-10 flex h-16 items-center justify-between border-b bg-background/80 px-4 backdrop-blur-sm sm:px-6 lg:px-8">
-      <div className="flex items-center gap-4">
-        {isMobile && <SidebarTrigger />}
-        <div className="hidden items-center gap-2 sm:flex">
-          <FielBetLogo className="size-7 text-primary" />
-          <h1 className="text-lg font-semibold font-headline text-primary">FielBet</h1>
+    <div className="sticky top-0 z-10">
+      <EventHeaderBanner />
+      <header className="flex h-16 items-center justify-between border-b bg-background/80 px-4 backdrop-blur-sm sm:px-6 lg:px-8">
+        <div className="flex items-center gap-4">
+          {isMobile && <SidebarTrigger />}
+          <div className="hidden items-center gap-2 sm:flex">
+            <FielBetLogo className="size-7 text-primary" />
+            <h1 className="text-lg font-semibold font-headline text-primary">FielBet</h1>
+          </div>
+          <nav className="hidden md:flex items-center gap-6 text-sm font-medium ml-6">
+              <Link 
+                  href="/bet" 
+                  className={cn(
+                      "transition-colors hover:text-foreground",
+                      pathname === "/bet" ? "text-foreground font-semibold" : "text-muted-foreground"
+                  )}
+              >
+                  Apostas
+              </Link>
+              <Link 
+                  href="/stream" 
+                  className={cn(
+                      "transition-colors hover:text-foreground",
+                      pathname?.startsWith("/stream") ? "text-foreground font-semibold" : "text-muted-foreground"
+                  )}
+              >
+                  Transmissão
+              </Link>
+              <Link 
+                  href="/news" 
+                  className={cn(
+                      "transition-colors hover:text-foreground",
+                      pathname?.startsWith("/news") ? "text-foreground font-semibold" : "text-muted-foreground"
+                  )}
+              >
+                  Notícias
+              </Link>
+              <Link 
+                  href="/bolao" 
+                  className={cn(
+                      "transition-colors hover:text-foreground",
+                      pathname === "/bolao" ? "text-foreground font-semibold" : "text-muted-foreground"
+                  )}
+              >
+                  Bolão
+              </Link>
+              <Link 
+                  href="/mvp" 
+                  className={cn(
+                      "transition-colors hover:text-foreground",
+                      pathname === "/mvp" ? "text-foreground font-semibold" : "text-muted-foreground"
+                  )}
+              >
+                  MVP
+              </Link>
+              <Link 
+                  href="/convites" 
+                  className={cn(
+                      "transition-colors hover:text-foreground",
+                      pathname === "/convites" ? "text-foreground font-semibold" : "text-muted-foreground"
+                  )}
+              >
+                  Convites
+              </Link>
+              <Link 
+                  href="/store" 
+                  className={cn(
+                      "transition-colors hover:text-foreground",
+                      pathname === "/store" ? "text-foreground font-semibold" : "text-muted-foreground"
+                  )}
+              >
+                  Loja
+              </Link>
+          </nav>
         </div>
-        <nav className="hidden md:flex items-center gap-6 text-sm font-medium ml-6">
-            <Link 
-                href="/bet" 
-                className={cn(
-                    "transition-colors hover:text-foreground",
-                    pathname === "/bet" ? "text-foreground font-semibold" : "text-muted-foreground"
-                )}
-            >
-                Apostas
-            </Link>
-             <Link 
-                href="/stream" 
-                className={cn(
-                    "transition-colors hover:text-foreground",
-                    pathname?.startsWith("/stream") ? "text-foreground font-semibold" : "text-muted-foreground"
-                )}
-            >
-                Transmissão
-            </Link>
-            <Link 
-                href="/news" 
-                className={cn(
-                    "transition-colors hover:text-foreground",
-                    pathname?.startsWith("/news") ? "text-foreground font-semibold" : "text-muted-foreground"
-                )}
-            >
-                Notícias
-            </Link>
-            <Link 
-                href="/bolao" 
-                className={cn(
-                    "transition-colors hover:text-foreground",
-                    pathname === "/bolao" ? "text-foreground font-semibold" : "text-muted-foreground"
-                )}
-            >
-                Bolão
-            </Link>
-            <Link 
-                href="/mvp" 
-                className={cn(
-                    "transition-colors hover:text-foreground",
-                    pathname === "/mvp" ? "text-foreground font-semibold" : "text-muted-foreground"
-                )}
-            >
-                MVP
-            </Link>
-            <Link 
-                href="/convites" 
-                className={cn(
-                    "transition-colors hover:text-foreground",
-                    pathname === "/convites" ? "text-foreground font-semibold" : "text-muted-foreground"
-                )}
-            >
-                Convites
-            </Link>
-            <Link 
-                href="/store" 
-                className={cn(
-                    "transition-colors hover:text-foreground",
-                    pathname === "/store" ? "text-foreground font-semibold" : "text-muted-foreground"
-                )}
-            >
-                Loja
-            </Link>
-        </nav>
-      </div>
-      <div className="flex items-center gap-4">
-        <div className="flex items-center gap-2 rounded-md border bg-card px-3 py-1.5 text-sm">
-          <Wallet className="size-4 text-muted-foreground" />
-          <span className="font-semibold text-foreground">R$ {userBalance.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 rounded-md border bg-card px-3 py-1.5 text-sm">
+            <Wallet className="size-4 text-muted-foreground" />
+            <span className="font-semibold text-foreground">R$ {userBalance.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+          </div>
+
+          <DropdownMenu onOpenChange={handleOpenChange}>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" className="relative h-9 w-9">
+                  <Bell className="h-5 w-5" />
+                  {unreadCount > 0 && (
+                      <span className="absolute top-0 right-0 flex h-4 w-4 items-center justify-center rounded-full bg-destructive text-[10px] font-bold text-destructive-foreground">
+                          {unreadCount > 9 ? '9+' : unreadCount}
+                      </span>
+                  )}
+                  <span className="sr-only">Toggle notifications</span>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-80 md:w-96">
+              <DropdownMenuLabel className='px-3 py-2'>Notificações</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <div className='max-h-80 overflow-y-auto'>
+                  {notifications.length > 0 ? (
+                      notifications.map((notification) => (
+                          <NotificationDropdownItem key={notification._id as string} notification={notification} />
+                      ))
+                  ) : (
+                      <p className='p-4 text-sm text-center text-muted-foreground'>Nenhuma notificação nova.</p>
+                  )}
+              </div>
+              {notifications.length > 0 && (
+                  <>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem asChild>
+                          <Link href="/notifications" className="flex items-center justify-center p-2 text-sm font-medium text-primary">
+                              Ver todas as notificações
+                          </Link>
+                      </DropdownMenuItem>
+                  </>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" className="relative h-9 w-9 rounded-full p-0">
+                  <Avatar className={cn("h-9 w-9", isVip && "ring-2 ring-offset-2 ring-vip ring-offset-background")}>
+                      <AvatarImage src={userImage ?? undefined} alt={userName} data-ai-hint="user avatar" />
+                      <AvatarFallback>
+                          <AvatarFallbackText name={userName} />
+                      </AvatarFallback>
+                  </Avatar>
+                  <div className="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-secondary text-xs font-bold text-secondary-foreground border-2 border-background">
+                      {userLevel}
+                  </div>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56">
+              <DropdownMenuLabel>{userName}</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem asChild>
+                <Link href="/profile">
+                  <User className="mr-2 h-4 w-4" />
+                  <span>Perfil</span>
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href="/wallet">
+                  <Wallet className="mr-2 h-4 w-4" />
+                  <span>Carteira</span>
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href="/my-bets">
+                  <Ticket className="mr-2 h-4 w-4" />
+                  <span>Minhas Apostas</span>
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href="/stream">
+                  <Tv className="mr-2 h-4 w-4" />
+                  <span>Transmissão</span>
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href="/news">
+                  <Newspaper className="mr-2 h-4 w-4" />
+                  <span>Notícias</span>
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href="/bolao">
+                  <Swords className="mr-2 h-4 w-4" />
+                  <span>Bolão</span>
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href="/mvp">
+                  <Star className="mr-2 h-4 w-4" />
+                  <span>MVP</span>
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href="/ranking">
+                  <Trophy className="mr-2 h-4 w-4" />
+                  <span>Ranking</span>
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href="/convites">
+                  <UserPlus className="mr-2 h-4 w-4" />
+                  <span>Convites</span>
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href="/store">
+                  <Store className="mr-2 h-4 w-4" />
+                  <span>Loja</span>
+                </Link>
+              </DropdownMenuItem>
+              {user?.admin && (
+                  <DropdownMenuItem asChild>
+                      <Link href="/admin">
+                          <LayoutGrid className="mr-2 h-4 w-4" />
+                          <span>Admin</span>
+                      </Link>
+                  </DropdownMenuItem>
+              )}
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => signOut({ callbackUrl: '/' })}>
+                  <LogOut className="mr-2 h-4 w-4" />
+                  <span>Deslogar</span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
-
-        <DropdownMenu onOpenChange={handleOpenChange}>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className="relative h-9 w-9">
-                <Bell className="h-5 w-5" />
-                {unreadCount > 0 && (
-                    <span className="absolute top-0 right-0 flex h-4 w-4 items-center justify-center rounded-full bg-destructive text-[10px] font-bold text-destructive-foreground">
-                        {unreadCount > 9 ? '9+' : unreadCount}
-                    </span>
-                )}
-                 <span className="sr-only">Toggle notifications</span>
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-80 md:w-96">
-            <DropdownMenuLabel className='px-3 py-2'>Notificações</DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <div className='max-h-80 overflow-y-auto'>
-                {notifications.length > 0 ? (
-                    notifications.map((notification) => (
-                        <NotificationDropdownItem key={notification._id as string} notification={notification} />
-                    ))
-                ) : (
-                    <p className='p-4 text-sm text-center text-muted-foreground'>Nenhuma notificação nova.</p>
-                )}
-            </div>
-             {notifications.length > 0 && (
-                <>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem asChild>
-                        <Link href="/notifications" className="flex items-center justify-center p-2 text-sm font-medium text-primary">
-                            Ver todas as notificações
-                        </Link>
-                    </DropdownMenuItem>
-                </>
-             )}
-          </DropdownMenuContent>
-        </DropdownMenu>
-
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="relative h-9 w-9 rounded-full p-0">
-                <Avatar className={cn("h-9 w-9", isVip && "ring-2 ring-offset-2 ring-vip ring-offset-background")}>
-                    <AvatarImage src={userImage ?? undefined} alt={userName} data-ai-hint="user avatar" />
-                    <AvatarFallback>
-                        <AvatarFallbackText name={userName} />
-                    </AvatarFallback>
-                </Avatar>
-                <div className="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-secondary text-xs font-bold text-secondary-foreground border-2 border-background">
-                    {userLevel}
-                </div>
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-56">
-            <DropdownMenuLabel>{userName}</DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem asChild>
-              <Link href="/profile">
-                <User className="mr-2 h-4 w-4" />
-                <span>Perfil</span>
-              </Link>
-            </DropdownMenuItem>
-            <DropdownMenuItem asChild>
-              <Link href="/wallet">
-                <Wallet className="mr-2 h-4 w-4" />
-                <span>Carteira</span>
-              </Link>
-            </DropdownMenuItem>
-            <DropdownMenuItem asChild>
-              <Link href="/my-bets">
-                <Ticket className="mr-2 h-4 w-4" />
-                <span>Minhas Apostas</span>
-              </Link>
-            </DropdownMenuItem>
-             <DropdownMenuItem asChild>
-              <Link href="/stream">
-                <Tv className="mr-2 h-4 w-4" />
-                <span>Transmissão</span>
-              </Link>
-            </DropdownMenuItem>
-             <DropdownMenuItem asChild>
-              <Link href="/news">
-                <Newspaper className="mr-2 h-4 w-4" />
-                <span>Notícias</span>
-              </Link>
-            </DropdownMenuItem>
-             <DropdownMenuItem asChild>
-              <Link href="/bolao">
-                <Swords className="mr-2 h-4 w-4" />
-                <span>Bolão</span>
-              </Link>
-            </DropdownMenuItem>
-             <DropdownMenuItem asChild>
-              <Link href="/mvp">
-                <Star className="mr-2 h-4 w-4" />
-                <span>MVP</span>
-              </Link>
-            </DropdownMenuItem>
-            <DropdownMenuItem asChild>
-              <Link href="/ranking">
-                <Trophy className="mr-2 h-4 w-4" />
-                <span>Ranking</span>
-              </Link>
-            </DropdownMenuItem>
-            <DropdownMenuItem asChild>
-              <Link href="/convites">
-                <UserPlus className="mr-2 h-4 w-4" />
-                <span>Convites</span>
-              </Link>
-            </DropdownMenuItem>
-            <DropdownMenuItem asChild>
-              <Link href="/store">
-                <Store className="mr-2 h-4 w-4" />
-                <span>Loja</span>
-              </Link>
-            </DropdownMenuItem>
-            {user?.admin && (
-                <DropdownMenuItem asChild>
-                    <Link href="/admin">
-                        <LayoutGrid className="mr-2 h-4 w-4" />
-                        <span>Admin</span>
-                    </Link>
-                </DropdownMenuItem>
-            )}
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => signOut({ callbackUrl: '/' })}>
-                <LogOut className="mr-2 h-4 w-4" />
-                <span>Deslogar</span>
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </div>
-    </header>
+      </header>
+    </div>
   );
 }
