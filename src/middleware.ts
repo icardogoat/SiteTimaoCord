@@ -1,16 +1,17 @@
 
 import { getToken } from "next-auth/jwt";
 import { NextResponse } from "next/server";
-import type { NextRequest } from "next/server";
+import type { NextRequest } from "next/request";
 
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
-  const publicPaths = ['/join-server', '/maintenance', '/vip-only', '/terms', '/privacy', '/'];
 
-  // Evita verificações em rotas de API e arquivos estáticos para não causar loops
-  if (pathname.startsWith('/api') || pathname.startsWith('/_next') || pathname.includes('.')) {
+  // Skip middleware for all API routes to prevent interference with NextAuth session checks.
+  if (pathname.startsWith('/api/')) {
     return NextResponse.next();
   }
+  
+  const publicPaths = ['/join-server', '/maintenance', '/vip-only', '/terms', '/privacy', '/'];
   
   let siteSettings = { maintenanceMode: false, betaVipMode: false };
   try {
@@ -113,11 +114,13 @@ export const config = {
   matcher: [
     /*
      * Match all request paths except for the ones starting with:
-     * - api (API routes are checked inside the middleware to prevent loops)
      * - _next/static (static files)
      * - _next/image (image optimization files)
      * - favicon.ico (favicon file)
+     * 
+     * API routes are intentionally not excluded here so they can be
+     * handled by the logic at the top of the middleware function.
      */
-    '/((?!api|_next/static|_next/image|favicon.ico).*)',
+    '/((?!_next/static|_next/image|favicon.ico).*)',
   ],
 };
