@@ -307,4 +307,21 @@ export type Post = {
   discordMessageId?: string;
   author?: AuthorInfo; // Populated field from 'users' collection
 };
+
+export type Invite = {
+  _id: string | ObjectId;
+  guildId: string;
+  inviterId: string;
+  inviteeId: string;
+  timestamp: Date | string;
+};
+
+export type InviterRanking = {
+  rank: number;
+  inviterId: string;
+  name: string;
+  avatar: string;
+  inviteCount: number;
+  isVip?: boolean;
+};
     

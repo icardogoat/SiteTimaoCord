@@ -1,7 +1,8 @@
+
 'use server';
 
 import clientPromise from '@/lib/mongodb';
-import type { UserRanking, ActiveBettorRanking, TopLevelUserRanking, PlacedBet, UserLevel, RichestUserRanking } from '@/types';
+import type { UserRanking, ActiveBettorRanking, TopLevelUserRanking, PlacedBet, UserLevel, RichestUserRanking, InviterRanking } from '@/types';
 import type { WithId } from 'mongodb';
 import { cache } from 'react';
 
@@ -279,5 +280,56 @@ export const getUserLevel = cache(async (userId: string): Promise<UserLevel> => 
     } catch (error) {
         console.error(`Error fetching user level for ${userId}:`, error);
         return { level: 1, xp: 0, xpForNextLevel: LEVEL_THRESHOLDS[1]?.xp ?? 100, progress: 0 };
+    }
+});
+
+export const getTopInviters = cache(async (): Promise<InviterRanking[]> => {
+    try {
+        const client = await clientPromise;
+        const db = client.db('timaocord');
+        const invitesCollection = db.collection('invites');
+
+        const rankingsData = await invitesCollection.aggregate([
+            {
+                $group: {
+                    _id: '$inviterId',
+                    inviteCount: { $sum: 1 }
+                }
+            },
+            { $sort: { inviteCount: -1 } },
+            { $limit: 10 },
+            {
+                $lookup: {
+                    from: 'users',
+                    localField: '_id',
+                    foreignField: 'discordId',
+                    as: 'userDetails'
+                }
+            },
+            { $unwind: '$userDetails' },
+            {
+                $project: {
+                    _id: 0,
+                    inviterId: '$_id',
+                    name: '$userDetails.name',
+                    avatar: '$userDetails.image',
+                    inviteCount: 1,
+                    isVip: '$userDetails.isVip',
+                }
+            }
+        ]).toArray();
+        
+        return rankingsData.map((user, index) => ({
+            rank: index + 1,
+            inviterId: user.inviterId as string,
+            name: user.name as string,
+            avatar: user.avatar as string,
+            inviteCount: user.inviteCount as number,
+            isVip: user.isVip as boolean ?? false,
+        }));
+
+    } catch (error) {
+        console.error('Error fetching top inviters:', error);
+        return [];
     }
 });
