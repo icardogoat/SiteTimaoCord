@@ -27,7 +27,7 @@ import { Textarea } from "./ui/textarea";
 
 const apiFormSchema = z.object({
   siteUrl: z.string().url({ message: "Por favor, insira uma URL válida." }).optional().or(z.literal('')),
-  apiKeys: z.array(z.object({ key: z.string() })).optional(),
+  apiKeys: z.array(z.object({ key: z.string() })).max(15, { message: "Você pode adicionar no máximo 15 chaves de API." }).optional(),
 });
 
 const siteSettingsFormSchema = z.object({
@@ -246,7 +246,7 @@ export default function AdminSettingsClient({ initialApiSettings, initialSiteSet
                             
                             <div className="space-y-4">
                                 <FormLabel>Chaves da API-Football</FormLabel>
-                                <FormDescription>Adicione múltiplas chaves. O sistema rotacionará automaticamente para evitar o limite de 90 usos diários por chave. A chave principal definida em .env será usada como fallback.</FormDescription>
+                                <FormDescription>Adicione múltiplas chaves (até 15). O sistema rotacionará automaticamente para evitar o limite de 90 usos diários por chave.</FormDescription>
                                 {apiKeyFields.map((field, index) => {
                                     const currentKeyData = initialApiSettings.apiKeys?.find(k => k.key === apiForm.watch(`apiKeys.${index}.key`));
                                     return (
@@ -258,12 +258,12 @@ export default function AdminSettingsClient({ initialApiSettings, initialSiteSet
                                             <FormItem>
                                                 <div className="flex items-center gap-2">
                                                     <FormControl>
-                                                        <Input type="password" placeholder="Sua chave da API-Football" {...renderField} />
+                                                        <Input type="password" placeholder={`Chave da API ${index + 1}`} {...renderField} />
                                                     </FormControl>
                                                     <div className="p-2 border rounded-md bg-muted text-muted-foreground text-sm font-mono whitespace-nowrap">
                                                         {currentKeyData?.usage ?? 0} / 90
                                                     </div>
-                                                    <Button type="button" variant="destructive" size="icon" onClick={() => removeApiKey(index)} disabled={apiKeyFields.length <= 1 && renderField.value === ''}>
+                                                    <Button type="button" variant="destructive" size="icon" onClick={() => removeApiKey(index)} disabled={apiKeyFields.length <= 1}>
                                                         <Trash2 className="h-4 w-4" />
                                                     </Button>
                                                 </div>
@@ -272,16 +272,19 @@ export default function AdminSettingsClient({ initialApiSettings, initialSiteSet
                                         )}
                                     />
                                 )})}
-                                <Button
-                                    type="button"
-                                    variant="outline"
-                                    size="sm"
-                                    className="mt-2"
-                                    onClick={() => appendApiKey({ key: '' })}
-                                >
-                                    <PlusCircle className="mr-2 h-4 w-4" />
-                                    Adicionar Chave
-                                </Button>
+                                {apiKeyFields.length < 15 && (
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="sm"
+                                        className="mt-2"
+                                        onClick={() => appendApiKey({ key: '' })}
+                                    >
+                                        <PlusCircle className="mr-2 h-4 w-4" />
+                                        Adicionar Chave
+                                    </Button>
+                                )}
+                                <FormMessage>{apiForm.formState.errors.apiKeys?.message}</FormMessage>
                             </div>
                             
                             <Button type="submit" disabled={isApiSubmitting}>

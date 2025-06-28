@@ -20,7 +20,7 @@ export async function getApiSettings(): Promise<Partial<ApiSettings>> {
 
         let keysWereReset = false;
         const apiKeys = (settings?.apiKeys || []).map((k: any) => {
-            const lastReset = new Date(k.lastReset);
+            const lastReset = k.lastReset ? new Date(k.lastReset) : new Date(0);
             if (lastReset < today) {
                 keysWereReset = true;
                 return { ...k, usage: 0, lastReset: today.toISOString() };
@@ -38,12 +38,14 @@ export async function getApiSettings(): Promise<Partial<ApiSettings>> {
         return {
             siteUrl: settings?.siteUrl || process.env.NEXTAUTH_URL || '',
             apiKeys: apiKeys,
+            lastUpdateTimestamp: settings?.lastUpdateTimestamp || null,
         };
     } catch (error) {
         console.error("Error fetching API settings:", error);
         return {
             siteUrl: process.env.NEXTAUTH_URL || '',
             apiKeys: [],
+            lastUpdateTimestamp: null,
         };
     }
 }
@@ -111,7 +113,7 @@ export async function getAvailableApiKey(): Promise<string> {
         throw new Error('Nenhuma chave de API configurada no painel de admin e nenhuma chave de fallback encontrada no .env.');
     }
 
-    const keysNeedReset = settings.apiKeys.some((k: any) => new Date(k.lastReset) < today);
+    const keysNeedReset = settings.apiKeys.some((k: any) => !k.lastReset || new Date(k.lastReset) < today);
     if (keysNeedReset) {
         const resetKeys = settings.apiKeys.map((k: any) => ({
             ...k,
@@ -126,7 +128,9 @@ export async function getAvailableApiKey(): Promise<string> {
         settings.apiKeys = resetKeys;
     }
 
-    const availableKey = settings.apiKeys.find((k: any) => k.usage < 90);
+    // Sort by usage to use the least used key
+    const sortedKeys = settings.apiKeys.sort((a: any, b: any) => a.usage - b.usage);
+    const availableKey = sortedKeys.find((k: any) => k.usage < 90);
 
     if (!availableKey) {
         throw new Error('Todas as chaves de API configuradas atingiram o limite de uso diário.');
@@ -140,6 +144,20 @@ export async function getAvailableApiKey(): Promise<string> {
     return availableKey.key;
 }
 
+export async function setLastUpdateTimestamp(): Promise<void> {
+    try {
+        const client = await clientPromise;
+        const db = client.db('timaocord_settings');
+        const settingsCollection = db.collection('api_settings');
+        await settingsCollection.updateOne(
+            { _id: new ObjectId(SETTINGS_ID) },
+            { $set: { lastUpdateTimestamp: new Date() } },
+            { upsert: true }
+        );
+    } catch (error) {
+        console.error('Failed to set last update timestamp:', error);
+    }
+}
 
 // Function to get general site settings
 export async function getSiteSettings() {

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, Suspense } from 'react';
-import type { Match, Advertisement } from '@/types';
+import type { Match, Advertisement, ApiSettings } from '@/types';
 import { MatchCard } from '@/components/match-card';
 import { InFeedAdCard } from '@/components/in-feed-ad-card';
 import { AppLayout } from '@/components/app-layout';
@@ -10,6 +10,7 @@ import { useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { getMatches } from '@/actions/bet-actions';
 import { Loader2 } from 'lucide-react';
+import { UpdateCountdownTimer } from './update-countdown-timer';
 
 // Type guard to check if an item is an Advertisement
 function isAdvertisement(item: Match | Advertisement): item is Advertisement {
@@ -41,6 +42,7 @@ interface BetPageClientProps {
     initialMatches: Match[];
     availableLeagues: string[];
     ads: Advertisement[];
+    apiSettings: Partial<ApiSettings>;
 }
 
 const MATCHES_PER_PAGE = 6;
@@ -53,7 +55,7 @@ export function BetPageClient(props: BetPageClientProps) {
     );
 }
 
-function BetPageClientInner({ initialMatches, availableLeagues, ads }: BetPageClientProps) {
+function BetPageClientInner({ initialMatches, availableLeagues, ads, apiSettings }: BetPageClientProps) {
     const searchParams = useSearchParams();
     const selectedLeague = searchParams.get('league');
 
@@ -102,9 +104,12 @@ function BetPageClientInner({ initialMatches, availableLeagues, ads }: BetPageCl
     return (
         <AppLayout availableLeagues={availableLeagues}>
             <div className="p-4 sm:p-6 lg:p-8 pb-32 md:pb-8 md:pr-[26rem]">
-                <div className="mb-8">
-                    <h1 className="text-3xl font-bold font-headline tracking-tight">{selectedLeague || 'Próximas Partidas'}</h1>
-                    <p className="text-muted-foreground">Os jogos mais quentes para você apostar.</p>
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-8 gap-4">
+                    <div>
+                        <h1 className="text-3xl font-bold font-headline tracking-tight">{selectedLeague || 'Próximas Partidas'}</h1>
+                        <p className="text-muted-foreground">Os jogos mais quentes para você apostar.</p>
+                    </div>
+                    <UpdateCountdownTimer apiSettings={apiSettings} />
                 </div>
                 
                 {matches.length === 0 && !isLoading ? (

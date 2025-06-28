@@ -310,6 +310,7 @@ export type ApiSettings = {
     _id: string | ObjectId;
     siteUrl?: string;
     apiKeys?: ApiKeyEntry[];
+    lastUpdateTimestamp?: Date | string | null;
 };
 
 export type SiteSettings = {
