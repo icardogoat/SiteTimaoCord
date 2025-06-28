@@ -293,7 +293,8 @@ export async function redeemItemByCode(userId: string, redemptionCode: string): 
                 description: `Você resgatou com sucesso o item: "${storeItem.name}".`,
                 date: new Date(),
                 read: false,
-                link: '/profile' // Link to profile where they can see their inventory
+                link: '/profile', // Link to profile where they can see their inventory
+                isPriority: true,
             };
             await notificationsCollection.insertOne(newNotification as any, { session: mongoSession });
             

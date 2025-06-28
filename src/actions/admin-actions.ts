@@ -696,7 +696,8 @@ export async function resolveMatch(fixtureId: number, options: { revalidate: boo
                         description: notificationDesc,
                         date: new Date(),
                         read: false,
-                        link: `/my-bets`
+                        link: `/my-bets`,
+                        isPriority: true,
                     }, { session: mongoSession });
                     
                     settledCount++;
@@ -749,7 +750,8 @@ export async function resolveMatch(fixtureId: number, options: { revalidate: boo
                             description: `Parabéns! Você acertou o placar de ${activeBolao.homeTeam} vs ${activeBolao.awayTeam} e ganhou R$ ${prizePerWinner.toFixed(2)}.`,
                             date: new Date(),
                             read: false,
-                            link: '/bolao'
+                            link: '/bolao',
+                            isPriority: true,
                         };
                         await notificationsCollection.insertOne(winNotification as any, { session: mongoSession });
                     }
@@ -793,7 +795,8 @@ export async function resolveMatch(fixtureId: number, options: { revalidate: boo
                             description: `Ninguém acertou o placar de ${activeBolao.homeTeam} vs ${activeBolao.awayTeam}. Sua entrada de R$ ${activeBolao.entryFee.toFixed(2)} foi devolvida.`,
                             date: new Date(),
                             read: false,
-                            link: '/wallet'
+                            link: '/wallet',
+                            isPriority: true,
                         };
                         await notificationsCollection.insertOne(refundNotification as any, { session: mongoSession });
                     }
@@ -1360,7 +1363,8 @@ export async function cancelMvpVoting(votingId: string): Promise<{ success: bool
                     description: `A votação MVP para ${voting.homeTeam} vs ${voting.awayTeam} foi cancelada. O bônus de R$ ${VOTE_REWARD.toFixed(2)} foi revertido.`,
                     date: new Date(),
                     read: false,
-                    link: '/wallet'
+                    link: '/wallet',
+                    isPriority: true,
                 };
                 await notificationsCollection.insertOne(newNotification as any, { session: mongoSession });
             }
@@ -1789,7 +1793,8 @@ export async function refundPurchase(inventoryId: string): Promise<{ success: bo
                 description: `Sua compra de "${purchase.itemName}" foi reembolsada. R$ ${purchase.pricePaid.toFixed(2)} foram adicionados à sua carteira.`,
                 date: new Date(),
                 read: false,
-                link: '/wallet'
+                link: '/wallet',
+                isPriority: true,
             };
             await notificationsCollection.insertOne(newNotification as any, { session: mongoSession });
 

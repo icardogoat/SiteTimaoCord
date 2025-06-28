@@ -96,7 +96,7 @@ export function Header() {
                 const notificationId = n._id.toString();
                 if (!seenNotificationIds.current.has(notificationId)) {
                     notificationSound.current?.play().catch(e => console.error("Error playing sound:", e));
-                    if (Notification.permission === "granted") {
+                    if (n.isPriority && Notification.permission === "granted") {
                         new Notification(n.title, {
                             body: n.description,
                             icon: 'https://i.imgur.com/RocHctJ.png'

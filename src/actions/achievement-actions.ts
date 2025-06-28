@@ -103,7 +103,8 @@ export async function grantAchievement(userId: string, achievementId: string) {
                 description: `Você ganhou a conquista: "${achievement.name}".`,
                 date: new Date(),
                 read: false,
-                link: '/profile'
+                link: '/profile',
+                isPriority: true,
             };
             await notificationsCollection.insertOne(newNotification as any);
 

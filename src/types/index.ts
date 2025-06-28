@@ -75,6 +75,7 @@ export type Notification = {
   date: Date | string;
   read: boolean;
   link?: string;
+  isPriority?: boolean;
 };
 
 export type UserRanking = {
@@ -163,6 +164,91 @@ export type UserInventoryItem = {
     purchasedAt: Date | string;
     redeemedAt?: Date | string;
     expiresAt?: Date | string;
+};
+
+export type Bolao = {
+    _id: string | ObjectId;
+    matchId: number;
+    homeTeam: string;
+    awayTeam: string;
+    homeLogo?: string;
+    awayLogo?: string;
+    league: string;
+    matchTime: string;
+    entryFee: number;
+    prizePool: number;
+    status: 'Aberto' | 'Pago' | 'Cancelado';
+    participants: {
+        userId: string;
+        name: string;
+        avatar: string;
+        guess: { home: number, away: number };
+        guessedAt: Date | string;
+    }[];
+    finalScore?: {
+        home: number;
+        away: number;
+    };
+    winners?: {
+        userId: string;
+        prize: number;
+    }[];
+    createdAt: Date | string;
+}
+
+export type MvpPlayer = {
+    id: number;
+    name: string;
+    photo: string;
+}
+
+export type MvpTeamLineup = {
+    teamId: number;
+    teamName: string;
+    teamLogo: string;
+    players: MvpPlayer[];
+}
+
+export type MvpVote = {
+    userId: string;
+    playerId: number;
+    votedAt: Date | string;
+}
+
+export type MvpVoting = {
+    _id: string | ObjectId;
+    matchId: number;
+    homeTeam: string;
+    awayTeam: string;
+    homeLogo: string;
+    awayLogo: string;
+    league: string;
+    status: 'Aberto' | 'Finalizado' | 'Cancelado';
+    lineups: MvpTeamLineup[];
+    votes: MvpVote[];
+    mvpPlayerIds?: number[];
+    createdAt: Date | string;
+    endsAt: Date | string;
+    finalizedAt?: Date | string;
+}
+
+export type Advertisement = {
+  _id: string | ObjectId;
+  owner: 'system' | 'user';
+  userId?: string; // only if owner is 'user'
+  title: string;
+  description: string;
+  imageUrl: string;
+  linkUrl: string;
+  status: 'active' | 'inactive' | 'pending' | 'rejected';
+  startDate?: Date | string | null;
+  endDate?: Date | string | null;
+  createdAt: Date | string;
+}
+
+export type PurchaseAdminView = UserInventoryItem & {
+    userName: string;
+    userAvatar: string;
 };
 
 export type BotConfig = {

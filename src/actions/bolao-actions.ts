@@ -291,7 +291,8 @@ export async function cancelBolao(bolaoId: string): Promise<{ success: boolean; 
                     description: `O bolão para a partida ${bolao.homeTeam} vs ${bolao.awayTeam} foi cancelado. R$ ${refundAmount.toFixed(2)} foram devolvidos à sua carteira.`,
                     date: new Date(),
                     read: false,
-                    link: '/wallet'
+                    link: '/wallet',
+                    isPriority: true,
                 };
                 await notificationsCollection.insertOne(newNotification as any, { session: mongoSession });
             }
