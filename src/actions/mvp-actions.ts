@@ -7,6 +7,7 @@ import { getServerSession } from 'next-auth/next';
 import { revalidatePath } from 'next/cache';
 import type { MvpVoting, Transaction } from '@/types';
 import { ObjectId } from 'mongodb';
+import { grantAchievement } from './achievement-actions';
 
 const VOTE_REWARD = 100;
 
@@ -98,6 +99,7 @@ export async function castVote(votingId: string, playerId: number): Promise<{ su
         await mongoSession.endSession();
 
         if (result?.success) {
+            await grantAchievement(discordId, 'first_mvp_vote');
             revalidatePath('/mvp');
             revalidatePath('/wallet');
             return result;

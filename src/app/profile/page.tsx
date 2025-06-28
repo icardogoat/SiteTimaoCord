@@ -215,7 +215,7 @@ export default async function ProfilePage() {
                                 <TooltipProvider>
                                     <div className="flex flex-wrap justify-center gap-4">
                                         {sortedAchievements.map(ach => {
-                                            const isUnlocked = unlockedSet.has(a.id);
+                                            const isUnlocked = unlockedSet.has(ach.id);
                                             if (ach.hidden && !isUnlocked) return null;
 
                                             return (

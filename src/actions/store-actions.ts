@@ -8,6 +8,7 @@ import type { Transaction, StoreItem, UserInventoryItem, Notification } from '@/
 import { revalidatePath } from 'next/cache';
 import { ObjectId } from 'mongodb';
 import { randomBytes } from 'crypto';
+import { grantAchievement } from './achievement-actions';
 
 // This function returns serializable store item data for the public store page.
 export async function getStoreItems(): Promise<Omit<StoreItem, '_id' | 'createdAt'> & { id: string }[]> {
@@ -224,6 +225,12 @@ export async function purchaseItem(itemId: string): Promise<PurchaseResult> {
         await mongoSession.endSession();
 
         if (result?.success) {
+            // Grant achievements
+            await grantAchievement(userId, 'first_purchase');
+            if (item.type === 'AD_REMOVAL') {
+                await grantAchievement(userId, 'ad_remover');
+            }
+
             revalidatePath('/wallet');
             revalidatePath('/store');
             revalidatePath('/profile'); // Revalidate profile in case of XP/Ad purchase

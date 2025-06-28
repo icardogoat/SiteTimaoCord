@@ -178,6 +178,10 @@ export const authOptions: AuthOptions = {
         if (dbUser) {
             const config = await getBotConfig();
             const isVip = await checkUserHasRoles(userId, config.vipRoleIds || []);
+            if (isVip) {
+                await grantAchievement(userId, 'vip_status');
+            }
+
             const updateOps: any = {};
             if (dbUser.isVip !== isVip) updateOps.isVip = isVip;
             if (typeof dbUser.emailVerified === 'undefined') updateOps.emailVerified = null;

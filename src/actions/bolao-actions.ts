@@ -9,6 +9,7 @@ import type { Bolao, Notification, Transaction } from '@/types';
 import { ObjectId } from 'mongodb';
 import { getBotConfig } from './bot-config-actions';
 import { getApiSettings } from './settings-actions';
+import { grantAchievement } from './achievement-actions';
 
 const ENTRY_FEE = 5;
 
@@ -231,6 +232,7 @@ export async function joinBolao(bolaoId: string, guess: { home: number, away: nu
         await mongoSession.endSession();
 
         if(result?.success) {
+            await grantAchievement(discordId, 'first_bolao');
             revalidatePath('/bolao');
             revalidatePath('/wallet');
             return result;
