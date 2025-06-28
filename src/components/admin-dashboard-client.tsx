@@ -34,6 +34,18 @@ interface AdminDashboardClientProps {
     recentBets: RecentBet[];
 }
 
+const obfuscateEmail = (email: string) => {
+    if (!email || !email.includes('@')) {
+        return 'Email inválido';
+    }
+    const [localPart, domain] = email.split('@');
+    if (localPart.length <= 3) {
+        return `${localPart.slice(0, 1)}*****@${domain}`;
+    }
+    return `${localPart.slice(0, 3)}*****@${domain}`;
+};
+
+
 export function AdminDashboardClient({ stats, weeklyVolume, topBettors, recentBets }: AdminDashboardClientProps) {
     const { toast } = useToast();
     
@@ -154,7 +166,7 @@ export function AdminDashboardClient({ stats, weeklyVolume, topBettors, recentBe
                           {user.name}
                         </p>
                         <p className="text-sm text-muted-foreground">
-                          {user.email}
+                          {obfuscateEmail(user.email)}
                         </p>
                       </div>
                       <div className="ml-auto font-medium">{formatCurrency(user.totalWagered)}</div>
@@ -208,7 +220,7 @@ export function AdminDashboardClient({ stats, weeklyVolume, topBettors, recentBe
                             <TableCell>
                             <div className="font-medium">{bet.userName}</div>
                             <div className="hidden text-sm text-muted-foreground md:inline">
-                                {bet.userEmail}
+                                {obfuscateEmail(bet.userEmail)}
                             </div>
                             </TableCell>
                             <TableCell className="hidden sm:table-cell">
