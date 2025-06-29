@@ -11,6 +11,12 @@ from bson.objectid import ObjectId
 
 load_dotenv()
 
+# --- CONFIGURAÇÃO DA ATUALIZAÇÃO ---
+# Com 4 chaves (400 chamadas/dia), o intervalo mínimo seguro é 15 minutos.
+# Cálculo: (60 min / 15 min) * 24h = 96 execuções/dia.
+# 96 execuções * 4 chamadas/execução = 384 chamadas/dia (dentro do limite de 400).
+UPDATE_INTERVAL_MINUTES = 15
+
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
@@ -89,7 +95,7 @@ class Tasks(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.client = MongoClient(os.getenv('MONGODB_URI'))
-        self.db = self.client.timaocord
+        self.db = client.db('timaocord')
         self.settings_db = self.client.timaocord_settings
         self.matches_collection = self.db.matches
         self.api_settings_collection = self.settings_db.api_settings
@@ -226,13 +232,13 @@ class Tasks(commands.Cog):
         
         return new_count, updated_count
 
-    @tasks.loop(minutes=15)
+    @tasks.loop(minutes=UPDATE_INTERVAL_MINUTES)
     async def update_fixtures(self):
         if not self.api_keys:
             logging.warning("No API keys are configured. Skipping fixture update.")
             return
 
-        logging.info("Starting scheduled fixture update for today and tomorrow...")
+        logging.info(f"Starting scheduled fixture update (interval: {UPDATE_INTERVAL_MINUTES} minutes)...")
         
         # Process today's fixtures
         today_str = datetime.date.today().strftime("%Y-%m-%d")
