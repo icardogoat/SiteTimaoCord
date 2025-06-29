@@ -191,17 +191,19 @@ class Tasks(commands.Cog):
 
         logging.info("Starting scheduled fixture update...")
         
-        # Alternate between today and tomorrow to save API calls
+        # Define specific hours to update tomorrow's fixtures to save API calls.
+        # This keeps updates for today's games frequent, while tomorrow's are less frequent.
+        hours_for_tomorrow_update = [0, 6, 12, 18] # 4 times a day
         current_hour = datetime.datetime.now().hour
         
-        if current_hour % 2 == 0:
-            # On even hours, update today's fixtures
-            date_to_process_str = datetime.date.today().strftime("%Y-%m-%d")
-            day_name = "today"
-        else:
-            # On odd hours, update tomorrow's fixtures
+        if current_hour in hours_for_tomorrow_update:
+            # Update tomorrow's fixtures at specific times
             date_to_process_str = (datetime.date.today() + datetime.timedelta(days=1)).strftime("%Y-%m-%d")
             day_name = "tomorrow"
+        else:
+            # Update today's fixtures on all other runs
+            date_to_process_str = datetime.date.today().strftime("%Y-%m-%d")
+            day_name = "today"
             
         logging.info(f"Current task: updating fixtures for {day_name} ({date_to_process_str}).")
         
