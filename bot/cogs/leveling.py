@@ -7,7 +7,7 @@ from pymongo import MongoClient
 from bson.objectid import ObjectId
 from dotenv import load_dotenv
 import random
-from cachetools import TTLCache
+import time
 
 load_dotenv()
 
@@ -26,34 +26,38 @@ class Leveling(commands.Cog):
         self.level_config_collection = self.db.level_config
         self.bot_config_collection = self.bot_db.config
         
-        # Caches
-        self.message_cooldowns = TTLCache(maxsize=1024, ttl=60)
-        self.level_config_cache = TTLCache(maxsize=1, ttl=900) # 15 min
-        self.bot_config_cache = TTLCache(maxsize=1, ttl=900) # 15 min
+        # Simple in-memory caches to replace cachetools
+        self.message_cooldowns = {}  # Stores user_id: timestamp
+        self.level_config_cache = {} # Stores 'config': (timestamp, data)
+        self.bot_config_cache = {}   # Stores 'config': (timestamp, data)
+        self.MESSAGE_COOLDOWN_SECONDS = 60
+        self.CONFIG_CACHE_SECONDS = 900 # 15 minutes
 
     def cog_unload(self):
         self.client.close()
 
     async def get_level_config(self):
         """Fetches level configuration from cache or database."""
-        if 'config' in self.level_config_cache:
-            return self.level_config_cache['config']
+        cached = self.level_config_cache.get('config')
+        if cached and (time.time() - cached[0]) < self.CONFIG_CACHE_SECONDS:
+            return cached[1]
         
         config_doc = self.level_config_collection.find_one({"_id": LEVEL_CONFIG_ID})
         if config_doc and 'levels' in config_doc:
             config = sorted(config_doc['levels'], key=lambda x: x['level'])
-            self.level_config_cache['config'] = config
+            self.level_config_cache['config'] = (time.time(), config)
             return config
         return []
     
     async def get_bot_config(self):
         """Fetches bot configuration from cache or database."""
-        if 'config' in self.bot_config_cache:
-            return self.bot_config_cache['config']
+        cached = self.bot_config_cache.get('config')
+        if cached and (time.time() - cached[0]) < self.CONFIG_CACHE_SECONDS:
+            return cached[1]
         
         config_doc = self.bot_config_collection.find_one({"_id": BOT_CONFIG_ID})
         if config_doc:
-            self.bot_config_cache['config'] = config_doc
+            self.bot_config_cache['config'] = (time.time(), config_doc)
             return config_doc
         return {}
 
@@ -157,11 +161,12 @@ class Leveling(commands.Cog):
         user_id = str(message.author.id)
         
         # Check cooldown
-        if user_id in self.message_cooldowns:
+        now = time.time()
+        if user_id in self.message_cooldowns and (now - self.message_cooldowns[user_id]) < self.MESSAGE_COOLDOWN_SECONDS:
             return
             
         # Add to cooldown
-        self.message_cooldowns[user_id] = True
+        self.message_cooldowns[user_id] = now
 
         xp_to_grant = random.randint(15, 25)
         await self.grant_xp(message.author, xp_to_grant, message.channel)
