@@ -120,7 +120,7 @@ export function MatchCard({ match }: MatchCardProps) {
     <Card className={cn("flex flex-col", isCorinthiansMatch && "border-primary/50 shadow-lg shadow-primary/10")}>
       <CardHeader className="flex-row items-center justify-between pb-2">
         <CardTitle className="text-sm font-medium text-muted-foreground">{match.league}</CardTitle>
-        <Badge variant={badgeVariant}>
+        <Badge variant={badgeVariant} className={badgeVariant === 'destructive' ? 'bg-red-500/80 text-white' : ''}>
           {statusText}
         </Badge>
       </CardHeader>

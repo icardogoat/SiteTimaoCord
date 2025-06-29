@@ -206,7 +206,7 @@ export async function getMatches({ league, page = 1 }: { league?: string; page?:
     const skip = (page - 1) * MATCHES_PER_PAGE;
 
     // Define statuses for sorting
-    const finishedOrPostponedStatuses = ['FT', 'AET', 'PEN', 'PST'];
+    const finishedOrPostponedStatuses = ['FT', 'AET', 'PEN', 'PST', 'CANC', 'ABD', 'AWD', 'WO'];
     
     const aggregationPipeline: any[] = [
         { $match: displayQuery },
