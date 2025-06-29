@@ -32,7 +32,6 @@ import {
 import {
   Form,
   FormControl,
-  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -169,7 +168,7 @@ export function AdminQuizClient({ initialQuizzes, discordChannels, error }: { in
                 <TableRow>
                     <TableHead>Nome do Quiz</TableHead>
                     <TableHead className="text-center">Perguntas</TableHead>
-                    <TableHead className="text-right">Recompensa</TableHead>
+                    <TableHead className="text-right">Recompensa (por acerto)</TableHead>
                     <TableHead className="text-right w-24">Ações</TableHead>
                 </TableRow>
                 </TableHeader>

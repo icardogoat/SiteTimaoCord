@@ -6,23 +6,17 @@ from pymongo import MongoClient
 from dotenv import load_dotenv
 from bson.objectid import ObjectId
 import datetime
-import random
+import asyncio
+from collections import defaultdict
 
 load_dotenv()
 
-class QuizView(ui.View):
-    def __init__(self, quiz_doc, question_data, db, bot):
-        self.quiz_doc = quiz_doc
+class QuizQuestionView(ui.View):
+    def __init__(self, question_data):
+        super().__init__(timeout=30.0) # 30 second timeout per question
         self.question_data = question_data
-        self.db = db
-        self.bot = bot
-        self.wallets = self.db.wallets
         self.winner = None
-        self.answered_users = set()
         self.message = None
-
-        # O timeout agora vem do documento do quiz, com um fallback
-        super().__init__(timeout=180.0) 
 
         for i, option in enumerate(self.question_data['options']):
             button = ui.Button(label=option, style=discord.ButtonStyle.secondary, custom_id=f"quiz_option_{i}")
@@ -31,17 +25,10 @@ class QuizView(ui.View):
 
     async def button_callback(self, interaction: discord.Interaction):
         if self.winner:
-            await interaction.response.send_message("Este quiz já foi respondido. Aguarde o próximo!", ephemeral=True)
+            await interaction.response.send_message("Alguém já acertou esta pergunta. Aguarde a próxima!", ephemeral=True)
             return
 
-        if interaction.user.id in self.answered_users:
-            await interaction.response.send_message("Você já tentou responder a esta pergunta.", ephemeral=True)
-            return
-
-        self.answered_users.add(interaction.user.id)
         selected_option_index = int(interaction.data['custom_id'].split('_')[-1])
-        
-        # A resposta correta agora vem do `question_data`
         correct_answer_index = self.question_data.get('answer', -1)
 
         if selected_option_index == correct_answer_index:
@@ -53,76 +40,16 @@ class QuizView(ui.View):
                     if item.custom_id == interaction.data['custom_id']:
                         item.style = discord.ButtonStyle.success
                     else:
-                        item.style = discord.ButtonStyle.secondary
+                        item.style = discord.ButtonStyle.danger
 
             new_embed = interaction.message.embeds[0]
             new_embed.color = 0x00FF00
+            new_embed.description = f"**{self.winner.mention} acertou a resposta!**"
             
-            prize_amount = self.quiz_doc.get('rewardAmount', 500)
-            
-            new_embed.set_field_at(0, name="🏆 Vencedor", value=f"{self.winner.mention} acertou a resposta e ganhou R$ {prize_amount:.2f}!", inline=False)
             await interaction.response.edit_message(embed=new_embed, view=self)
-
-            await self.award_prize()
             self.stop()
         else:
-            await interaction.response.send_message("❌ Resposta incorreta! Tente na próxima.", ephemeral=True)
-
-    async def on_timeout(self):
-        if self.message and not self.winner:
-            for item in self.children:
-                if isinstance(item, ui.Button):
-                    item.disabled = True
-            
-            new_embed = self.message.embeds[0]
-            new_embed.color = 0xFF0000
-            correct_answer_index = self.question_data.get('answer', -1)
-            correct_answer_text = self.question_data['options'][correct_answer_index]
-            new_embed.set_field_at(0, name="⏰ Tempo Esgotado", value=f"Ninguém acertou a tempo. A resposta correta era: **{correct_answer_text}**.", inline=False)
-            
-            try:
-                await self.message.edit(embed=new_embed, view=self)
-            except discord.errors.NotFound:
-                pass # A mensagem pode ter sido deletada
-        self.stop()
-
-    async def award_prize(self):
-        if not self.winner:
-            return
-
-        user_id = str(self.winner.id)
-        
-        user_account = self.db.users.find_one({"discordId": user_id})
-        if not user_account:
-            # Enviar DM se o usuário não tiver conta
-            try:
-                site_url = os.getenv('SITE_URL', 'http://localhost:9003')
-                await self.winner.send(f"Parabéns por ganhar o quiz! Para receber seu prêmio, você precisa fazer login no nosso site pelo menos uma vez: {site_url}")
-            except discord.Forbidden:
-                pass # Não pode enviar DM
-            return
-
-        prize_amount = self.quiz_doc.get('rewardAmount', 500)
-
-        new_transaction = {
-            "id": str(ObjectId()),
-            "type": "Prêmio",
-            "description": f"Prêmio do Quiz: {self.quiz_doc.get('name', 'Quiz do Timão')}",
-            "amount": prize_amount,
-            "date": datetime.datetime.now(datetime.timezone.utc).isoformat(),
-            "status": "Concluído"
-        }
-
-        self.wallets.update_one(
-            {"userId": user_id},
-            {
-                "$inc": {"balance": prize_amount},
-                "$push": {"transactions": {"$each": [new_transaction], "$sort": {"date": -1}}}
-            },
-            upsert=True
-        )
-        print(f"Awarded R$ {prize_amount} to {self.winner.name} ({user_id}) for winning the quiz.")
-
+            await interaction.response.send_message("❌ Resposta incorreta!", ephemeral=True)
 
 class Quiz(commands.Cog):
     def __init__(self, bot):
@@ -130,11 +57,12 @@ class Quiz(commands.Cog):
         self.client = MongoClient(os.getenv('MONGODB_URI'))
         self.db = self.client.timaocord
         self.quizzes_collection = self.db.quizzes
+        self.wallets_collection = self.db.wallets
+        self.users_collection = self.db.users
 
     def cog_unload(self):
         self.client.close()
     
-    # Autocomplete para o comando /iniciar_quiz
     async def quiz_autocomplete(self, interaction: discord.Interaction, current: str):
         quizzes = self.quizzes_collection.find(
             {"name": {"$regex": current, "$options": "i"}}
@@ -143,6 +71,35 @@ class Quiz(commands.Cog):
             app_commands.Choice(name=quiz['name'], value=str(quiz['_id']))
             for quiz in quizzes
         ]
+
+    async def award_prize(self, user: discord.User, prize_amount: float, quiz_name: str):
+        user_id = str(user.id)
+        user_account = self.users_collection.find_one({"discordId": user_id})
+        
+        if not user_account:
+            try:
+                site_url = os.getenv('SITE_URL', 'http://localhost:9003')
+                await user.send(f"Parabéns por ganhar no quiz! Para receber seu prêmio, você precisa fazer login no nosso site pelo menos uma vez: {site_url}")
+            except discord.Forbidden:
+                pass # Can't send DMs
+            return
+
+        new_transaction = {
+            "id": str(ObjectId()), "type": "Prêmio",
+            "description": f"Prêmio do Quiz: {quiz_name}",
+            "amount": prize_amount,
+            "date": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+            "status": "Concluído"
+        }
+
+        self.wallets_collection.update_one(
+            {"userId": user_id},
+            {
+                "$inc": {"balance": prize_amount},
+                "$push": {"transactions": {"$each": [new_transaction], "$sort": {"date": -1}}}
+            },
+            upsert=True
+        )
 
     @app_commands.command(name="iniciar_quiz", description="[Admin] Inicia uma rodada de um quiz personalizado.")
     @app_commands.autocomplete(quiz_id=quiz_autocomplete)
@@ -181,32 +138,74 @@ class Quiz(commands.Cog):
             await interaction.followup.send(f"❌ ID do canal de evento `{channel_id}` é inválido.", ephemeral=True)
             return
 
-        # Por enquanto, vamos pegar a primeira pergunta do quiz
-        # Futuramente, a lógica pode ser expandida para um quiz de múltiplas perguntas.
-        question_data = quiz_doc['questions'][0]
-
-        embed = discord.Embed(
-            title=f"🧠 {quiz_doc.get('name', 'Quiz do Timão!')}",
-            description=f"**{question_data['question']}**",
-            color=0x1E1E1E
+        await interaction.followup.send(f"✅ Quiz '{quiz_doc['name']}' sendo iniciado no canal {event_channel.mention}!", ephemeral=True)
+        
+        start_embed = discord.Embed(
+            title=f"🧠 Quiz '{quiz_doc.get('name', 'Quiz do Timão')}' vai começar!",
+            description=f"Prepare-se! A primeira pergunta será enviada em 10 segundos...",
+            color=0x1E90FF
         )
+        await event_channel.send(embed=start_embed)
+        await asyncio.sleep(10)
+
+        scores = defaultdict(int)
         
-        prize = quiz_doc.get('rewardAmount', 500)
-        
-        embed.set_footer(text=f"O primeiro a acertar ganha R$ {prize:.2f}! Você tem 3 minutos.")
-        embed.add_field(name="Responda Abaixo", value="Clique no botão com a resposta correta.", inline=False)
-        
-        # Passa o documento do quiz e a pergunta para a View
-        view = QuizView(quiz_doc=quiz_doc, question_data=question_data, db=self.db, bot=self.bot)
-        
-        try:
-            quiz_message = await event_channel.send(embed=embed, view=view)
+        for index, question_data in enumerate(quiz_doc['questions']):
+            question_embed = discord.Embed(
+                title=f"Pergunta {index + 1}/{len(quiz_doc['questions'])}",
+                description=f"**{question_data['question']}**",
+                color=0x1E1E1E
+            )
+            question_embed.set_footer(text="O primeiro a acertar ganha! Você tem 30 segundos.")
+
+            view = QuizQuestionView(question_data)
+            
+            quiz_message = await event_channel.send(embed=question_embed, view=view)
             view.message = quiz_message
-            await interaction.followup.send(f"✅ Quiz '{quiz_doc['name']}' iniciado com sucesso no canal {event_channel.mention}!", ephemeral=True)
-        except discord.errors.Forbidden:
-            await interaction.followup.send(f"❌ O bot não tem permissão para enviar mensagens no canal {event_channel.mention}.", ephemeral=True)
-        except Exception as e:
-            await interaction.followup.send(f"❌ Ocorreu um erro ao enviar o quiz: {e}", ephemeral=True)
+
+            await view.wait()
+            
+            if view.winner:
+                winner = view.winner
+                prize = quiz_doc.get('rewardAmount', 0)
+                scores[winner.id] += 1
+                
+                await self.award_prize(winner, prize, quiz_doc.get('name', 'Quiz'))
+                
+                await event_channel.send(f"🏆 {winner.mention} acertou e ganhou **R$ {prize:.2f}**!")
+            else: 
+                timeout_embed = quiz_message.embeds[0]
+                timeout_embed.color = 0xFF0000
+                correct_answer_text = question_data['options'][question_data['answer']]
+                timeout_embed.description = f"Tempo esgotado! A resposta correta era: **{correct_answer_text}**"
+                for item in view.children:
+                    if isinstance(item, ui.Button): item.disabled = True
+                await quiz_message.edit(embed=timeout_embed, view=view)
+                await event_channel.send("Ninguém acertou a tempo. Próxima pergunta em breve...")
+            
+            if index < len(quiz_doc['questions']) - 1:
+                await asyncio.sleep(8)
+        
+        await event_channel.send(embed=discord.Embed(title="🏁 Quiz Finalizado! 🏁", color=0x1E1E1E))
+        await asyncio.sleep(3)
+
+        if not scores:
+            await event_channel.send("Ninguém pontuou neste quiz. Mais sorte na próxima!")
+            return
+
+        sorted_scores = sorted(scores.items(), key=lambda item: item[1], reverse=True)
+        
+        leaderboard_description = ""
+        for i, (user_id, score) in enumerate(sorted_scores[:10]):
+            user = self.bot.get_user(user_id) or await self.bot.fetch_user(user_id)
+            leaderboard_description += f"**{i+1}º:** {user.mention} - {score} acerto(s)\n"
+
+        leaderboard_embed = discord.Embed(
+            title="🏆 Ranking Final do Quiz 🏆",
+            description=leaderboard_description,
+            color=0xFFD700
+        )
+        await event_channel.send(embed=leaderboard_embed)
 
     @iniciar_quiz.error
     async def on_quiz_error(self, interaction: discord.Interaction, error: app_commands.AppCommandError):
@@ -214,7 +213,6 @@ class Quiz(commands.Cog):
             await interaction.response.send_message("Você não tem permissão para usar este comando.", ephemeral=True)
         else:
             await interaction.response.send_message(f"Ocorreu um erro: {error}", ephemeral=True)
-
 
 async def setup(bot):
     await bot.add_cog(Quiz(bot))
