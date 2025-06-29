@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from "next/link";
@@ -38,6 +39,7 @@ const allNavGroups = [
     title: 'Gerenciamento',
     links: [
       { href: "/admin/matches", label: "Partidas", icon: Trophy, adminOnly: true },
+      { href: "/admin/championships", label: "Campeonatos", icon: Trophy, adminOnly: true },
       { href: "/admin/bets", label: "Apostas", icon: Ticket, adminOnly: true },
       { href: "/admin/users", label: "Usuários", icon: Users, adminOnly: true },
       { href: "/admin/purchases", label: "Compras", icon: Receipt, adminOnly: true },
@@ -46,7 +48,6 @@ const allNavGroups = [
   {
     title: 'Comunidade & Eventos',
     links: [
-        { href: "/admin/highlights", label: "Destaques", icon: Sparkles, adminOnly: true },
         { href: "/admin/mvp", label: "MVP Votação", icon: Star, adminOnly: true },
         { href: "/admin/level", label: "Níveis", icon: Layers, adminOnly: true },
         { href: "/admin/announcements", label: "Posts", icon: FilePen, adminOnly: false },

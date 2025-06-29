@@ -2,7 +2,7 @@
 'use server';
 
 import clientPromise from '@/lib/mongodb';
-import type { Post, AuthorInfo, PlacedBet, Transaction, UserRanking, MvpVoting, MvpPlayer, MvpTeamLineup, Notification, StoreItem, Bolao, Advertisement, UserInventoryItem, PurchaseAdminView, BetVolumeData, ProfitLossData, SiteEvent, LevelThreshold, DbStats, UserStats, RecentUser, PromoCode } from '@/types';
+import type { Post, AuthorInfo, PlacedBet, Transaction, UserRanking, MvpVoting, MvpPlayer, MvpTeamLineup, Notification, StoreItem, Bolao, Advertisement, UserInventoryItem, PurchaseAdminView, BetVolumeData, ProfitLossData, SiteEvent, LevelThreshold, DbStats, UserStats, RecentUser, PromoCode, Championship } from '@/types';
 import { ObjectId, WithId } from 'mongodb';
 import { revalidatePath } from 'next/cache';
 import { getBotConfig } from './bot-config-actions';
@@ -13,6 +13,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import { getActiveEvent } from './event-actions';
 import { getLevelConfig } from './level-actions';
+import { updateFixturesFromApi } from './fixtures-actions';
 
 // Base type for a match in the DB (for admin list view)
 type MatchFromDb = {
@@ -2374,5 +2375,61 @@ export async function revokePromoCode(codeId: string): Promise<{ success: boolea
     } catch (error) {
         console.error("Error revoking promo code:", error);
         return { success: false, message: "Ocorreu um erro ao revogar o código." };
+    }
+}
+
+export async function manualUpdateFixtures(): Promise<{success: boolean, message: string}> {
+    return await updateFixturesFromApi();
+}
+
+// --- CHAMPIONSHIP ACTIONS ---
+export async function getAdminChampionships(): Promise<Championship[]> {
+    try {
+        const client = await clientPromise;
+        const db = client.db('timaocord');
+        const championships = await db.collection<Championship>('championships')
+            .find({})
+            .sort({ name: 1 })
+            .toArray();
+
+        return JSON.parse(JSON.stringify(championships));
+    } catch (error) {
+        console.error("Error fetching admin championships:", error);
+        return [];
+    }
+}
+
+export async function upsertChampionship(data: { id?: string; name: string; leagueId: number; season: number; country?: string; logo?: string; isActive?: boolean }): Promise<{ success: boolean; message: string }> {
+    const { id, ...champData } = data;
+
+    try {
+        const client = await clientPromise;
+        const db = client.db('timaocord');
+        const collection = db.collection<Championship>('championships');
+
+        if (id) {
+            await collection.updateOne({ _id: new ObjectId(id) }, { $set: champData });
+        } else {
+            await collection.insertOne({ ...champData, createdAt: new Date() } as Championship);
+        }
+
+        revalidatePath('/admin/championships');
+        return { success: true, message: `Campeonato ${id ? 'atualizado' : 'criado'} com sucesso!` };
+    } catch (error) {
+        console.error("Error upserting championship:", error);
+        return { success: false, message: "Ocorreu um erro ao salvar o campeonato." };
+    }
+}
+
+export async function deleteChampionship(id: string): Promise<{ success: boolean; message: string }> {
+    try {
+        const client = await clientPromise;
+        const db = client.db('timaocord');
+        await db.collection('championships').deleteOne({ _id: new ObjectId(id) });
+        revalidatePath('/admin/championships');
+        return { success: true, message: 'Campeonato excluído com sucesso.' };
+    } catch (error) {
+        console.error("Error deleting championship:", error);
+        return { success: false, message: 'Falha ao excluir o campeonato.' };
     }
 }

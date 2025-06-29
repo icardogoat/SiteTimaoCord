@@ -141,11 +141,11 @@ export const getAvailableLeagues = cache(async (): Promise<string[]> => {
     try {
         const client = await clientPromise;
         const db = client.db("timaocord");
-        const matchesCollection = db.collection("matches");
+        const championshipsCollection = db.collection("championships");
         
-        const leagues = await matchesCollection.distinct('league');
+        const activeChampionships = await championshipsCollection.find({ isActive: true }).project({ name: 1 }).toArray();
         
-        return leagues.filter((league): league is string => typeof league === 'string' && league.length > 0);
+        return activeChampionships.map(c => c.name);
     } catch (error) {
         console.error('Failed to fetch available leagues:', error);
         return [];
