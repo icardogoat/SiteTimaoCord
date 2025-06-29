@@ -1,3 +1,4 @@
+
 'use client'
 
 import { Activity, CreditCard, DollarSign, Users, Loader2, RefreshCw, BellRing, Send, ShieldCheck, Wallet, Zap, Trophy, UserPlus } from "lucide-react"
@@ -31,6 +32,7 @@ import { Input } from "./ui/input";
 import { Textarea } from "./ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 import { Tabs, TabsList, TabsTrigger } from "./ui/tabs";
+import { AvatarFallbackText } from "./avatar-fallback-text";
 
 
 const volumeChartConfig = {
@@ -267,7 +269,7 @@ export function AdminDashboardClient({ stats, initialChartData, topBettors, rece
                             <div className="flex items-center gap-4" key={user.email}>
                             <Avatar className={cn("hidden h-9 w-9 sm:flex", user.isVip && "ring-2 ring-vip")}>
                                 <AvatarImage src={user.avatar} alt="Avatar" data-ai-hint="user avatar" />
-                                <AvatarFallback>{user.name.substring(0, 2).toUpperCase()}</AvatarFallback>
+                                <AvatarFallback><AvatarFallbackText name={user.name} /></AvatarFallback>
                             </Avatar>
                             <div className="grid gap-1">
                                 <p className="text-sm font-medium leading-none">{user.name}</p>
@@ -292,7 +294,7 @@ export function AdminDashboardClient({ stats, initialChartData, topBettors, rece
                             <div className="flex items-center gap-4" key={user.discordId}>
                                 <Avatar className={cn("hidden h-9 w-9 sm:flex", user.isVip && "ring-2 ring-vip")}>
                                     <AvatarImage src={user.avatar} alt="Avatar" data-ai-hint="user avatar" />
-                                    <AvatarFallback>{user.name.substring(0, 2).toUpperCase()}</AvatarFallback>
+                                    <AvatarFallback><AvatarFallbackText name={user.name} /></AvatarFallback>
                                 </Avatar>
                                 <div className="grid gap-1">
                                     <p className="text-sm font-medium leading-none">{user.name}</p>
@@ -318,7 +320,7 @@ export function AdminDashboardClient({ stats, initialChartData, topBettors, rece
                         <div className="flex items-center gap-4" key={user.discordId}>
                             <Avatar className={cn("hidden h-9 w-9 sm:flex", user.isVip && "ring-2 ring-vip")}>
                                 <AvatarImage src={user.avatar} alt="Avatar" data-ai-hint="user avatar" />
-                                <AvatarFallback>{user.name.substring(0, 2).toUpperCase()}</AvatarFallback>
+                                <AvatarFallback><AvatarFallbackText name={user.name} /></AvatarFallback>
                             </Avatar>
                             <div className="grid gap-1">
                                 <p className="text-sm font-medium leading-none">{user.name}</p>
@@ -406,7 +408,7 @@ export function AdminDashboardClient({ stats, initialChartData, topBettors, rece
                     <div className="flex items-center gap-4" key={index}>
                     <Avatar className="hidden h-9 w-9 sm:flex">
                         <AvatarImage src={user.avatar} alt="Avatar" data-ai-hint="user avatar" />
-                        <AvatarFallback>{user.name.substring(0, 2).toUpperCase()}</AvatarFallback>
+                        <AvatarFallback><AvatarFallbackText name={user.name} /></AvatarFallback>
                     </Avatar>
                     <div className="grid gap-1">
                         <p className="text-sm font-medium leading-none">{user.name}</p>
