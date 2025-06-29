@@ -165,15 +165,6 @@ function ChampionshipSidebarMenuInner({ availableLeagues }: ChampionshipSidebarM
 
   return (
     <>
-      <SidebarMenuItem>
-        <SidebarMenuButton asChild isActive={!selectedLeague}>
-            <Link href="/bet">
-                <Home />
-                <span>Todas as Partidas</span>
-            </Link>
-        </SidebarMenuButton>
-      </SidebarMenuItem>
-
       {isLoadingHighlights ? (
          <SidebarMenuItem>
             <SidebarMenuSkeleton showIcon />
@@ -203,6 +194,15 @@ function ChampionshipSidebarMenuInner({ availableLeagues }: ChampionshipSidebarM
           )}
         </SidebarMenuItem>
       )}
+
+      <SidebarMenuItem>
+        <SidebarMenuButton asChild isActive={!selectedLeague}>
+            <Link href="/bet">
+                <Home />
+                <span>Todas as Partidas</span>
+            </Link>
+        </SidebarMenuButton>
+      </SidebarMenuItem>
 
       {filteredChampionshipGroups.map((group) => (
         <SidebarMenuItem key={group.name}>
