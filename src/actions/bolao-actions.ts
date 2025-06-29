@@ -13,7 +13,7 @@ import { grantAchievement } from './achievement-actions';
 
 const ENTRY_FEE = 5;
 
-async function sendNewBolaoNotification(bolao: Omit<Bolao, '_id'>) {
+async function sendNewBolaoNotification(bolao: Bolao) {
     const config = await getBotConfig();
     const { siteUrl } = await getApiSettings();
     const botToken = process.env.DISCORD_BOT_TOKEN;
@@ -24,15 +24,18 @@ async function sendNewBolaoNotification(bolao: Omit<Bolao, '_id'>) {
         return;
     }
 
+    const bolaoId = bolao._id.toString();
+
     const embed = {
         color: 0x2563eb, // blue-600
         title: '👑 NOVO BOLÃO NA ÁREA! 👑',
         description: `**${bolao.homeTeam} vs ${bolao.awayTeam}**\n\nAdivinhe o placar e concorra a prêmios!`,
         fields: [
             { name: 'Entrada', value: `R$ ${bolao.entryFee.toFixed(2)}`, inline: true },
+            { name: 'ID do Bolão', value: `\`${bolaoId}\``, inline: true }
         ],
         footer: {
-            text: `Campeonato: ${bolao.league}`,
+            text: `Use /bolao id:${bolaoId} para participar!`,
         },
         timestamp: new Date().toISOString(),
     };
@@ -49,14 +52,12 @@ async function sendNewBolaoNotification(bolao: Omit<Bolao, '_id'>) {
                     {
                         type: 2, // Button
                         style: 5, // Link
-                        label: 'Participar do Bolão',
+                        label: 'Ver no Site',
                         url: `${siteUrl}/bolao`
                     }
                 ]
             }
         ];
-    } else {
-        embed.fields.push({ name: 'Como participar?', value: `Acesse a aba **Bolão** no nosso site para dar seu palpite!`, inline: false });
     }
 
     try {
@@ -91,7 +92,7 @@ export async function createBolao(matchId: number): Promise<{ success: boolean, 
         const client = await clientPromise;
         const db = client.db('timaocord');
         const matchesCollection = db.collection('matches');
-        const boloesCollection = db.collection('boloes');
+        const boloesCollection = db.collection<Bolao>('boloes');
 
         const existingBolao = await boloesCollection.findOne({ matchId });
         if (existingBolao) {
@@ -103,7 +104,7 @@ export async function createBolao(matchId: number): Promise<{ success: boolean, 
             return { success: false, message: 'Partida não encontrada.' };
         }
 
-        const newBolao: Omit<Bolao, '_id'> = {
+        const newBolaoData: Omit<Bolao, '_id'> = {
             matchId: matchData._id,
             homeTeam: matchData.homeTeam,
             awayTeam: matchData.awayTeam,
@@ -118,8 +119,10 @@ export async function createBolao(matchId: number): Promise<{ success: boolean, 
             createdAt: new Date(),
         };
 
-        await boloesCollection.insertOne(newBolao as any);
-        await sendNewBolaoNotification(newBolao);
+        const result = await boloesCollection.insertOne(newBolaoData as any);
+        const createdBolao: Bolao = { ...newBolaoData, _id: result.insertedId };
+        
+        await sendNewBolaoNotification(createdBolao);
 
         revalidatePath('/admin/matches');
         revalidatePath('/bolao');
