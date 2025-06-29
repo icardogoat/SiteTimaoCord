@@ -14,7 +14,7 @@ import { Form, FormControl, FormField, FormItem, FormMessage } from './ui/form';
 import { useState } from 'react';
 import { joinBolao } from '@/actions/bolao-actions';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Users } from 'lucide-react';
+import { Loader2, Users, ChevronDown, ChevronUp } from 'lucide-react';
 import { Session } from 'next-auth';
 import { AvatarFallbackText } from './avatar-fallback-text';
 import { Separator } from './ui/separator';
@@ -33,6 +33,8 @@ interface BolaoCardProps {
 function BolaoCard({ bolao, sessionUser }: BolaoCardProps) {
     const { toast } = useToast();
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [isParticipantsExpanded, setIsParticipantsExpanded] = useState(false);
+    
     const form = useForm<z.infer<typeof bolaoSchema>>({
         resolver: zodResolver(bolaoSchema),
         defaultValues: {
@@ -66,6 +68,12 @@ function BolaoCard({ bolao, sessionUser }: BolaoCardProps) {
 
     const homeTeamCustom = getTeamCustomization(bolao.homeTeam);
     const awayTeamCustom = getTeamCustomization(bolao.awayTeam);
+
+    const participantsToShow = isParticipantsExpanded 
+        ? bolao.participants.slice().reverse()
+        : bolao.participants.slice(-5).reverse();
+
+    const hasMoreParticipants = bolao.participants.length > 5;
 
     return (
         <Card className="flex flex-col">
@@ -141,7 +149,7 @@ function BolaoCard({ bolao, sessionUser }: BolaoCardProps) {
                         <span>Últimos Participantes</span>
                     </h4>
                     <div className="flex flex-wrap gap-2">
-                        {bolao.participants.slice(-10).reverse().map(p => (
+                        {participantsToShow.map(p => (
                             <div key={p.userId} className="flex items-center gap-2 p-1.5 rounded-md bg-card-foreground/5">
                                 <Avatar className="h-6 w-6">
                                     <AvatarImage src={p.avatar} alt={p.name} data-ai-hint="user avatar" />
@@ -151,6 +159,16 @@ function BolaoCard({ bolao, sessionUser }: BolaoCardProps) {
                             </div>
                         ))}
                     </div>
+                    {hasMoreParticipants && (
+                        <Button
+                            variant="link"
+                            className="p-0 h-auto text-xs mt-2"
+                            onClick={() => setIsParticipantsExpanded(!isParticipantsExpanded)}
+                        >
+                            {isParticipantsExpanded ? 'Ver menos' : `Ver todos os ${bolao.participants.length} participantes`}
+                            {isParticipantsExpanded ? <ChevronUp className="ml-1 h-3 w-3" /> : <ChevronDown className="ml-1 h-3 w-3" />}
+                        </Button>
+                    )}
                 </CardFooter>
             )}
         </Card>
