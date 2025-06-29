@@ -68,15 +68,17 @@ interface AdminBotConfigClientProps {
     initialConfig: Partial<BotConfig>;
     initialChannels: DiscordChannel[];
     initialRoles: DiscordRole[];
+    error?: string | null;
 }
 
-export default function AdminBotConfigClient({ initialConfig, initialChannels, initialRoles }: AdminBotConfigClientProps) {
+export default function AdminBotConfigClient({ initialConfig, initialChannels, initialRoles, error: initialError }: AdminBotConfigClientProps) {
     const { toast } = useToast();
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isLoadingDetails, setIsLoadingDetails] = useState(false);
     const [isTesting, setIsTesting] = useState<string | null>(null);
     const [channels, setChannels] = useState<DiscordChannel[]>(initialChannels);
     const [roles, setRoles] = useState<DiscordRole[]>(initialRoles);
+    const [error, setError] = useState<string | null>(initialError);
 
     const form = useForm<FormValues>({
         resolver: zodResolver(formSchema),
@@ -104,6 +106,7 @@ export default function AdminBotConfigClient({ initialConfig, initialChannels, i
     const fetchDetails = async (id: string) => {
         if (!id) return;
         setIsLoadingDetails(true);
+        setError(null); // Clear previous errors
         setChannels([]);
         setRoles([]);
 
@@ -137,11 +140,7 @@ export default function AdminBotConfigClient({ initialConfig, initialChannels, i
                 });
             }
         } else {
-            toast({
-                title: 'Erro ao carregar',
-                description: result.error,
-                variant: 'destructive',
-            });
+            setError(result.error || 'Ocorreu um erro desconhecido.');
         }
         setIsLoadingDetails(false);
     };
@@ -321,7 +320,17 @@ export default function AdminBotConfigClient({ initialConfig, initialChannels, i
                             )}
                         />
                         
-                        {(guildId && !isLoadingDetails && channels.length === 0 && roles.length === 0) && (
+                        {error && (
+                            <Alert variant="destructive">
+                                <Terminal className="h-4 w-4" />
+                                <AlertTitle>Erro ao Carregar Detalhes</AlertTitle>
+                                <AlertDescription>
+                                    {error.split('\n').map((line, i) => <p key={i}>{line}</p>)}
+                                </AlertDescription>
+                            </Alert>
+                        )}
+
+                        {(guildId && !isLoadingDetails && !error && channels.length === 0 && roles.length === 0) && (
                             <Alert>
                                 <Terminal className="h-4 w-4" />
                                 <AlertTitle>Nenhum Canal ou Cargo Encontrado</AlertTitle>
