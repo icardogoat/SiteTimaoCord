@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState } from 'react';
@@ -157,7 +156,7 @@ export default function AdminLevelClient({ initialLevels }: { initialLevels: Lev
                                                 <FormField control={form.control} name={`levels.${index}.rewardAmount`} render={({ field }) => (
                                                     <FormItem>
                                                         <FormLabel>Valor (R$)</FormLabel>
-                                                        <FormControl><Input type="number" {...field} placeholder="Ex: 500" /></FormControl>
+                                                        <FormControl><Input type="number" {...field} value={field.value ?? ''} placeholder="Ex: 500" /></FormControl>
                                                         <FormMessage />
                                                     </FormItem>
                                                 )}/>
@@ -166,7 +165,7 @@ export default function AdminLevelClient({ initialLevels }: { initialLevels: Lev
                                                  <FormField control={form.control} name={`levels.${index}.rewardRoleId`} render={({ field }) => (
                                                     <FormItem>
                                                         <FormLabel>ID do Cargo</FormLabel>
-                                                        <FormControl><Input {...field} placeholder="ID do cargo no Discord" /></FormControl>
+                                                        <FormControl><Input {...field} value={field.value ?? ''} placeholder="ID do cargo no Discord" /></FormControl>
                                                         <FormMessage />
                                                     </FormItem>
                                                 )}/>

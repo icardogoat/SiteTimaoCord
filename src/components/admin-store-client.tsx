@@ -231,18 +231,18 @@ export default function AdminStoreClient({ initialItems }: { initialItems: Store
                                         </FormItem>
                                     )}/>
                                     <FormField control={form.control} name="roleId" render={({ field }) => (
-                                        <FormItem><FormLabel>ID do Cargo (Discord)</FormLabel><FormControl><Input {...field} placeholder="Ex: 123456789012345678" /></FormControl><FormDescription>O ID do cargo que será atribuído no Discord ao resgatar.</FormDescription><FormMessage /></FormItem>
+                                        <FormItem><FormLabel>ID do Cargo (Discord)</FormLabel><FormControl><Input {...field} value={field.value ?? ''} placeholder="Ex: 123456789012345678" /></FormControl><FormDescription>O ID do cargo que será atribuído no Discord ao resgatar.</FormDescription><FormMessage /></FormItem>
                                     )}/>
                                 </>
                             )}
                              {itemType === 'XP_BOOST' && (
                                 <FormField control={form.control} name="xpAmount" render={({ field }) => (
-                                    <FormItem><FormLabel>Quantidade de XP</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormDescription>A quantidade de XP que o usuário receberá (resgate direto, sem código).</FormDescription><FormMessage /></FormItem>
+                                    <FormItem><FormLabel>Quantidade de XP</FormLabel><FormControl><Input type="number" {...field} value={field.value ?? ''} /></FormControl><FormDescription>A quantidade de XP que o usuário receberá (resgate direto, sem código).</FormDescription><FormMessage /></FormItem>
                                 )}/>
                             )}
                              {itemType === 'AD_REMOVAL' && (
                                 <FormField control={form.control} name="durationInDays" render={({ field }) => (
-                                    <FormItem><FormLabel>Duração (em dias)</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormDescription>Por quantos dias os anúncios serão removidos para o usuário.</FormDescription><FormMessage /></FormItem>
+                                    <FormItem><FormLabel>Duração (em dias)</FormLabel><FormControl><Input type="number" {...field} value={field.value ?? ''} /></FormControl><FormDescription>Por quantos dias os anúncios serão removidos para o usuário.</FormDescription><FormMessage /></FormItem>
                                 )}/>
                             )}
                              <FormField control={form.control} name="isActive" render={({ field }) => (
