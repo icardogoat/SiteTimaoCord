@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 import { useMemo } from "react";
 import {
-    Bot, Home, Megaphone, Menu, Receipt, Server, Settings, ShoppingBag, Star, Ticket, Trophy, Users, FilePen, Tv, PartyPopper, Layers, Sparkles, Gift, QrCode, HelpCircle,
+    Bot, Home, Megaphone, Menu, Receipt, Server, Settings, ShoppingBag, Star, Ticket, Trophy, Users, FilePen, Tv, PartyPopper, Layers, Sparkles, Gift, QrCode, HelpCircle, BarChart,
 } from "lucide-react";
 import { useSession, signOut } from "next-auth/react";
 import { Button } from "@/components/ui/button";
@@ -39,7 +39,7 @@ const allNavGroups = [
     title: 'Gerenciamento',
     links: [
       { href: "/admin/matches", label: "Partidas", icon: Trophy, adminOnly: true },
-      { href: "/admin/championships", label: "Campeonatos", icon: Trophy, adminOnly: true },
+      { href: "/admin/championships", label: "Campeonatos", icon: BarChart, adminOnly: true },
       { href: "/admin/bets", label: "Apostas", icon: Ticket, adminOnly: true },
       { href: "/admin/users", label: "Usuários", icon: Users, adminOnly: true },
       { href: "/admin/purchases", label: "Compras", icon: Receipt, adminOnly: true },
@@ -118,12 +118,21 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       {navGroups.map((group) => {
         const isActiveGroup = activeGroupValue === group.title;
         return (
-          <div key={group.title} className="group">
+          <div key={group.title} className="group"
+            onMouseEnter={(e) => e.currentTarget.querySelector('[data-nav-group-content]')?.classList.remove('hidden')}
+            onMouseLeave={(e) => {
+                if(activeGroupValue !== group.title) {
+                    e.currentTarget.querySelector('[data-nav-group-content]')?.classList.add('hidden')
+                }
+            }}
+          >
             <div className="flex items-center rounded-md px-3 py-2 text-base font-medium text-foreground lg:text-sm cursor-default hover:bg-muted">
               {group.title}
             </div>
-            <div className={cn(
-                "hidden group-hover:block pt-1 pl-4 space-y-1",
+            <div 
+                data-nav-group-content
+                className={cn(
+                "hidden pt-1 pl-4 space-y-1",
                 isActiveGroup && "block"
             )}>
                <nav className="grid items-start font-medium">
