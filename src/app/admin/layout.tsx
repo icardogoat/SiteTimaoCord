@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 import { useMemo } from "react";
 import {
-    Bot, Home, Megaphone, Menu, Receipt, Server, Settings, ShoppingBag, Star, Ticket, Trophy, Users, FilePen, Tv, PartyPopper, Layers, Sparkles, Gift, Combine, Image as ImageIcon, Box, Album as AlbumIcon, QrCode,
+    Bot, Home, Megaphone, Menu, Receipt, Server, Settings, ShoppingBag, Star, Ticket, Trophy, Users, FilePen, Tv, PartyPopper, Layers, Sparkles, Gift, Combine, Image as ImageIcon, Box, Album as AlbumIcon, QrCode, HelpCircle,
 } from "lucide-react";
 import { useSession, signOut } from "next-auth/react";
 import { Button } from "@/components/ui/button";
@@ -67,6 +67,7 @@ const allNavGroups = [
         { href: "/admin/announcements", label: "Posts", icon: FilePen, adminOnly: false },
         { href: "/admin/stream", label: "Transmissão", icon: Tv, adminOnly: true },
         { href: "/admin/events", label: "Eventos", icon: PartyPopper, adminOnly: true },
+        { href: "/admin/quiz", label: "Quiz", icon: HelpCircle, adminOnly: true },
     ]
   },
   {

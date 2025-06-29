@@ -497,3 +497,20 @@ export type PromoCode = {
   expiresAt?: Date | string | null;
   createdBy: string; // discordId of admin or 'SYSTEM'
 };
+
+export type QuizQuestion = {
+    question: string;
+    options: string[];
+    answer: number; // index of the correct option
+};
+
+export type Quiz = {
+    _id: string | ObjectId;
+    name: string;
+    description: string;
+    rewardAmount: number;
+    channelId: string;
+    questions: QuizQuestion[];
+    createdBy: string;
+    createdAt: Date | string;
+};
