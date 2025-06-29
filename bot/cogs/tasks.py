@@ -181,40 +181,35 @@ class Tasks(commands.Cog):
             elif result.modified_count > 0:
                 updated_count += 1
         
-        logging.info(f"Completed processing for {date_str}. New: {new_count}, Updated: {updated_count}.")
         return new_count, updated_count
 
-    @tasks.loop(minutes=15)
+    @tasks.loop(minutes=30)
     async def update_fixtures(self):
         if not self.api_key:
             logging.warning("API_FOOTBALL_KEY not found. Skipping fixture update.")
             return
 
-        logging.info("Starting fixture update task...")
+        logging.info("Starting scheduled fixture update...")
         
-        today_str = datetime.date.today().strftime("%Y-%m-%d")
-        tomorrow_str = (datetime.date.today() + datetime.timedelta(days=1)).strftime("%Y-%m-%d")
-
-        total_new = 0
-        total_updated = 0
-
-        # Process today's fixtures
-        try:
-            new, updated = await self.process_fixtures_for_date(today_str)
-            total_new += new
-            total_updated += updated
-        except Exception as e:
-            logging.error(f"Error processing fixtures for {today_str}: {e}")
-
-        # Process tomorrow's fixtures
-        try:
-            new, updated = await self.process_fixtures_for_date(tomorrow_str)
-            total_new += new
-            total_updated += updated
-        except Exception as e:
-            logging.error(f"Error processing fixtures for {tomorrow_str}: {e}")
+        # Alternate between today and tomorrow to save API calls
+        current_hour = datetime.datetime.now().hour
         
-        logging.info(f"Fixture update complete. Total New: {total_new}, Total Updated: {total_updated}.")
+        if current_hour % 2 == 0:
+            # On even hours, update today's fixtures
+            date_to_process_str = datetime.date.today().strftime("%Y-%m-%d")
+            day_name = "today"
+        else:
+            # On odd hours, update tomorrow's fixtures
+            date_to_process_str = (datetime.date.today() + datetime.timedelta(days=1)).strftime("%Y-%m-%d")
+            day_name = "tomorrow"
+            
+        logging.info(f"Current task: updating fixtures for {day_name} ({date_to_process_str}).")
+        
+        try:
+            new, updated = await self.process_fixtures_for_date(date_to_process_str)
+            logging.info(f"Update for {date_to_process_str} complete. New: {new}, Updated: {updated}.")
+        except Exception as e:
+            logging.error(f"Error processing fixtures for {date_to_process_str}: {e}")
 
 
     @update_fixtures.before_loop
