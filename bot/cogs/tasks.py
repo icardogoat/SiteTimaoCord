@@ -7,11 +7,15 @@ from dotenv import load_dotenv
 import requests
 import datetime
 import logging
+from bson.objectid import ObjectId
 
 load_dotenv()
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+
+# Fixed ID for API settings document
+API_SETTINGS_ID = ObjectId('66a4f2b9a7c3d2e3c4f5b6a7')
 
 # --- Translation Dictionaries (similar to translations.ts) ---
 market_name_translations = {
@@ -84,26 +88,65 @@ def translate_market_data(market):
 class Tasks(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        self.api_key = os.getenv('API_FOOTBALL_KEY')
-        self.headers = {
-            "x-rapidapi-key": self.api_key,
-            "x-rapidapi-host": "api-football-v1.p.rapidapi.com"
-        }
         self.client = MongoClient(os.getenv('MONGODB_URI'))
         self.db = self.client.timaocord
+        self.settings_db = self.client.timaocord_settings
         self.matches_collection = self.db.matches
+        self.api_settings_collection = self.settings_db.api_settings
+        
+        # API Key Management
+        self.api_keys = []
+        self.key_index = 0
+        self._load_api_keys()
+
         self.update_fixtures.start()
+
+    def _load_api_keys(self):
+        """Loads API keys from the settings DB, with a fallback to .env"""
+        try:
+            settings = self.api_settings_collection.find_one({"_id": API_SETTINGS_ID})
+            if settings and 'updateApiKeys' in settings and len(settings['updateApiKeys']) > 0:
+                self.api_keys = [k['key'] for k in settings['updateApiKeys']]
+                logging.info(f"Loaded {len(self.api_keys)} API keys from the database.")
+            else:
+                raise ValueError("No keys found in DB")
+        except Exception as e:
+            logging.warning(f"Could not load API keys from database ({e}). Falling back to .env file.")
+            env_key = os.getenv('API_FOOTBALL_KEY')
+            if env_key:
+                self.api_keys = [env_key]
+                logging.info("Loaded 1 API key from .env file.")
+            else:
+                self.api_keys = []
+                logging.error("CRITICAL: No API keys found in database or .env file. Fixture updates will fail.")
+
+    def _get_api_key(self):
+        """Rotates through the available API keys."""
+        if not self.api_keys:
+            raise ValueError("No API keys available to make a request.")
+        
+        key = self.api_keys[self.key_index]
+        self.key_index = (self.key_index + 1) % len(self.api_keys)
+        return key
 
     def cog_unload(self):
         self.update_fixtures.cancel()
 
     def fetch_from_api(self, url, params):
         try:
-            response = requests.get(url, headers=self.headers, params=params)
+            api_key = self._get_api_key()
+            headers = {
+                "x-rapidapi-key": api_key,
+                "x-rapidapi-host": "api-football-v1.p.rapidapi.com"
+            }
+            response = requests.get(url, headers=headers, params=params)
             response.raise_for_status()
             return response.json().get('response', [])
         except requests.exceptions.RequestException as e:
             logging.error(f"API request to {url} failed: {e}")
+            return []
+        except ValueError as e:
+            logging.error(e)
             return []
 
     async def process_fixtures_for_date(self, date_str: str):
@@ -183,36 +226,29 @@ class Tasks(commands.Cog):
         
         return new_count, updated_count
 
-    @tasks.loop(minutes=30)
+    @tasks.loop(minutes=15)
     async def update_fixtures(self):
-        if not self.api_key:
-            logging.warning("API_FOOTBALL_KEY not found. Skipping fixture update.")
+        if not self.api_keys:
+            logging.warning("No API keys are configured. Skipping fixture update.")
             return
 
-        logging.info("Starting scheduled fixture update...")
+        logging.info("Starting scheduled fixture update for today and tomorrow...")
         
-        # Define specific hours to update tomorrow's fixtures to save API calls.
-        # This keeps updates for today's games frequent, while tomorrow's are less frequent.
-        hours_for_tomorrow_update = [0, 6, 12, 18] # 4 times a day
-        current_hour = datetime.datetime.now().hour
-        
-        if current_hour in hours_for_tomorrow_update:
-            # Update tomorrow's fixtures at specific times
-            date_to_process_str = (datetime.date.today() + datetime.timedelta(days=1)).strftime("%Y-%m-%d")
-            day_name = "tomorrow"
-        else:
-            # Update today's fixtures on all other runs
-            date_to_process_str = datetime.date.today().strftime("%Y-%m-%d")
-            day_name = "today"
-            
-        logging.info(f"Current task: updating fixtures for {day_name} ({date_to_process_str}).")
-        
+        # Process today's fixtures
+        today_str = datetime.date.today().strftime("%Y-%m-%d")
         try:
-            new, updated = await self.process_fixtures_for_date(date_to_process_str)
-            logging.info(f"Update for {date_to_process_str} complete. New: {new}, Updated: {updated}.")
+            new_today, updated_today = await self.process_fixtures_for_date(today_str)
+            logging.info(f"Update for today ({today_str}) complete. New: {new_today}, Updated: {updated_today}.")
         except Exception as e:
-            logging.error(f"Error processing fixtures for {date_to_process_str}: {e}")
+            logging.error(f"Error processing fixtures for {today_str}: {e}")
 
+        # Process tomorrow's fixtures
+        tomorrow_str = (datetime.date.today() + datetime.timedelta(days=1)).strftime("%Y-%m-%d")
+        try:
+            new_tomorrow, updated_tomorrow = await self.process_fixtures_for_date(tomorrow_str)
+            logging.info(f"Update for tomorrow ({tomorrow_str}) complete. New: {new_tomorrow}, Updated: {updated_tomorrow}.")
+        except Exception as e:
+            logging.error(f"Error processing fixtures for {tomorrow_str}: {e}")
 
     @update_fixtures.before_loop
     async def before_update_fixtures(self):
@@ -221,3 +257,5 @@ class Tasks(commands.Cog):
 
 async def setup(bot):
     await bot.add_cog(Tasks(bot))
+
+    
