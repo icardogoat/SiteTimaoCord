@@ -1,23 +1,32 @@
-
 'use client';
 
-import Link from "next/link"
-import { usePathname } from "next/navigation"
-import type { ReactNode } from "react"
-import { Bot, Home, Megaphone, Menu, Receipt, Server, Settings, ShoppingBag, Star, Ticket, Trophy, Users, FilePen, Tv, PartyPopper, Layers, Sparkles, Gift } from "lucide-react"
-import { useSession, signOut } from "next-auth/react"
-
-import { Button } from "@/components/ui/button"
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import type { ReactNode } from "react";
+import { useMemo } from "react";
+import {
+    Bot, Home, Megaphone, Menu, Receipt, Server, Settings, ShoppingBag, Star, Ticket, Trophy, Users, FilePen, Tv, PartyPopper, Layers, Sparkles, Gift, Combine, Image as ImageIcon, Box, Album as AlbumIcon,
+} from "lucide-react";
+import { useSession, signOut } from "next-auth/react";
+import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
-import { FielBetLogo } from "@/components/icons"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { cn } from "@/lib/utils"
+} from "@/components/ui/dropdown-menu";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { FielBetLogo } from "@/components/icons";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { cn } from "@/lib/utils";
+import { AvatarFallbackText } from "@/components/avatar-fallback-text";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 
 interface AdminLayoutProps {
     children: ReactNode;
@@ -37,6 +46,15 @@ const allNavGroups = [
       { href: "/admin/bets", label: "Apostas", icon: Ticket, adminOnly: true },
       { href: "/admin/users", label: "Usuários", icon: Users, adminOnly: true },
       { href: "/admin/purchases", label: "Compras", icon: Receipt, adminOnly: true },
+    ]
+  },
+  {
+    title: 'Figurinhas',
+    links: [
+        { href: "/admin/stickers/albums", label: "Álbuns", icon: AlbumIcon, adminOnly: true },
+        { href: "/admin/stickers/pages", label: "Páginas", icon: ImageIcon, adminOnly: true },
+        { href: "/admin/stickers/stickers", label: "Figurinhas", icon: Combine, adminOnly: true },
+        { href: "/admin/stickers/packs", label: "Pacotinhos", icon: Box, adminOnly: true },
     ]
   },
   {
@@ -68,16 +86,15 @@ const allNavGroups = [
   }
 ];
 
-const NavLink = ({ href, label, icon: Icon, pathname, isMobile = false }: any) => (
+const NavLink = ({ href, label, icon: Icon, pathname }: { href: string; label: string; icon: React.ElementType; pathname: string }) => (
   <Link
     href={href}
     className={cn(
-      "flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary",
-      isMobile && "gap-4 text-base",
-      pathname === href && "bg-muted text-primary font-semibold"
+      "flex items-center gap-3 rounded-md px-3 py-2 text-muted-foreground transition-all hover:text-primary",
+      pathname.startsWith(href) && "bg-muted text-primary font-semibold"
     )}
   >
-    <Icon className={cn("h-4 w-4", isMobile && "h-5 w-5")} />
+    <Icon className="h-4 w-4" />
     {label}
   </Link>
 );
@@ -86,28 +103,48 @@ const NavLink = ({ href, label, icon: Icon, pathname, isMobile = false }: any) =
 export default function AdminLayout({ children }: AdminLayoutProps) {
   const pathname = usePathname();
   const { data: session } = useSession();
-
   const user = session?.user;
+  const isVip = user?.isVip ?? false;
+
+  const navGroups = useMemo(() => {
+    if (!user) return [];
+    return allNavGroups.map(group => ({
+        ...group,
+        links: group.links.filter(link => {
+            if (!link.adminOnly) {
+               return user.admin || user.canPost;
+            }
+            return user.admin;
+        })
+    })).filter(group => group.links.length > 0);
+  }, [user]);
+  
+  const activeGroupValue = useMemo(() => {
+      const activeGroup = navGroups.find(group => group.links.some(link => pathname.startsWith(link.href)));
+      return activeGroup ? [activeGroup.title] : [];
+  }, [navGroups, pathname]);
+
+  const renderNav = () => (
+    <Accordion type="multiple" defaultValue={activeGroupValue} className="w-full">
+      {navGroups.map((group) => (
+        <AccordionItem value={group.title} key={group.title} className="border-b-0">
+          <AccordionTrigger className="px-3 py-2 text-base hover:bg-muted rounded-md hover:no-underline lg:text-sm">
+            {group.title}
+          </AccordionTrigger>
+          <AccordionContent className="pb-1 pl-4 mt-1 space-y-1">
+             <nav className="grid items-start font-medium">
+                {group.links.map(link => (
+                    <NavLink key={link.href} {...link} pathname={pathname} />
+                ))}
+             </nav>
+          </AccordionContent>
+        </AccordionItem>
+      ))}
+    </Accordion>
+  );
+
   const userName = user?.name ?? 'Admin';
   const userImage = user?.image ?? 'https://placehold.co/40x40.png';
-  const isVip = user?.isVip ?? false;
-  const userFallback =
-    userName
-      .split(' ')
-      .map((n) => n[0])
-      .join('')
-      .substring(0, 2)
-      .toUpperCase() || 'AD';
-
-  const navGroups = allNavGroups.map(group => ({
-      ...group,
-      links: group.links.filter(link => {
-        if (!link.adminOnly) {
-           return user?.admin || user?.canPost;
-        }
-        return user?.admin;
-      })
-  })).filter(group => group.links.length > 0);
 
   return (
     <div className="grid min-h-screen w-full md:grid-cols-[220px_1fr] lg:grid-cols-[280px_1fr]">
@@ -119,20 +156,11 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
               <span className="text-lg">Painel Admin</span>
             </Link>
           </div>
-          <div className="flex-1 overflow-y-auto">
-            <nav className="grid items-start px-2 py-4 text-sm font-medium lg:px-4">
-              {navGroups.map((group) => (
-                <div key={group.title} className="mb-4">
-                  <h3 className="mb-2 px-3 text-xs font-semibold uppercase text-muted-foreground tracking-wider">{group.title}</h3>
-                  <div className="space-y-1">
-                    {group.links.map(link => (
-                      <NavLink key={link.href} {...link} pathname={pathname} />
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </nav>
-          </div>
+          <ScrollArea className="flex-1">
+            <div className="px-2 py-4 lg:px-4">
+              {renderNav()}
+            </div>
+          </ScrollArea>
         </div>
       </div>
       <div className="flex flex-col">
@@ -160,20 +188,11 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                             </Link>
                         </SheetTitle>
                     </SheetHeader>
-                     <div className="flex-1 overflow-y-auto">
-                        <nav className="grid gap-2 text-base font-medium mt-4 px-4">
-                            {navGroups.map((group) => (
-                                <div key={group.title} className="mb-4">
-                                  <h3 className="mb-2 px-3 text-xs font-semibold uppercase text-muted-foreground tracking-wider">{group.title}</h3>
-                                  <div className="space-y-1">
-                                    {group.links.map(link => (
-                                      <NavLink key={link.href} {...link} pathname={pathname} isMobile />
-                                    ))}
-                                  </div>
-                                </div>
-                              ))}
-                        </nav>
-                    </div>
+                     <ScrollArea className="flex-1">
+                        <div className="px-2 py-4 lg:px-4">
+                          {renderNav()}
+                        </div>
+                    </ScrollArea>
                 </SheetContent>
             </Sheet>
           <div className="w-full flex-1" />
@@ -181,13 +200,13 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
             <DropdownMenuTrigger asChild>
                 <Avatar className={cn("h-9 w-9 cursor-pointer", isVip && "ring-2 ring-offset-2 ring-vip ring-offset-muted")}>
                     <AvatarImage src={userImage} alt="Admin Avatar" data-ai-hint="user avatar" />
-                    <AvatarFallback>{userFallback}</AvatarFallback>
+                    <AvatarFallback><AvatarFallbackText name={userName} /></AvatarFallback>
                 </Avatar>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              {(user?.admin || user?.canPost) && <DropdownMenuItem asChild><Link href="/admin/announcements">Painel</Link></DropdownMenuItem>}
+              {(user?.admin || user?.canPost) && <DropdownMenuItem asChild><Link href="/admin/dashboard">Painel</Link></DropdownMenuItem>}
               <DropdownMenuItem asChild><Link href="/bet">Voltar ao App</Link></DropdownMenuItem>
-              <DropdownMenuItem onClick={() => signOut({ callbackUrl: '/' })}>Sair</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => signOut({ callbackUrl: '/' })}>Deslogar</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </header>
