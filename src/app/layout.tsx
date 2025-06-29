@@ -1,3 +1,4 @@
+
 import type {Metadata} from 'next';
 import './globals.css';
 import { Toaster } from "@/components/ui/toaster"
@@ -5,8 +6,8 @@ import SessionProviderWrapper from '@/components/session-provider-wrapper';
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:9003';
 const siteTitle = 'Timaocord';
-const siteDescription = 'Sua comunidade e plataforma de apostas para os verdadeiros fiéis.';
-const ogImage = 'https://i.imgur.com/xD76hcl.png';
+const siteDescription = 'A casa da nação Corinthiana. Participe de bolões, dê palpites, ganhe prêmios e conecte-se com outros torcedores. Aposte com moeda virtual e mostre que você é Fiel!';
+const ogImage = 'https://i.imgur.com/T0w3T8q.png';
 
 export const metadata: Metadata = {
   title: {
@@ -28,9 +29,9 @@ export const metadata: Metadata = {
     images: [
       {
         url: ogImage,
-        width: 500,
-        height: 127,
-        alt: 'Timaocord Logo',
+        width: 1200,
+        height: 630,
+        alt: 'Banner do Timaocord mostrando o estádio e o logo',
       },
     ],
     locale: 'pt_BR',
@@ -42,6 +43,7 @@ export const metadata: Metadata = {
     description: siteDescription,
     images: [ogImage],
   },
+  themeColor: '#1A1A1A',
 };
 
 export default function RootLayout({
