@@ -1,3 +1,4 @@
+
 'use server';
 
 import { BetPageClient } from '@/components/bet-page-client';

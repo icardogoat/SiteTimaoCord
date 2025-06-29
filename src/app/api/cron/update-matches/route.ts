@@ -1,3 +1,4 @@
+
 import { NextResponse } from 'next/server';
 import { updateFixturesFromApi } from '@/actions/fixtures-actions';
 
