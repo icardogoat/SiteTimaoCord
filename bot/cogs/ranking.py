@@ -67,7 +67,10 @@ class Ranking(commands.Cog):
             embed.title = "🌟 Ranking - Top Níveis"
             rank_data = self.users.find().sort([("level", -1), ("xp", -1)]).limit(10)
             for i, user in enumerate(list(rank_data)):
-                description += f"**{i+1}.** {user['name']} - **Nível {user['level']}** ({user['xp']:,} XP)\n"
+                level = user.get('level', 1)
+                xp = user.get('xp', 0)
+                name = user.get('name', 'Usuário Desconhecido')
+                description += f"**{i+1}.** {name} - **Nível {level}** ({xp:,} XP)\n"
         
         if not description:
             description = "Nenhum dado encontrado para este ranking ainda."

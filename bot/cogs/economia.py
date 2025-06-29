@@ -76,20 +76,30 @@ class Economia(commands.Cog):
         embed.set_footer(text="FielBet - Sistema de Economia")
         await interaction.followup.send(embed=embed)
 
-    @app_commands.command(name="perfil", description="📊 Veja seu perfil e estatísticas de apostas.")
-    async def perfil(self, interaction: discord.Interaction):
+    @app_commands.command(name="perfil", description="📊 Veja seu perfil ou o de outro usuário.")
+    @app_commands.describe(usuario="O usuário que você quer ver o perfil. Deixe em branco para ver o seu.")
+    async def perfil(self, interaction: discord.Interaction, usuario: discord.User = None):
         await interaction.response.defer(ephemeral=True)
-        user_id = str(interaction.user.id)
+        
+        target_user = usuario or interaction.user
+        user_id = str(target_user.id)
 
         user_doc = get_user_data(user_id, self.db)
         if not user_doc:
             site_url = os.getenv('SITE_URL', 'http://localhost:9003')
+            is_self = target_user.id == interaction.user.id
+            
+            if is_self:
+                description_text = f"Você precisa fazer login no nosso site pelo menos uma vez para usar os comandos do bot.\n\n**[Clique aqui para acessar o site]({site_url})** e faça o login com sua conta do Discord."
+            else:
+                description_text = f"O usuário {target_user.mention} não foi encontrado no sistema. Ele precisa fazer login no site pelo menos uma vez."
+            
             embed = discord.Embed(
                 title="❌ Conta Não Encontrada",
-                description=f"Você precisa fazer login no nosso site pelo menos uma vez para usar os comandos do bot.\n\n**[Clique aqui para acessar o site]({site_url})** e faça o login com sua conta do Discord.",
+                description=description_text,
                 color=0xff8800
             )
-            await interaction.followup.send(embed=embed)
+            await interaction.followup.send(embed=embed, ephemeral=True)
             return
             
         stats = self.user_stats.find_one({"userId": user_id}) or {}
@@ -98,11 +108,11 @@ class Economia(commands.Cog):
         xp = user_doc.get('xp', 0)
         
         embed = discord.Embed(
-            title=f"📊 Perfil de {interaction.user.display_name}",
+            title=f"📊 Perfil de {target_user.display_name}",
             color=0x1E1E1E,
             timestamp=datetime.datetime.now(datetime.timezone.utc)
         )
-        embed.set_thumbnail(url=interaction.user.display_avatar.url)
+        embed.set_thumbnail(url=target_user.display_avatar.url)
         
         embed.add_field(name="🌟 Nível", value=f"**{level}** ({xp:,} XP)", inline=True)
         
