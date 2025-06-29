@@ -29,41 +29,47 @@ export async function redeemCode(code: string): Promise<{ success: boolean; mess
             const promoCodesCollection = db.collection<PromoCode>('promo_codes');
             const codeDoc = await promoCodesCollection.findOne({ code: code.toUpperCase() }, { session: mongoSession });
 
+            // --- Validation Checks ---
             if (!codeDoc) {
                 throw new Error('Código inválido ou não encontrado.');
             }
             if (codeDoc.status !== 'ACTIVE') {
-                throw new Error(`Este código já foi ${codeDoc.status === 'REDEEMED' ? 'resgatado' : 'expirado/revogado'}.`);
+                throw new Error(`Este código não está mais ativo (status: ${codeDoc.status}).`);
+            }
+            if (codeDoc.redeemedBy?.includes(userId)) {
+                throw new Error('Você já resgatou este código.');
+            }
+            if (codeDoc.maxUses && (codeDoc.redeemedBy?.length ?? 0) >= codeDoc.maxUses) {
+                // Self-heal: if a code is depleted but still active, update its status.
+                 await promoCodesCollection.updateOne({ _id: codeDoc._id }, { $set: { status: 'REDEEMED' } }, { session: mongoSession });
+                throw new Error('Este código promocional atingiu seu limite de usos.');
             }
             if (codeDoc.expiresAt && new Date(codeDoc.expiresAt) < new Date()) {
-                 await promoCodesCollection.updateOne(
-                    { _id: codeDoc._id },
-                    { $set: { status: 'EXPIRED' } },
-                    { session: mongoSession }
-                );
+                 await promoCodesCollection.updateOne({ _id: codeDoc._id }, { $set: { status: 'EXPIRED' } }, { session: mongoSession });
                 throw new Error('Este código expirou.');
             }
+            // --- End Validation ---
 
-            // Mark code as redeemed
-            const updateResult = await promoCodesCollection.updateOne(
-                { _id: codeDoc._id, status: 'ACTIVE' },
-                {
-                    $set: {
-                        status: 'REDEEMED',
-                        redeemedBy: userId,
-                        redeemedAt: new Date(),
-                    }
-                },
+            // Atomically push user to redeemedBy array
+            await promoCodesCollection.updateOne(
+                { _id: codeDoc._id },
+                { $push: { redeemedBy: userId } },
                 { session: mongoSession }
             );
 
-            if (updateResult.modifiedCount === 0) {
-                 throw new Error('Este código acabou de ser resgatado por outra pessoa. Tente novamente.');
+            // Check if the code is now depleted after this redemption
+            const newRedeemedCount = (codeDoc.redeemedBy?.length ?? 0) + 1;
+            if (codeDoc.maxUses && newRedeemedCount >= codeDoc.maxUses) {
+                await promoCodesCollection.updateOne(
+                    { _id: codeDoc._id },
+                    { $set: { status: 'REDEEMED' } },
+                    { session: mongoSession }
+                );
             }
 
             let notificationDescription = '';
             
-            // Apply reward
+            // Apply reward based on type
             if (codeDoc.type === 'MONEY' || codeDoc.type === 'DAILY') {
                 const amount = Number(codeDoc.value);
                 const walletsCollection = db.collection('wallets');
@@ -108,7 +114,7 @@ export async function redeemCode(code: string): Promise<{ success: boolean; mess
                 notificationDescription = `Você ganhou um novo cargo! Verifique o Discord.`;
             }
 
-            // Send notification
+            // Send in-app notification to the user
             const notificationsCollection = db.collection('notifications');
             const newNotification: Omit<Notification, '_id'> = {
                 userId: userId,

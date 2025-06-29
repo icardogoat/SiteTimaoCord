@@ -490,9 +490,9 @@ export type PromoCode = {
   description: string;
   value: number | string; // amount for money/xp, roleId for role
   status: 'ACTIVE' | 'REDEEMED' | 'EXPIRED' | 'REVOKED';
+  maxUses?: number | null; // null for unlimited uses
+  redeemedBy?: string[]; // Array of user IDs who have redeemed it
   createdAt: Date | string;
   expiresAt?: Date | string | null;
   createdBy: string; // discordId of admin or 'SYSTEM'
-  redeemedBy?: string | null; // discordId of user
-  redeemedAt?: Date | string | null;
 };

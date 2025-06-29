@@ -50,8 +50,7 @@ export default function AdminCodesClient({ initialCodes }: AdminCodesClientProps
     const filteredCodes = codes.filter(c => 
         c.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
         c.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        c.createdBy.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        c.redeemedBy?.toLowerCase().includes(searchTerm.toLowerCase())
+        c.createdBy.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
     const handleRevoke = async () => {
@@ -81,7 +80,7 @@ export default function AdminCodesClient({ initialCodes }: AdminCodesClientProps
                 <CardContent>
                      <div className="py-4">
                         <Input
-                            placeholder="Pesquisar por código, descrição ou ID..."
+                            placeholder="Pesquisar por código, descrição ou ID do criador..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                             className="w-full md:max-w-sm"
@@ -94,7 +93,7 @@ export default function AdminCodesClient({ initialCodes }: AdminCodesClientProps
                                 <TableHead>Descrição</TableHead>
                                 <TableHead className="text-center">Tipo/Valor</TableHead>
                                 <TableHead className="hidden sm:table-cell">Criado Por</TableHead>
-                                <TableHead className="hidden sm:table-cell">Resgatado Por</TableHead>
+                                <TableHead className="hidden sm:table-cell text-center">Uso</TableHead>
                                 <TableHead className="text-center">Status</TableHead>
                                 <TableHead className="w-12"><span className="sr-only">Ações</span></TableHead>
                             </TableRow>
@@ -114,7 +113,11 @@ export default function AdminCodesClient({ initialCodes }: AdminCodesClientProps
                                         <p className="text-xs">{code.type === 'MONEY' && `R$ `}{code.value}</p>
                                     </TableCell>
                                     <TableCell className="hidden sm:table-cell font-mono text-xs">{code.createdBy}</TableCell>
-                                    <TableCell className="hidden sm:table-cell font-mono text-xs">{code.redeemedBy || '---'}</TableCell>
+                                    <TableCell className="hidden sm:table-cell text-center">
+                                        <span className="font-mono text-xs">
+                                            {code.redeemedBy?.length ?? 0} / {code.maxUses ?? '∞'}
+                                        </span>
+                                    </TableCell>
                                     <TableCell className="text-center">
                                         <Badge variant={getStatusVariant(code.status)}>
                                             {code.status}

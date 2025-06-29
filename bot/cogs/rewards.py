@@ -62,13 +62,13 @@ class Rewards(commands.Cog):
             "code": new_code,
             "type": "DAILY",
             "description": "Recompensa Diária do Discord",
-            "value": 250, # Fixed reward for daily
+            "value": 250,
             "status": "ACTIVE",
+            "maxUses": 1, # Explicitly single-use
+            "redeemedBy": [],
             "createdAt": now,
             "expiresAt": now + datetime.timedelta(minutes=30),
             "createdBy": "SYSTEM_DISCORD",
-            "redeemedBy": None,
-            "redeemedAt": None,
         }
         
         self.promo_codes_collection.insert_one(code_doc)
@@ -90,7 +90,8 @@ class Rewards(commands.Cog):
         app_commands.Choice(name="Dinheiro", value="money"),
         app_commands.Choice(name="XP", value="xp")
     ])
-    async def gerar_codigo(self, interaction: discord.Interaction, tipo: app_commands.Choice[str], valor: float, quantidade: app_commands.Range[int, 1, 20], descricao: str):
+    @app_commands.describe(limite="O número máximo de vezes que cada código pode ser usado. Deixe em branco para ilimitado.")
+    async def gerar_codigo(self, interaction: discord.Interaction, tipo: app_commands.Choice[str], valor: float, quantidade: app_commands.Range[int, 1, 20], descricao: str, limite: app_commands.Range[int, 1, 1000] = None):
             
         await interaction.response.defer(ephemeral=True)
         
@@ -106,19 +107,21 @@ class Rewards(commands.Cog):
                 "description": descricao,
                 "value": valor,
                 "status": "ACTIVE",
+                "maxUses": limite,
+                "redeemedBy": [],
                 "createdAt": datetime.datetime.now(datetime.timezone.utc),
                 "expiresAt": None,
                 "createdBy": str(interaction.user.id),
-                "redeemedBy": None,
-                "redeemedAt": None,
             }
             self.promo_codes_collection.insert_one(code_doc)
             generated_codes.append(new_code)
             
         codes_str = "\n".join(generated_codes)
+        limite_str = str(limite) if limite is not None else "Ilimitado"
+
         embed = discord.Embed(
             title=f"✅ {quantidade} Código(s) Gerado(s)!",
-            description=f"**Tipo:** {tipo.name}\n**Valor:** {valor}\n**Descrição:** {descricao}",
+            description=f"**Tipo:** {tipo.name}\n**Valor:** {valor}\n**Limite de Uso:** {limite_str}\n**Descrição:** {descricao}",
             color=0x1E90FF
         )
         embed.add_field(name="Códigos", value=f"```\n{codes_str}\n```")
