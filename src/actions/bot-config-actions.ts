@@ -149,11 +149,17 @@ export async function getDiscordServerDetails(guildId: string): Promise<{ succes
         if (!channelsRes.ok) {
             const errorData = await channelsRes.json();
             console.error(`Falha ao buscar canais: ${channelsRes.statusText}`, errorData);
+             if (channelsRes.status === 403) {
+                 return { success: false, error: `Acesso Negado (403 Forbidden). Verifique se o bot tem as permissões corretas no servidor e se as 'Privileged Gateway Intents' (como Server Members e Message Content) estão ativadas no Portal de Desenvolvedores do Discord.` };
+            }
             return { success: false, error: `Falha ao buscar canais: ${errorData.message || channelsRes.statusText}. Verifique o ID do Servidor e as permissões do bot.` };
         }
         if (!rolesRes.ok) {
             const errorData = await rolesRes.json();
             console.error(`Falha ao buscar cargos: ${rolesRes.statusText}`, errorData);
+            if (rolesRes.status === 403) {
+                return { success: false, error: `Acesso Negado (403 Forbidden) ao buscar cargos. Verifique as permissões do bot e as 'Privileged Gateway Intents' no Portal de Desenvolvedores do Discord.` };
+            }
             return { success: false, error: `Falha ao buscar cargos: ${errorData.message || rolesRes.statusText}.` };
         }
 
@@ -352,3 +358,5 @@ export async function sendTestDiscordMessage(channelId: string, payload: { conte
         return { success: false, message: 'Ocorreu um erro ao enviar a mensagem de teste.' };
     }
 }
+
+    

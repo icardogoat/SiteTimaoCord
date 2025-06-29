@@ -80,3 +80,5 @@ class Ranking(commands.Cog):
 
 async def setup(bot):
     await bot.add_cog(Ranking(bot))
+
+    
