@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -54,6 +55,7 @@ const formSchema = z.object({
   bolaoChannelId: z.string().optional(),
   mvpChannelId: z.string().optional(),
   levelUpChannelId: z.string().optional(),
+  eventChannelId: z.string().optional(),
   newsChannelId: z.string().optional(),
   newsMentionRoleId: z.string().optional(),
   adminRoleId: z.string().optional(),
@@ -92,6 +94,7 @@ export default function AdminBotConfigClient({ initialConfig, initialChannels, i
             bolaoChannelId: initialConfig.bolaoChannelId || "",
             mvpChannelId: initialConfig.mvpChannelId || "",
             levelUpChannelId: initialConfig.levelUpChannelId || "",
+            eventChannelId: initialConfig.eventChannelId || "",
             newsChannelId: initialConfig.newsChannelId || "",
             newsMentionRoleId: initialConfig.newsMentionRoleId || "",
             adminRoleId: initialConfig.adminRoleId || "",
@@ -121,6 +124,7 @@ export default function AdminBotConfigClient({ initialConfig, initialChannels, i
             bolaoChannelId: '',
             mvpChannelId: '',
             levelUpChannelId: '',
+            eventChannelId: '',
             newsChannelId: '',
             newsMentionRoleId: '',
             adminRoleId: '',
@@ -145,7 +149,7 @@ export default function AdminBotConfigClient({ initialConfig, initialChannels, i
         setIsLoadingDetails(false);
     };
 
-    const handleTest = async (channelType: 'welcome' | 'log' | 'betting' | 'winners' | 'bolao' | 'mvp' | 'news' | 'levelUp') => {
+    const handleTest = async (channelType: 'welcome' | 'log' | 'betting' | 'winners' | 'bolao' | 'mvp' | 'news' | 'levelUp' | 'event') => {
         const channelId = form.getValues(`${channelType}ChannelId` as keyof FormValues);
         if (!channelId) {
             toast({ title: "Nenhum canal selecionado", variant: "destructive" });
@@ -218,6 +222,17 @@ export default function AdminBotConfigClient({ initialConfig, initialChannels, i
                     }]
                 };
                 break;
+            case 'event':
+                payload = {
+                    embeds: [{
+                        color: 0x8B5CF6, // violet-500
+                        title: '✅ Teste do Canal de Eventos ✅',
+                        description: 'Se você pode ver esta mensagem, eventos como o Quiz funcionarão corretamente!',
+                        footer: { text: 'Teste enviado pelo Painel Admin' },
+                        timestamp: new Date().toISOString(),
+                    }]
+                };
+                break;
         }
         
         setIsTesting(channelType);
@@ -242,6 +257,7 @@ export default function AdminBotConfigClient({ initialConfig, initialChannels, i
             bolaoChannelId: values.bolaoChannelId || '',
             mvpChannelId: values.mvpChannelId || '',
             levelUpChannelId: values.levelUpChannelId || '',
+            eventChannelId: values.eventChannelId || '',
             newsChannelId: values.newsChannelId || '',
             newsMentionRoleId: values.newsMentionRoleId || '',
             adminRoleId: values.adminRoleId || '',
@@ -615,6 +631,43 @@ export default function AdminBotConfigClient({ initialConfig, initialChannels, i
                                         </div>
                                          <FormDescription>
                                             Canal onde as mensagens de level up serão enviadas. Se não for definido, será enviado no canal onde o usuário ganhou o XP.
+                                        </FormDescription>
+                                    </FormItem>
+                                )}
+                            />
+                             <FormField
+                                control={form.control}
+                                name="eventChannelId"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Canal de Eventos (Quiz)</FormLabel>
+                                        <div className="flex items-center gap-2">
+                                            <Select onValueChange={field.onChange} value={field.value} disabled={channels.length === 0}>
+                                                <FormControl>
+                                                    <SelectTrigger>
+                                                        <SelectValue placeholder="Selecione um canal" />
+                                                    </SelectTrigger>
+                                                </FormControl>
+                                                <SelectContent>
+                                                    {channels.map(channel => (
+                                                        <SelectItem key={channel.id} value={channel.id}>
+                                                            #{channel.name}
+                                                        </SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
+                                            <Button 
+                                                type="button" 
+                                                variant="outline" 
+                                                onClick={() => handleTest('event')}
+                                                disabled={!field.value || isTesting !== null}
+                                                aria-label="Testar canal de eventos"
+                                            >
+                                                {isTesting === 'event' ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Testar'}
+                                            </Button>
+                                        </div>
+                                         <FormDescription>
+                                            Canal onde os eventos como o Quiz do Timão serão iniciados.
                                         </FormDescription>
                                     </FormItem>
                                 )}

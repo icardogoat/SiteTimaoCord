@@ -74,7 +74,7 @@ export type UserStats = {
   totalWinnings: number;
   totalLosses: number;
   betsWon: number;
-  betsLost: number;
+  betsLost: number; 
 };
 
 export type Notification = {
@@ -300,6 +300,7 @@ export type BotConfig = {
   vipRoleIds: string[];
   postCreatorRoleId?: string;
   streamViewerRoleId?: string;
+  eventChannelId?: string;
 };
 
 export type ApiKeyEntry = {
