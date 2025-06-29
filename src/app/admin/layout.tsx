@@ -21,12 +21,6 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import { AvatarFallbackText } from "@/components/avatar-fallback-text";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
 import { SidebarProvider } from "@/components/ui/sidebar";
 
 interface AdminLayoutProps {
@@ -128,22 +122,28 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   }, [navGroups, pathname]);
 
   const renderNav = () => (
-    <Accordion type="single" collapsible defaultValue={activeGroupValue} className="w-full">
-      {navGroups.map((group) => (
-        <AccordionItem value={group.title} key={group.title} className="border-b-0">
-          <AccordionTrigger className="px-3 py-2 text-base hover:bg-muted rounded-md hover:no-underline lg:text-sm">
-            {group.title}
-          </AccordionTrigger>
-          <AccordionContent className="pb-1 pl-4 mt-1 space-y-1">
-             <nav className="grid items-start font-medium">
-                {group.links.map(link => (
-                    <NavLink key={link.href} {...link} pathname={pathname} />
-                ))}
-             </nav>
-          </AccordionContent>
-        </AccordionItem>
-      ))}
-    </Accordion>
+    <div className="w-full space-y-1">
+      {navGroups.map((group) => {
+        const isActiveGroup = activeGroupValue === group.title;
+        return (
+          <div key={group.title} className="group">
+            <div className="flex items-center rounded-md px-3 py-2 text-base font-medium text-foreground lg:text-sm cursor-default hover:bg-muted">
+              {group.title}
+            </div>
+            <div className={cn(
+                "hidden group-hover:block pt-1 pl-4 space-y-1",
+                isActiveGroup && "block"
+            )}>
+               <nav className="grid items-start font-medium">
+                  {group.links.map(link => (
+                      <NavLink key={link.href} {...link} pathname={pathname} />
+                  ))}
+               </nav>
+            </div>
+          </div>
+        );
+      })}
+    </div>
   );
 
   const userName = user?.name ?? 'Admin';
