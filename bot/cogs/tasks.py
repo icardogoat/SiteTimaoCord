@@ -103,59 +103,61 @@ class Tasks(commands.Cog):
             response.raise_for_status()
             return response.json().get('response', [])
         except requests.exceptions.RequestException as e:
-            logging.error(f"API request failed for {url}: {e}")
+            logging.error(f"API request to {url} failed: {e}")
             return []
 
-    @tasks.loop(minutes=15)
-    async def update_fixtures(self):
-        if not self.api_key:
-            logging.warning("API_FOOTBALL_KEY not found. Skipping fixture update.")
-            return
+    async def process_fixtures_for_date(self, date_str: str):
+        """Fetches fixtures and odds for a specific date, processes, and saves them."""
+        # 1. Fetch all fixtures for the date
+        fixtures_url = "https://api-football-v1.p.rapidapi.com/v3/fixtures"
+        fixtures_response = self.fetch_from_api(fixtures_url, {'date': date_str})
+        if not fixtures_response:
+            logging.info(f"No fixtures found for {date_str}.")
+            return 0, 0
 
-        logging.info("Starting fixture update task...")
+        # 2. Fetch all odds for the date
+        odds_url = "https://api-football-v1.p.rapidapi.com/v3/odds"
+        odds_response = self.fetch_from_api(odds_url, {'date': date_str})
+
+        # 3. Create a mapping of fixture_id to its odds
+        odds_map = {}
+        if odds_response:
+            for odd_data in odds_response:
+                fixture_id = odd_data.get('fixture', {}).get('id')
+                if fixture_id:
+                    # Find the Bet365 bookmaker (ID 8) as it has the most markets
+                    bookmaker = next((b for b in odd_data.get('bookmakers', []) if b['id'] == 8), None)
+                    if bookmaker:
+                        odds_map[fixture_id] = bookmaker.get('bets', [])
         
-        today = datetime.date.today().strftime("%Y-%m-%d")
-        tomorrow = (datetime.date.today() + datetime.timedelta(days=1)).strftime("%Y-%m-%d")
-
-        all_fixtures = []
-        for date_str in [today, tomorrow]:
-            fixtures_url = "https://api-football-v1.p.rapidapi.com/v3/fixtures"
-            all_fixtures.extend(self.fetch_from_api(fixtures_url, {'date': date_str}))
-
-        logging.info(f"Found {len(all_fixtures)} fixtures for today and tomorrow.")
+        logging.info(f"Processing {len(fixtures_response)} fixtures and {len(odds_map)} odds sets for {date_str}.")
 
         updated_count = 0
         new_count = 0
+        non_processable_status = ['FT', 'AET', 'PEN', 'PST', 'CANC', 'ABD', 'AWD', 'WO']
 
-        for fixture_data in all_fixtures:
+        for fixture_data in fixtures_response:
             fixture = fixture_data.get('fixture', {})
+            fixture_id = fixture.get('id')
+
+            if not fixture_id or fixture.get('status', {}).get('short') in non_processable_status:
+                continue
+
+            # 4. Get odds from our map
+            markets_raw = odds_map.get(fixture_id)
+            if not markets_raw:
+                continue
+
             league = fixture_data.get('league', {})
             teams = fixture_data.get('teams', {})
             goals = fixture_data.get('goals', {})
 
-            fixture_id = fixture.get('id')
-            if not fixture_id:
-                continue
-            
-            non_processable_status = ['FT', 'AET', 'PEN', 'PST', 'CANC', 'ABD', 'AWD', 'WO']
-            if fixture.get('status', {}).get('short') in non_processable_status:
-                continue
-
-            odds_url = "https://api-football-v1.p.rapidapi.com/v3/odds"
-            odds_response = self.fetch_from_api(odds_url, {'fixture': fixture_id})
-            
-            if not odds_response:
-                continue
-
-            bookmaker = next((b for b in odds_response[0].get('bookmakers', []) if b['id'] == 8), None)
-            if not bookmaker:
-                continue
-            
-            markets = [translate_market_data(bet) for bet in bookmaker.get('bets', [])]
+            markets = [translate_market_data(bet) for bet in markets_raw]
             if not markets:
                 continue
 
             match_document = {
+                '_id': fixture_id, # Use fixture_id as the document _id
                 'homeTeam': teams.get('home', {}).get('name'),
                 'homeLogo': teams.get('home', {}).get('logo'),
                 'awayTeam': teams.get('away', {}).get('name'),
@@ -164,10 +166,10 @@ class Tasks(commands.Cog):
                 'timestamp': fixture.get('timestamp'),
                 'status': fixture.get('status', {}).get('short'),
                 'goals': goals,
-                'isFinished': False, # Default value for new/upcoming matches
+                'isFinished': False,
                 'markets': markets
             }
-            
+
             result = self.matches_collection.update_one(
                 {'_id': fixture_id},
                 {'$set': match_document},
@@ -179,7 +181,41 @@ class Tasks(commands.Cog):
             elif result.modified_count > 0:
                 updated_count += 1
         
-        logging.info(f"Fixture update complete. New: {new_count}, Updated: {updated_count}.")
+        logging.info(f"Completed processing for {date_str}. New: {new_count}, Updated: {updated_count}.")
+        return new_count, updated_count
+
+    @tasks.loop(minutes=15)
+    async def update_fixtures(self):
+        if not self.api_key:
+            logging.warning("API_FOOTBALL_KEY not found. Skipping fixture update.")
+            return
+
+        logging.info("Starting fixture update task...")
+        
+        today_str = datetime.date.today().strftime("%Y-%m-%d")
+        tomorrow_str = (datetime.date.today() + datetime.timedelta(days=1)).strftime("%Y-%m-%d")
+
+        total_new = 0
+        total_updated = 0
+
+        # Process today's fixtures
+        try:
+            new, updated = await self.process_fixtures_for_date(today_str)
+            total_new += new
+            total_updated += updated
+        except Exception as e:
+            logging.error(f"Error processing fixtures for {today_str}: {e}")
+
+        # Process tomorrow's fixtures
+        try:
+            new, updated = await self.process_fixtures_for_date(tomorrow_str)
+            total_new += new
+            total_updated += updated
+        except Exception as e:
+            logging.error(f"Error processing fixtures for {tomorrow_str}: {e}")
+        
+        logging.info(f"Fixture update complete. Total New: {total_new}, Total Updated: {total_updated}.")
+
 
     @update_fixtures.before_loop
     async def before_update_fixtures(self):
