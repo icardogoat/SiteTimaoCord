@@ -95,7 +95,7 @@ class Tasks(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.client = MongoClient(os.getenv('MONGODB_URI'))
-        self.db = client.db('timaocord')
+        self.db = self.client.timaocord
         self.settings_db = self.client.timaocord_settings
         self.matches_collection = self.db.matches
         self.api_settings_collection = self.settings_db.api_settings
@@ -255,6 +255,17 @@ class Tasks(commands.Cog):
             logging.info(f"Update for tomorrow ({tomorrow_str}) complete. New: {new_tomorrow}, Updated: {updated_tomorrow}.")
         except Exception as e:
             logging.error(f"Error processing fixtures for {tomorrow_str}: {e}")
+        
+        # After all processing is done, update the timestamp for the frontend countdown
+        try:
+            self.api_settings_collection.update_one(
+                {'_id': API_SETTINGS_ID},
+                {'$set': {'lastUpdateTimestamp': datetime.datetime.now(datetime.timezone.utc)}},
+                upsert=True
+            )
+            logging.info("Successfully updated the last update timestamp.")
+        except Exception as e:
+            logging.error(f"Failed to update last update timestamp: {e}")
 
     @update_fixtures.before_loop
     async def before_update_fixtures(self):
