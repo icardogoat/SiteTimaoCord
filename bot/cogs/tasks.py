@@ -155,13 +155,30 @@ class Tasks(commands.Cog):
             logging.error(e)
             return []
 
-    async def process_fixtures_for_date(self, date_str: str):
+    async def process_fixtures_for_date(self, date_str: str, time_limit_utc_hour: int = None):
         """Fetches fixtures and odds for a specific date, processes, and saves them."""
         # 1. Fetch all fixtures for the date
         fixtures_url = "https://api-football-v1.p.rapidapi.com/v3/fixtures"
         fixtures_response = self.fetch_from_api(fixtures_url, {'date': date_str})
         if not fixtures_response:
             logging.info(f"No fixtures found for {date_str}.")
+            return 0, 0
+
+        # Optional: Filter fixtures by time
+        if time_limit_utc_hour is not None:
+            filtered_fixtures = []
+            for fixture_data in fixtures_response:
+                timestamp = fixture_data.get('fixture', {}).get('timestamp')
+                if timestamp:
+                    # Timestamps are in UTC
+                    match_time_utc = datetime.datetime.fromtimestamp(timestamp, tz=datetime.timezone.utc)
+                    if match_time_utc.hour < time_limit_utc_hour:
+                        filtered_fixtures.append(fixture_data)
+            logging.info(f"Filtered fixtures for {date_str} to only include games before {time_limit_utc_hour}:00 UTC. Found {len(filtered_fixtures)} games.")
+            fixtures_response = filtered_fixtures
+        
+        if not fixtures_response:
+            logging.info(f"No fixtures to process for {date_str} after time filtering.")
             return 0, 0
 
         # 2. Fetch all odds for the date
@@ -248,11 +265,13 @@ class Tasks(commands.Cog):
         except Exception as e:
             logging.error(f"Error processing fixtures for {today_str}: {e}")
 
-        # Process tomorrow's fixtures
+        # Process tomorrow's early morning fixtures (to catch games that run past midnight)
         tomorrow_str = (datetime.date.today() + datetime.timedelta(days=1)).strftime("%Y-%m-%d")
         try:
-            new_tomorrow, updated_tomorrow = await self.process_fixtures_for_date(tomorrow_str)
-            logging.info(f"Update for tomorrow ({tomorrow_str}) complete. New: {new_tomorrow}, Updated: {updated_tomorrow}.")
+            # Fetches games starting before 5 AM UTC on the next day.
+            # This covers late-night games from the Americas.
+            new_tomorrow, updated_tomorrow = await self.process_fixtures_for_date(tomorrow_str, time_limit_utc_hour=5)
+            logging.info(f"Update for tomorrow's early games ({tomorrow_str}) complete. New: {new_tomorrow}, Updated: {updated_tomorrow}.")
         except Exception as e:
             logging.error(f"Error processing fixtures for {tomorrow_str}: {e}")
         
