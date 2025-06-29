@@ -9,17 +9,19 @@ import { Gift, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { claimDailyReward } from "@/actions/ad-actions";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "./ui/dialog";
+import type { ApiSettings } from "@/types";
 
-type AdStep = 'initial' | 'video1' | 'video2' | 'claimable';
-
-export function DailyRewardClient() {
+export function DailyRewardClient({ apiSettings }: { apiSettings: Partial<ApiSettings> }) {
     const { data: session, update: updateSession } = useSession();
     const { toast } = useToast();
     const [isClaimedToday, setIsClaimedToday] = useState(true);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isDialogOpen, setIsDialogOpen] = useState(false);
-    const [adStep, setAdStep] = useState<AdStep>('initial');
+    const [adStepIndex, setAdStepIndex] = useState(-1); // -1: initial, 0: first video, etc.
     const videoRef = useRef<HTMLVideoElement>(null);
+
+    const ads = apiSettings.dailyRewardAds || [];
+    const totalAds = ads.length;
 
     useEffect(() => {
         if (session?.user?.dailyRewardLastClaimed) {
@@ -35,7 +37,7 @@ export function DailyRewardClient() {
     // Reset ad step when dialog is closed
     useEffect(() => {
         if (!isDialogOpen) {
-            setTimeout(() => setAdStep('initial'), 300); // Reset after dialog close animation
+            setTimeout(() => setAdStepIndex(-1), 300); // Reset after dialog close animation
         }
     }, [isDialogOpen]);
 
@@ -60,67 +62,73 @@ export function DailyRewardClient() {
     }
     
     const handleVideoEnd = () => {
-        if (adStep === 'video1') {
-            setAdStep('video2');
-        } else if (adStep === 'video2') {
-            setAdStep('claimable');
-        }
+        setAdStepIndex(prevIndex => prevIndex + 1);
     };
     
     // Auto-play video when step changes
     useEffect(() => {
-        if ((adStep === 'video1' || adStep === 'video2') && videoRef.current) {
+        if (adStepIndex >= 0 && adStepIndex < totalAds && videoRef.current) {
             videoRef.current.play().catch(error => {
                 console.error("Video autoplay failed:", error);
-                // Handle autoplay block, maybe show a play button
             });
         }
-    }, [adStep]);
+    }, [adStepIndex, totalAds]);
 
     const renderDialogContent = () => {
-        switch(adStep) {
-            case 'initial':
-                return (
-                    <div className="text-center py-8">
-                        <p className="mb-4 text-muted-foreground">Assista dois vídeos curtos para liberar sua recompensa.</p>
-                        <Button onClick={() => setAdStep('video1')}>Assistir primeiro anúncio</Button>
-                    </div>
-                );
-            case 'video1':
-            case 'video2':
-                const videoSrc = adStep === 'video1'
-                    ? "https://www.w3schools.com/html/mov_bbb.mp4"
-                    : "https://www.w3schools.com/tags/movie.mp4";
+        if (totalAds === 0) {
+             return (
+                 <div className="text-center py-8">
+                    <p className="mb-4 text-muted-foreground">Sua recompensa diária está pronta!</p>
+                    <Button onClick={handleClaim} disabled={isSubmitting} className="w-full">
+                        {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        Resgatar R$ 100,00
+                    </Button>
+                </div>
+            );
+        }
+        
+        if (adStepIndex === -1) { // Initial state
+            return (
+                <div className="text-center py-8">
+                    <p className="mb-4 text-muted-foreground">Assista {totalAds} vídeo(s) curto(s) para liberar sua recompensa.</p>
+                    <Button onClick={() => setAdStepIndex(0)}>Começar</Button>
+                </div>
+            );
+        }
 
-                return (
-                    <div className="text-center">
-                        <p className="mb-2 text-sm text-muted-foreground">Assistindo anúncio {adStep === 'video1' ? '1' : '2'} de 2...</p>
-                        <video 
-                            ref={videoRef}
-                            key={adStep} // Re-mount video element to load new source
-                            width="468" 
-                            height="80" 
-                            onEnded={handleVideoEnd}
-                            controls={false}
-                            muted // Autoplay is more likely to work when muted
-                            playsInline
-                            className="w-full aspect-video bg-black rounded-md"
-                        >
-                            <source src={videoSrc} type="video/mp4" />
-                            Seu navegador não suporta a tag de vídeo.
-                        </video>
-                    </div>
-                );
-            case 'claimable':
-                 return (
-                    <div className="text-center py-8">
-                        <p className="mb-4 text-muted-foreground">Obrigado! Sua recompensa está pronta para ser resgatada.</p>
-                        <Button onClick={handleClaim} disabled={isSubmitting} className="w-full">
-                            {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                            Resgatar R$ 100,00
-                        </Button>
-                    </div>
-                );
+        if (adStepIndex >= 0 && adStepIndex < totalAds) { // Video playing state
+            const currentAd = ads[adStepIndex];
+            return (
+                <div className="text-center">
+                    <p className="mb-2 text-sm text-muted-foreground">Assistindo anúncio {adStepIndex + 1} de {totalAds}...</p>
+                    <video 
+                        ref={videoRef}
+                        key={currentAd.id}
+                        width="468" 
+                        height="80" 
+                        onEnded={handleVideoEnd}
+                        controls={false}
+                        muted
+                        playsInline
+                        className="w-full aspect-video bg-black rounded-md"
+                    >
+                        <source src={currentAd.url} type="video/mp4" />
+                        Seu navegador não suporta a tag de vídeo.
+                    </video>
+                </div>
+            );
+        }
+        
+        if (adStepIndex >= totalAds) { // Claimable state
+             return (
+                <div className="text-center py-8">
+                    <p className="mb-4 text-muted-foreground">Obrigado! Sua recompensa está pronta para ser resgatada.</p>
+                    <Button onClick={handleClaim} disabled={isSubmitting} className="w-full">
+                        {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        Resgatar R$ 100,00
+                    </Button>
+                </div>
+            );
         }
     }
 
@@ -133,7 +141,7 @@ export function DailyRewardClient() {
                     Recompensa Diária
                 </CardTitle>
                 <CardDescription>
-                    Assista 2 anúncios em vídeo e ganhe R$ 100,00 todos os dias.
+                    Assista a alguns anúncios em vídeo e ganhe R$ 100,00 todos os dias.
                 </CardDescription>
             </CardHeader>
             <CardContent>
@@ -146,9 +154,11 @@ export function DailyRewardClient() {
                     <DialogContent>
                         <DialogHeader>
                             <DialogTitle>Sua Recompensa Diária</DialogTitle>
-                            <DialogDescription>
-                                Obrigado por apoiar a plataforma! Siga os passos para resgatar seu prêmio.
-                            </DialogDescription>
+                            {totalAds > 0 && (
+                                <DialogDescription>
+                                    Obrigado por apoiar a plataforma! Siga os passos para resgatar seu prêmio.
+                                </DialogDescription>
+                            )}
                         </DialogHeader>
                         <div className="py-4">
                             {renderDialogContent()}

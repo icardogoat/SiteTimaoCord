@@ -2,7 +2,7 @@
 'use server';
 
 import clientPromise from '@/lib/mongodb';
-import type { ApiKeyEntry, SiteSettings, ApiSettings } from '@/types';
+import type { ApiKeyEntry, SiteSettings, ApiSettings, DailyRewardAd } from '@/types';
 import { ObjectId } from 'mongodb';
 import { revalidatePath } from 'next/cache';
 import { randomBytes } from 'crypto';
@@ -53,6 +53,7 @@ export async function getApiSettings(): Promise<Partial<ApiSettings>> {
             paymentApiKeys: paymentApiKeys,
             lastUpdateTimestamp: settings?.lastUpdateTimestamp || null,
             highlightedLeagues: settings?.highlightedLeagues || [],
+            dailyRewardAds: settings?.dailyRewardAds || [],
         };
     } catch (error) {
         console.error("Error fetching API settings:", error);
@@ -62,6 +63,7 @@ export async function getApiSettings(): Promise<Partial<ApiSettings>> {
             paymentApiKeys: [],
             lastUpdateTimestamp: null,
             highlightedLeagues: [],
+            dailyRewardAds: [],
         };
     }
 }
@@ -70,6 +72,7 @@ type UpdateSettingsData = {
     siteUrl: string;
     updateApiKeys: { key: string }[];
     paymentApiKeys: { key: string }[];
+    dailyRewardAds?: { id?: string; name: string; url: string }[];
 };
 
 export async function updateApiSettings(data: UpdateSettingsData): Promise<{ success: boolean; message: string }> {
@@ -98,6 +101,12 @@ export async function updateApiSettings(data: UpdateSettingsData): Promise<{ suc
 
         const newUpdateApiKeys = mapAndPreserveKeys(data.updateApiKeys, currentSettings?.updateApiKeys);
         const newPaymentApiKeys = mapAndPreserveKeys(data.paymentApiKeys, currentSettings?.paymentApiKeys);
+        
+        const newDailyRewardAds = (data.dailyRewardAds || []).map(ad => ({
+            id: ad.id || randomBytes(8).toString('hex'),
+            name: ad.name,
+            url: ad.url,
+        }));
             
         await settingsCollection.updateOne(
             { _id: new ObjectId(SETTINGS_ID) },
@@ -105,11 +114,13 @@ export async function updateApiSettings(data: UpdateSettingsData): Promise<{ suc
                 siteUrl: data.siteUrl, 
                 updateApiKeys: newUpdateApiKeys,
                 paymentApiKeys: newPaymentApiKeys,
+                dailyRewardAds: newDailyRewardAds,
             } },
             { upsert: true }
         );
 
         revalidatePath('/admin/settings');
+        revalidatePath('/admin/rewards');
         return { success: true, message: 'Configurações salvas com sucesso!' };
     } catch (error) {
         console.error("Error updating API settings:", error);

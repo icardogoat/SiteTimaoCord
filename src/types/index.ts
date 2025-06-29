@@ -1,4 +1,5 @@
 
+
 import type { ObjectId } from "mongodb";
 
 export type Team = {
@@ -307,6 +308,12 @@ export type ApiKeyEntry = {
   lastReset: Date | string;
 };
 
+export type DailyRewardAd = {
+  id: string;
+  name: string;
+  url: string;
+};
+
 export type ApiSettings = {
     _id: string | ObjectId;
     siteUrl?: string;
@@ -314,6 +321,7 @@ export type ApiSettings = {
     paymentApiKeys?: ApiKeyEntry[];
     lastUpdateTimestamp?: Date | string | null;
     highlightedLeagues?: string[];
+    dailyRewardAds?: DailyRewardAd[];
 };
 
 export type SiteSettings = {

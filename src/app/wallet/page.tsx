@@ -1,10 +1,12 @@
 
+
 import { AppLayout } from "@/components/app-layout";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import clientPromise from "@/lib/mongodb";
 import { redirect } from 'next/navigation';
 import { getAvailableLeagues } from "@/actions/bet-actions";
+import { getApiSettings } from "@/actions/settings-actions";
 import type { Transaction } from "@/types";
 import { WalletClient } from "@/components/wallet-client";
 
@@ -14,7 +16,10 @@ export default async function WalletPage() {
         redirect('/');
     }
     
-    const availableLeagues = await getAvailableLeagues();
+    const [availableLeagues, apiSettings] = await Promise.all([
+        getAvailableLeagues(),
+        getApiSettings(),
+    ]);
 
     let currentBalance = 0;
     let transactions: Transaction[] = [];
@@ -37,6 +42,7 @@ export default async function WalletPage() {
             availableLeagues={availableLeagues}
             initialBalance={currentBalance}
             initialTransactions={transactions}
+            apiSettings={apiSettings}
        />
     );
 }

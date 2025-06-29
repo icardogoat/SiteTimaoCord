@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from "react";
@@ -6,7 +7,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import type { Transaction } from "@/types";
+import type { Transaction, ApiSettings } from "@/types";
 import { DailyRewardClient } from "./daily-reward-client";
 
 const getStatusClass = (status: Transaction['status']) => {
@@ -30,9 +31,10 @@ interface WalletClientProps {
     availableLeagues: string[];
     initialBalance: number;
     initialTransactions: Transaction[];
+    apiSettings: Partial<ApiSettings>;
 }
 
-export function WalletClient({ availableLeagues, initialBalance, initialTransactions }: WalletClientProps) {
+export function WalletClient({ availableLeagues, initialBalance, initialTransactions, apiSettings }: WalletClientProps) {
     const [visibleCount, setVisibleCount] = useState(5);
     const transactionsToShow = initialTransactions.slice(0, visibleCount);
     const hasMore = visibleCount < initialTransactions.length;
@@ -60,7 +62,7 @@ export function WalletClient({ availableLeagues, initialBalance, initialTransact
                                 <p className="text-4xl font-bold">R$ {initialBalance.toFixed(2)}</p>
                             </CardContent>
                         </Card>
-                         <DailyRewardClient />
+                         <DailyRewardClient apiSettings={apiSettings} />
                     </div>
 
                     <div className="md:col-span-2">
