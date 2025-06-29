@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 import { useMemo } from "react";
 import {
-    Bot, Home, Megaphone, Menu, Receipt, Server, Settings, ShoppingBag, Star, Ticket, Trophy, Users, FilePen, Tv, PartyPopper, Layers, Sparkles, Gift, Combine, Image as ImageIcon, Box, Album as AlbumIcon, QrCode, HelpCircle,
+    Bot, Home, Megaphone, Menu, Receipt, Server, Settings, ShoppingBag, Star, Ticket, Trophy, Users, FilePen, Tv, PartyPopper, Layers, Sparkles, Gift, QrCode, HelpCircle,
 } from "lucide-react";
 import { useSession, signOut } from "next-auth/react";
 import { Button } from "@/components/ui/button";
@@ -41,15 +41,6 @@ const allNavGroups = [
       { href: "/admin/bets", label: "Apostas", icon: Ticket, adminOnly: true },
       { href: "/admin/users", label: "Usuários", icon: Users, adminOnly: true },
       { href: "/admin/purchases", label: "Compras", icon: Receipt, adminOnly: true },
-    ]
-  },
-  {
-    title: 'Figurinhas',
-    links: [
-        { href: "/admin/stickers/albums", label: "Álbuns", icon: AlbumIcon, adminOnly: true },
-        { href: "/admin/stickers/pages", label: "Páginas", icon: ImageIcon, adminOnly: true },
-        { href: "/admin/stickers/stickers", label: "Figurinhas", icon: Combine, adminOnly: true },
-        { href: "/admin/stickers/packs", label: "Pacotinhos", icon: Box, adminOnly: true },
     ]
   },
   {

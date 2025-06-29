@@ -446,44 +446,6 @@ export type RecentUser = {
   joinDate: string;
 };
 
-export type StickerAlbum = {
-  _id: string | ObjectId;
-  name: string;
-  coverImageUrl: string;
-  price: number;
-  stock: number;
-  createdAt: Date | string;
-};
-
-export type StickerPack = {
-  _id: string | ObjectId;
-  albumId: string | ObjectId;
-  name: string;
-  price: number;
-  stickerCount: number;
-  stock: number;
-  packImageUrl: string;
-  createdAt: Date | string;
-};
-
-export type AlbumPage = {
-  _id: string | ObjectId;
-  albumId: string | ObjectId;
-  name: string;
-  pageImageUrl?: string | null;
-  createdAt: Date | string;
-};
-
-export type Sticker = {
-  _id: string | ObjectId;
-  albumId: string | ObjectId;
-  pageId: string | ObjectId;
-  name: string;
-  stickerImageUrl: string;
-  rarity: 'Comum' | 'Rara' | 'Épica' | 'Lendária';
-  createdAt: Date | string;
-};
-
 export type PromoCode = {
   _id: string | ObjectId;
   code: string;
