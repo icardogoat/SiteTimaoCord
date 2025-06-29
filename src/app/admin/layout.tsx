@@ -1,4 +1,3 @@
-
 'use client';
 
 import Link from "next/link";
@@ -125,11 +124,11 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   
   const activeGroupValue = useMemo(() => {
       const activeGroup = navGroups.find(group => group.links.some(link => pathname.startsWith(link.href)));
-      return activeGroup ? [activeGroup.title] : [];
+      return activeGroup?.title;
   }, [navGroups, pathname]);
 
   const renderNav = () => (
-    <Accordion type="multiple" defaultValue={activeGroupValue} className="w-full">
+    <Accordion type="single" collapsible defaultValue={activeGroupValue} className="w-full">
       {navGroups.map((group) => (
         <AccordionItem value={group.title} key={group.title} className="border-b-0">
           <AccordionTrigger className="px-3 py-2 text-base hover:bg-muted rounded-md hover:no-underline lg:text-sm">
