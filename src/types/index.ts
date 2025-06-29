@@ -291,6 +291,7 @@ export type BotConfig = {
   winnersChannelId: string;
   bolaoChannelId: string;
   mvpChannelId: string;
+  levelUpChannelId?: string;
   newsChannelId: string;
   newsMentionRoleId: string;
   adminRoleId: string;

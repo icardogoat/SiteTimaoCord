@@ -11,22 +11,25 @@ from cachetools import TTLCache
 
 load_dotenv()
 
-# Fixed ID for the single level config document
+# Fixed IDs for config documents
 LEVEL_CONFIG_ID = ObjectId('66a500a8a7c3d2e3c4f5b6a8')
+BOT_CONFIG_ID = ObjectId('669fdb5a907548817b848c48')
 
 class Leveling(commands.Cog):
     def __init__(self, bot):
         self.bot: commands.Bot = bot
         self.client = MongoClient(os.getenv('MONGODB_URI'))
         self.db = self.client.timaocord
+        self.bot_db = self.client.timaocord_bot
         self.users = self.db.users
         self.wallets = self.db.wallets
         self.level_config_collection = self.db.level_config
+        self.bot_config_collection = self.bot_db.config
         
-        # Cache for user cooldowns (60 seconds)
+        # Caches
         self.message_cooldowns = TTLCache(maxsize=1024, ttl=60)
-        # Cache for level configuration (15 minutes)
-        self.level_config_cache = TTLCache(maxsize=1, ttl=900)
+        self.level_config_cache = TTLCache(maxsize=1, ttl=900) # 15 min
+        self.bot_config_cache = TTLCache(maxsize=1, ttl=900) # 15 min
 
     def cog_unload(self):
         self.client.close()
@@ -38,11 +41,21 @@ class Leveling(commands.Cog):
         
         config_doc = self.level_config_collection.find_one({"_id": LEVEL_CONFIG_ID})
         if config_doc and 'levels' in config_doc:
-            # Sort levels by level number to ensure correct order
             config = sorted(config_doc['levels'], key=lambda x: x['level'])
             self.level_config_cache['config'] = config
             return config
         return []
+    
+    async def get_bot_config(self):
+        """Fetches bot configuration from cache or database."""
+        if 'config' in self.bot_config_cache:
+            return self.bot_config_cache['config']
+        
+        config_doc = self.bot_config_collection.find_one({"_id": BOT_CONFIG_ID})
+        if config_doc:
+            self.bot_config_cache['config'] = config_doc
+            return config_doc
+        return {}
 
     async def grant_xp(self, user: discord.Member, amount: int, channel: discord.TextChannel):
         """Grants XP to a user, checks for level ups, and handles rewards."""
@@ -51,7 +64,6 @@ class Leveling(commands.Cog):
 
         user_id = str(user.id)
         
-        # Ensure user exists in the database and increment XP
         user_doc = self.users.find_one_and_update(
             {"discordId": user_id},
             {"$inc": {"xp": amount}},
@@ -66,7 +78,6 @@ class Leveling(commands.Cog):
         if not level_config:
             return
 
-        # Check for level up by finding the highest level the user qualifies for
         new_level_data = None
         for level_info in reversed(level_config):
             if new_xp >= level_info['xp']:
@@ -116,11 +127,26 @@ class Leveling(commands.Cog):
             if reward_description:
                 level_up_embed.add_field(name="Recompensa", value=reward_description, inline=False)
             
+            # Determine target channel
+            bot_config = await self.get_bot_config()
+            target_channel = channel # Fallback to the original channel
+            
+            level_up_channel_id = bot_config.get('levelUpChannelId')
+            if level_up_channel_id:
+                try:
+                    config_channel = self.bot.get_channel(int(level_up_channel_id))
+                    if config_channel and isinstance(config_channel, discord.TextChannel):
+                        target_channel = config_channel
+                    else:
+                        print(f"Level up channel ID {level_up_channel_id} not found or is not a text channel.")
+                except ValueError:
+                     print(f"Invalid level up channel ID in config: {level_up_channel_id}")
+
             try:
                 # Send the level up message, deleting it after 1 minute to reduce spam
-                await channel.send(embed=level_up_embed, delete_after=60)
+                await target_channel.send(embed=level_up_embed, delete_after=60)
             except (discord.Forbidden, discord.HTTPException):
-                print(f"Bot could not send level up message in channel {channel.id}")
+                print(f"Bot could not send level up message in channel {target_channel.id}")
 
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):

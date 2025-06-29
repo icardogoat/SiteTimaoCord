@@ -53,6 +53,7 @@ const formSchema = z.object({
   winnersChannelId: z.string().optional(),
   bolaoChannelId: z.string().optional(),
   mvpChannelId: z.string().optional(),
+  levelUpChannelId: z.string().optional(),
   newsChannelId: z.string().optional(),
   newsMentionRoleId: z.string().optional(),
   adminRoleId: z.string().optional(),
@@ -88,6 +89,7 @@ export default function AdminBotConfigClient({ initialConfig, initialChannels, i
             winnersChannelId: initialConfig.winnersChannelId || "",
             bolaoChannelId: initialConfig.bolaoChannelId || "",
             mvpChannelId: initialConfig.mvpChannelId || "",
+            levelUpChannelId: initialConfig.levelUpChannelId || "",
             newsChannelId: initialConfig.newsChannelId || "",
             newsMentionRoleId: initialConfig.newsMentionRoleId || "",
             adminRoleId: initialConfig.adminRoleId || "",
@@ -115,6 +117,7 @@ export default function AdminBotConfigClient({ initialConfig, initialChannels, i
             winnersChannelId: '',
             bolaoChannelId: '',
             mvpChannelId: '',
+            levelUpChannelId: '',
             newsChannelId: '',
             newsMentionRoleId: '',
             adminRoleId: '',
@@ -143,7 +146,7 @@ export default function AdminBotConfigClient({ initialConfig, initialChannels, i
         setIsLoadingDetails(false);
     };
 
-    const handleTest = async (channelType: 'welcome' | 'log' | 'betting' | 'winners' | 'bolao' | 'mvp' | 'news') => {
+    const handleTest = async (channelType: 'welcome' | 'log' | 'betting' | 'winners' | 'bolao' | 'mvp' | 'news' | 'levelUp') => {
         const channelId = form.getValues(`${channelType}ChannelId` as keyof FormValues);
         if (!channelId) {
             toast({ title: "Nenhum canal selecionado", variant: "destructive" });
@@ -205,6 +208,17 @@ export default function AdminBotConfigClient({ initialConfig, initialChannels, i
                     }]
                 };
                 break;
+             case 'levelUp':
+                payload = {
+                    embeds: [{
+                        color: 0xFFD700, // yellow
+                        title: '🎉 Teste do Canal de Level Up 🎉',
+                        description: 'Se você pode ver esta mensagem, as notificações de level up funcionarão corretamente!',
+                        footer: { text: 'Teste enviado pelo Painel Admin' },
+                        timestamp: new Date().toISOString(),
+                    }]
+                };
+                break;
         }
         
         setIsTesting(channelType);
@@ -228,6 +242,7 @@ export default function AdminBotConfigClient({ initialConfig, initialChannels, i
             winnersChannelId: values.winnersChannelId || '',
             bolaoChannelId: values.bolaoChannelId || '',
             mvpChannelId: values.mvpChannelId || '',
+            levelUpChannelId: values.levelUpChannelId || '',
             newsChannelId: values.newsChannelId || '',
             newsMentionRoleId: values.newsMentionRoleId || '',
             adminRoleId: values.adminRoleId || '',
@@ -555,6 +570,43 @@ export default function AdminBotConfigClient({ initialConfig, initialChannels, i
                                                 {isTesting === 'winners' ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Testar'}
                                             </Button>
                                         </div>
+                                    </FormItem>
+                                )}
+                            />
+                             <FormField
+                                control={form.control}
+                                name="levelUpChannelId"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Canal de Level Up</FormLabel>
+                                        <div className="flex items-center gap-2">
+                                            <Select onValueChange={field.onChange} value={field.value} disabled={channels.length === 0}>
+                                                <FormControl>
+                                                    <SelectTrigger>
+                                                        <SelectValue placeholder="Selecione um canal" />
+                                                    </SelectTrigger>
+                                                </FormControl>
+                                                <SelectContent>
+                                                    {channels.map(channel => (
+                                                        <SelectItem key={channel.id} value={channel.id}>
+                                                            #{channel.name}
+                                                        </SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
+                                            <Button 
+                                                type="button" 
+                                                variant="outline" 
+                                                onClick={() => handleTest('levelUp')}
+                                                disabled={!field.value || isTesting !== null}
+                                                aria-label="Testar canal de level up"
+                                            >
+                                                {isTesting === 'levelUp' ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Testar'}
+                                            </Button>
+                                        </div>
+                                         <FormDescription>
+                                            Canal onde as mensagens de level up serão enviadas. Se não for definido, será enviado no canal onde o usuário ganhou o XP.
+                                        </FormDescription>
                                     </FormItem>
                                 )}
                             />
