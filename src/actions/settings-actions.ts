@@ -52,6 +52,7 @@ export async function getApiSettings(): Promise<Partial<ApiSettings>> {
             updateApiKeys: updateApiKeys,
             paymentApiKeys: paymentApiKeys,
             lastUpdateTimestamp: settings?.lastUpdateTimestamp || null,
+            highlightedLeagues: settings?.highlightedLeagues || [],
         };
     } catch (error) {
         console.error("Error fetching API settings:", error);
@@ -60,6 +61,7 @@ export async function getApiSettings(): Promise<Partial<ApiSettings>> {
             updateApiKeys: [],
             paymentApiKeys: [],
             lastUpdateTimestamp: null,
+            highlightedLeagues: [],
         };
     }
 }
@@ -255,5 +257,39 @@ export async function updateBetaVipSettings(data: {
     } catch (error) {
         console.error("Error updating beta vip settings:", error);
         return { success: false, message: 'Falha ao salvar as configurações.' };
+    }
+}
+
+export async function getHighlightedLeagues(): Promise<string[]> {
+    try {
+        const client = await clientPromise;
+        const db = client.db('timaocord_settings');
+        const settingsCollection = db.collection('api_settings');
+        const settings = await settingsCollection.findOne({ _id: new ObjectId(SETTINGS_ID) });
+        return settings?.highlightedLeagues || [];
+    } catch (error) {
+        console.error("Error fetching highlighted leagues:", error);
+        return [];
+    }
+}
+
+export async function updateHighlightedLeagues(leagues: string[]): Promise<{ success: boolean; message: string }> {
+    try {
+        const client = await clientPromise;
+        const db = client.db('timaocord_settings');
+        const settingsCollection = db.collection('api_settings');
+            
+        await settingsCollection.updateOne(
+            { _id: new ObjectId(SETTINGS_ID) },
+            { $set: { highlightedLeagues: leagues } },
+            { upsert: true }
+        );
+
+        revalidatePath('/admin/highlights');
+        revalidatePath('/bet'); // Revalidate betting page to update sidebar
+        return { success: true, message: 'Ligas em destaque salvas com sucesso!' };
+    } catch (error) {
+        console.error("Error updating highlighted leagues:", error);
+        return { success: false, message: 'Falha ao salvar as ligas em destaque.' };
     }
 }

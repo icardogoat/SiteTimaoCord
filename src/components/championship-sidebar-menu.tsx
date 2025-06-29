@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, Suspense } from 'react';
@@ -9,23 +10,13 @@ import {
   SidebarMenuSub,
   SidebarMenuSubItem,
   SidebarMenuSubButton,
+  SidebarMenuSkeleton,
 } from '@/components/ui/sidebar';
 import { Globe, Home, Trophy, Star } from 'lucide-react';
+import { getHighlightedLeagues } from '@/actions/settings-actions';
 
 const championships = {
-  destaques: [
-    'Brasileirão Série A',
-    'Premier League',
-    'La Liga',
-    'Serie A',
-    'Bundesliga',
-    'Copa do Brasil',
-    'CONMEBOL Libertadores',
-    'CONMEBOL Sul-Americana',
-    'UEFA Champions League',
-    'FIFA Club World Cup',
-    'Mundial de Clubes da FIFA',
-  ],
+  // A categoria "destaques" foi removida daqui, pois agora é dinâmica.
   brasil: [
     'Série B', 'Brasileirão Série B',
     'Copa do Nordeste',
@@ -34,6 +25,7 @@ const championships = {
     'Campeonato Carioca',
     'Supercopa do Brasil',
     'Campeonato Paulista',
+    'Brasileirão Série A', // Adicionado aqui como fallback
   ],
   americas: [
     'Copa América',
@@ -42,6 +34,8 @@ const championships = {
     'MLS',
     'Liga Pro',
     'Liga Profesional Argentina',
+    'CONMEBOL Libertadores', // Adicionado aqui como fallback
+    'CONMEBOL Sul-Americana', // Adicionado aqui como fallback
   ],
   europa: [
     'UEFA Champions League',
@@ -72,6 +66,8 @@ const championships = {
   mundo: [
     'Copa do Mundo',
     'Copa do Mundo Feminina',
+    'FIFA Club World Cup', // Adicionado aqui como fallback
+    'Mundial de Clubes da FIFA', // Adicionado aqui como fallback
   ],
 };
 
@@ -91,9 +87,22 @@ export function ChampionshipSidebarMenu({ availableLeagues }: ChampionshipSideba
 function ChampionshipSidebarMenuInner({ availableLeagues }: ChampionshipSidebarMenuProps) {
   const searchParams = useSearchParams();
   const selectedLeague = searchParams.get('league');
+  const [highlightedLeagues, setHighlightedLeagues] = useState<string[]>([]);
+  const [isLoadingHighlights, setIsLoadingHighlights] = useState(true);
+
+  useEffect(() => {
+    async function fetchHighlights() {
+      setIsLoadingHighlights(true);
+      const leagues = await getHighlightedLeagues();
+      setHighlightedLeagues(leagues);
+      setIsLoadingHighlights(false);
+    }
+    fetchHighlights();
+  }, []);
+  
+  const highlightedLeaguesSet = new Set(highlightedLeagues);
 
   const championshipGroups = [
-    { name: 'Destaques', list: championships.destaques, icon: Star },
     { name: 'Brasil', list: championships.brasil, icon: Trophy },
     { name: 'Américas', list: championships.americas, icon: Globe },
     { name: 'Europa', list: championships.europa, icon: Globe },
@@ -107,11 +116,11 @@ function ChampionshipSidebarMenuInner({ availableLeagues }: ChampionshipSidebarM
 
   const filteredChampionshipGroups = championshipGroups.map(group => ({
       ...group,
-      list: group.list.filter(league => availableLeagues.includes(league))
+      list: group.list.filter(league => availableLeagues.includes(league) && !highlightedLeaguesSet.has(league))
   })).filter(group => group.list.length > 0);
   
   const uncategorizedLeagues = availableLeagues
-    .filter(league => !allCategorizedLeagues.has(league))
+    .filter(league => !allCategorizedLeagues.has(league) && !highlightedLeaguesSet.has(league))
     .sort();
 
   if (uncategorizedLeagues.length > 0) {
@@ -125,9 +134,8 @@ function ChampionshipSidebarMenuInner({ availableLeagues }: ChampionshipSidebarM
   const [openMenus, setOpenMenus] = useState<string[]>([]);
   const [isInitialStateLoaded, setIsInitialStateLoaded] = useState(false);
 
-  // Load state from localStorage on mount
   useEffect(() => {
-    const defaultOpen = filteredChampionshipGroups.map(g => g.name);
+    const defaultOpen = ['Destaques', ...filteredChampionshipGroups.map(g => g.name)];
     try {
         const storedState = localStorage.getItem('sidebarOpenMenus');
         setOpenMenus(storedState ? JSON.parse(storedState) : defaultOpen);
@@ -135,11 +143,8 @@ function ChampionshipSidebarMenuInner({ availableLeagues }: ChampionshipSidebarM
         setOpenMenus(defaultOpen);
     }
     setIsInitialStateLoaded(true);
-  // Using availableLeagues as a dependency because filteredChampionshipGroups depends on it.
-  // This ensures the default state is correct if the leagues change.
   }, [availableLeagues]);
 
-  // Save state to localStorage on change
   useEffect(() => {
     if (isInitialStateLoaded) {
         try {
@@ -168,6 +173,37 @@ function ChampionshipSidebarMenuInner({ availableLeagues }: ChampionshipSidebarM
             </Link>
         </SidebarMenuButton>
       </SidebarMenuItem>
+
+      {isLoadingHighlights ? (
+         <SidebarMenuItem>
+            <SidebarMenuSkeleton showIcon />
+         </SidebarMenuItem>
+      ) : highlightedLeagues.length > 0 && (
+        <SidebarMenuItem>
+          <SidebarMenuButton
+            onClick={() => toggleMenu('Destaques')}
+            data-state={openMenus.includes('Destaques') ? 'open' : 'closed'}
+          >
+            <Star />
+            <span>Destaques</span>
+          </SidebarMenuButton>
+          {openMenus.includes('Destaques') && (
+            <SidebarMenuSub>
+              {highlightedLeagues.map((league) => (
+                <SidebarMenuSubItem key={league}>
+                  <SidebarMenuSubButton
+                    href={`/bet?league=${encodeURIComponent(league)}`}
+                    isActive={selectedLeague === league}
+                  >
+                    <span>{league}</span>
+                  </SidebarMenuSubButton>
+                </SidebarMenuSubItem>
+              ))}
+            </SidebarMenuSub>
+          )}
+        </SidebarMenuItem>
+      )}
+
       {filteredChampionshipGroups.map((group) => (
         <SidebarMenuItem key={group.name}>
           <SidebarMenuButton

@@ -313,6 +313,7 @@ export type ApiSettings = {
     updateApiKeys?: ApiKeyEntry[];
     paymentApiKeys?: ApiKeyEntry[];
     lastUpdateTimestamp?: Date | string | null;
+    highlightedLeagues?: string[];
 };
 
 export type SiteSettings = {
