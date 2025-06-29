@@ -2,7 +2,7 @@
 'use server';
 
 import { getAvailableLeagues } from "@/actions/bet-actions";
-import { getPostById } from "@/actions/news-actions";
+import { getPostById, getAuthorInfo } from "@/actions/news-actions";
 import { AppLayout } from "@/components/app-layout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { notFound } from "next/navigation";
@@ -38,10 +38,16 @@ export default async function PostArticlePage({ params }: { params: { id: string
     const session = await getServerSession(authOptions);
     const hasPermission = session?.user?.admin || session?.user?.canPost;
 
-    const [post, availableLeagues] = await Promise.all([
+    const [postData, availableLeagues] = await Promise.all([
         getPostById(params.id),
         getAvailableLeagues(),
     ]);
+    
+    if (!postData) {
+        notFound();
+    }
+    
+    const author = postData.authorId ? await getAuthorInfo(postData.authorId) : null;
     
     if (!hasPermission) {
         return (
@@ -67,11 +73,11 @@ export default async function PostArticlePage({ params }: { params: { id: string
         );
     }
     
-    if (!post || !post.author) {
+    if (!author) {
         notFound();
     }
 
-    const timeAgo = formatDistanceToNow(new Date(post.publishedAt), { addSuffix: true, locale: ptBR });
+    const timeAgo = formatDistanceToNow(new Date(postData.publishedAt), { addSuffix: true, locale: ptBR });
 
     return (
         <AppLayout availableLeagues={availableLeagues}>
@@ -86,24 +92,24 @@ export default async function PostArticlePage({ params }: { params: { id: string
                         <CardHeader>
                              <div className="flex items-center gap-4">
                                 <Avatar className="h-12 w-12">
-                                    <AvatarImage src={post.author.avatarUrl} alt={post.author.name} data-ai-hint="author avatar" />
-                                    <AvatarFallback><AvatarFallbackText name={post.author.name} /></AvatarFallback>
+                                    <AvatarImage src={author.avatarUrl} alt={author.name} data-ai-hint="author avatar" />
+                                    <AvatarFallback><AvatarFallbackText name={author.name} /></AvatarFallback>
                                 </Avatar>
                                 <div className="flex-1">
-                                    <p className="font-semibold">{post.author.name}</p>
+                                    <p className="font-semibold">{author.name}</p>
                                      <p className="text-sm text-muted-foreground">
                                         Postado {timeAgo}
                                     </p>
                                 </div>
                             </div>
-                            <CardTitle className="!mt-6">{post.title}</CardTitle>
+                            <CardTitle className="!mt-6">{postData.title}</CardTitle>
                          </CardHeader>
                         <CardContent className="space-y-4">
-                           {post.imageUrl && (
+                           {postData.imageUrl && (
                                 <div className="relative aspect-video w-full rounded-lg overflow-hidden border">
                                     <Image
-                                        src={post.imageUrl}
-                                        alt={post.title}
+                                        src={postData.imageUrl}
+                                        alt={postData.title}
                                         fill
                                         className="object-cover"
                                         data-ai-hint="post image"
@@ -111,7 +117,7 @@ export default async function PostArticlePage({ params }: { params: { id: string
                                 </div>
                             )}
                             <div className="text-base text-foreground/90 whitespace-pre-wrap leading-relaxed">
-                                {linkify(post.content)}
+                                {linkify(postData.content)}
                             </div>
                         </CardContent>
                     </Card>

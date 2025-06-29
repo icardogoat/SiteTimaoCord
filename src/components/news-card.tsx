@@ -1,6 +1,7 @@
+
 'use client';
 
-import type { Post } from '@/types';
+import type { Post, AuthorInfo } from '@/types';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from './ui/card';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -12,6 +13,8 @@ import { AvatarFallbackText } from './avatar-fallback-text';
 import { Button } from './ui/button';
 import { ArrowRight, Pin, Lock } from 'lucide-react';
 import { useSession } from 'next-auth/react';
+import { getAuthorInfo } from '@/actions/news-actions';
+import { Skeleton } from './ui/skeleton';
 
 interface PostCardProps {
     post: Post;
@@ -31,7 +34,50 @@ export function PostCard({ post }: PostCardProps) {
     const { data: session } = useSession();
     const hasPermission = session?.user?.admin || session?.user?.canPost;
 
-    if (!post || !post.author) {
+    const [author, setAuthor] = useState<AuthorInfo | null>(post.author ?? null);
+    const [isLoadingAuthor, setIsLoadingAuthor] = useState(!post.author);
+
+    useEffect(() => {
+        if (!post.author && post.authorId) {
+            getAuthorInfo(post.authorId).then(authorInfo => {
+                setAuthor(authorInfo);
+                setIsLoadingAuthor(false);
+            });
+        }
+    }, [post.author, post.authorId]);
+
+    // Show a skeleton while loading the author
+    if (isLoadingAuthor) {
+        return (
+            <Card className="flex flex-col overflow-hidden h-full group">
+                 {post.imageUrl && (
+                    <div className="overflow-hidden relative">
+                        <Skeleton className="h-40 w-full" />
+                    </div>
+                )}
+                <CardHeader>
+                    <div className="flex items-center gap-3">
+                        <Skeleton className="h-10 w-10 rounded-full" />
+                        <div className="flex-1 space-y-2">
+                            <Skeleton className="h-4 w-24" />
+                            <Skeleton className="h-3 w-16" />
+                        </div>
+                    </div>
+                    <Skeleton className="h-6 w-3/4 !mt-4" />
+                </CardHeader>
+                <CardContent className="flex-grow space-y-2">
+                    <Skeleton className="h-4 w-full" />
+                    <Skeleton className="h-4 w-full" />
+                    <Skeleton className="h-4 w-2/3" />
+                </CardContent>
+                 <CardFooter>
+                    <Skeleton className="h-10 w-full" />
+                </CardFooter>
+            </Card>
+        );
+    }
+    
+    if (!author) { // if author fetch failed or post had no authorId
         return null;
     }
 
@@ -52,11 +98,11 @@ export function PostCard({ post }: PostCardProps) {
             <CardHeader>
                 <div className="flex items-center gap-3">
                     <Avatar className="h-10 w-10">
-                        <AvatarImage src={post.author.avatarUrl} alt={post.author.name} data-ai-hint="author avatar" />
-                        <AvatarFallback><AvatarFallbackText name={post.author.name} /></AvatarFallback>
+                        <AvatarImage src={author.avatarUrl} alt={author.name} data-ai-hint="author avatar" />
+                        <AvatarFallback><AvatarFallbackText name={author.name} /></AvatarFallback>
                     </Avatar>
                     <div className="flex-1 overflow-hidden">
-                        <p className="font-semibold truncate">{post.author.name}</p>
+                        <p className="font-semibold truncate">{author.name}</p>
                         <p className="text-xs text-muted-foreground"><ClientTime date={post.publishedAt} /></p>
                     </div>
                     {post.isPinned && <Pin className="h-4 w-4 text-primary" />}

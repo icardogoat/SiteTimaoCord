@@ -7,6 +7,7 @@ import { getBotConfig } from './bot-config-actions';
 import type { Post, AuthorInfo } from '@/types';
 import { revalidatePath } from 'next/cache';
 import { ObjectId } from 'mongodb';
+import { cache } from 'react';
 
 export async function sendDiscordPostNotification(post: Post, author: AuthorInfo) {
     const { newsChannelId, newsMentionRoleId } = await getBotConfig();
@@ -95,20 +96,6 @@ export async function getPublicPosts(): Promise<Post[]> {
             { $sort: { isPinned: -1, publishedAt: -1 } },
             { $limit: 20 },
             {
-                $lookup: {
-                    from: 'users',
-                    localField: 'authorId',
-                    foreignField: 'discordId',
-                    as: 'authorDetails'
-                }
-            },
-            {
-                $unwind: {
-                    path: '$authorDetails',
-                    preserveNullAndEmptyArrays: true
-                }
-            },
-            {
                 $project: {
                     _id: 1,
                     title: 1,
@@ -116,10 +103,7 @@ export async function getPublicPosts(): Promise<Post[]> {
                     imageUrl: 1,
                     isPinned: 1,
                     publishedAt: 1,
-                    author: {
-                        name: '$authorDetails.name',
-                        avatarUrl: '$authorDetails.image'
-                    }
+                    authorId: 1,
                 }
             }
         ]).toArray();
@@ -141,40 +125,8 @@ export async function getPostById(id: string): Promise<Post | null> {
         const db = client.db('timaocord');
         const postsCollection = db.collection<Post>('posts');
         
-        const postResult = await postsCollection.aggregate([
-             { $match: { _id: new ObjectId(id) } },
-             {
-                $lookup: {
-                    from: 'users',
-                    localField: 'authorId',
-                    foreignField: 'discordId',
-                    as: 'authorDetails'
-                }
-            },
-             {
-                $unwind: {
-                    path: '$authorDetails',
-                    preserveNullAndEmptyArrays: true
-                }
-            },
-            {
-                $project: {
-                    _id: 1,
-                    title: 1,
-                    content: 1,
-                    imageUrl: 1,
-                    isPinned: 1,
-                    publishedAt: 1,
-                    author: {
-                       name: '$authorDetails.name',
-                       avatarUrl: '$authorDetails.image'
-                    }
-                }
-            }
-        ]).toArray();
+        const post = await postsCollection.findOne({ _id: new ObjectId(id) });
         
-        const post = postResult[0];
-
         if (!post) {
             return null;
         }
@@ -185,6 +137,29 @@ export async function getPostById(id: string): Promise<Post | null> {
         return null;
     }
 }
+
+export const getAuthorInfo = cache(async (authorId: string): Promise<AuthorInfo | null> => {
+    try {
+        const client = await clientPromise;
+        const db = client.db('timaocord');
+        const user = await db.collection('users').findOne(
+            { discordId: authorId },
+            { projection: { _id: 1, name: 1, image: 1 } }
+        );
+
+        if (!user) return null;
+
+        return {
+            _id: user._id,
+            name: user.name,
+            avatarUrl: user.image,
+        };
+    } catch (error) {
+        console.error('Error fetching author info:', error);
+        return null;
+    }
+});
+
 
 export async function syncDiscordNews(): Promise<{ success: boolean; message: string; details: string[] }> {
     const { newsChannelId } = await getBotConfig();
