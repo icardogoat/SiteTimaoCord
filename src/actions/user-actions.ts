@@ -28,9 +28,9 @@ export const getUserStats = cache(async (userId: string): Promise<UserStats> => 
         const userStats = await userStatsCollection.findOne({ userId });
 
         if (userStats) {
-            // Remove the _id before returning to match the type
+            // Remove the _id and merge with defaults to ensure all fields are present
             const { _id, ...stats } = userStats;
-            return stats;
+            return { ...defaultStats, ...stats, userId };
         }
 
         // --- Fallback for existing users without an aggregated doc ---
