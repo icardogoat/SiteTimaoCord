@@ -86,8 +86,6 @@ export function IntervalOverlay({ discordInviteUrl }: IntervalOverlayProps) {
 
     return (
         <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-background text-white">
-            <audio src="/audio/hino-do-corinthians.mp3" autoPlay loop data-ai-hint="anthem music"></audio>
-
             <div className="absolute inset-0 z-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px]"></div>
 
             <div className="relative z-10 flex flex-col items-center justify-center text-center p-4">
