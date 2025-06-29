@@ -19,6 +19,7 @@ declare module 'next-auth' {
       canViewStream: boolean;
       adRemovalExpiresAt: string | null;
       dailyRewardLastClaimed: string | null;
+      lastDailyCodeClaim?: string | null;
       canAccessBolao: boolean;
       canAccessMvp: boolean;
     } & DefaultSession['user'];

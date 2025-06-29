@@ -9,6 +9,15 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { Transaction, ApiSettings } from "@/types";
 import { DailyRewardClient } from "./daily-reward-client";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from 'zod';
+import { useToast } from "@/hooks/use-toast";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "./ui/form";
+import { Input } from "./ui/input";
+import { Gift, Loader2 } from "lucide-react";
+import { redeemCode } from "@/actions/reward-actions";
+import { useSession } from "next-auth/react";
 
 const getStatusClass = (status: Transaction['status']) => {
     switch (status) {
@@ -25,6 +34,71 @@ const getStatusClass = (status: Transaction['status']) => {
 
 const getAmountClass = (amount: number) => {
     return amount > 0 ? 'text-green-400' : 'text-red-400';
+}
+
+const redeemCodeSchema = z.object({
+  code: z.string().min(1, { message: "O código não pode estar em branco." }),
+});
+
+function RedeemCodeCard() {
+    const { toast } = useToast();
+    const { update: updateSession } = useSession();
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    
+    const form = useForm<z.infer<typeof redeemCodeSchema>>({
+        resolver: zodResolver(redeemCodeSchema),
+        defaultValues: { code: '' },
+    });
+
+    const onSubmit = async (values: z.infer<typeof redeemCodeSchema>) => {
+        setIsSubmitting(true);
+        const result = await redeemCode(values.code);
+        if (result.success) {
+            toast({ title: 'Sucesso!', description: result.message });
+            await updateSession(); // Refresh balance
+            form.reset();
+        } else {
+            toast({ title: 'Erro', description: result.message, variant: 'destructive' });
+        }
+        setIsSubmitting(false);
+    };
+
+    return (
+        <Card>
+            <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                    <Gift className="h-5 w-5 text-primary" />
+                    Resgatar Código
+                </CardTitle>
+                <CardDescription>Insira um código promocional para receber recompensas.</CardDescription>
+            </CardHeader>
+            <Form {...form}>
+                <form onSubmit={form.handleSubmit(onSubmit)}>
+                    <CardContent>
+                         <FormField
+                            control={form.control}
+                            name="code"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel className="sr-only">Código Promocional</FormLabel>
+                                    <FormControl>
+                                        <Input placeholder="Insira seu código..." {...field} />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                    </CardContent>
+                    <CardFooter>
+                         <Button type="submit" className="w-full" disabled={isSubmitting}>
+                            {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                            Resgatar
+                        </Button>
+                    </CardFooter>
+                </form>
+            </Form>
+        </Card>
+    );
 }
 
 interface WalletClientProps {
@@ -63,6 +137,7 @@ export function WalletClient({ availableLeagues, initialBalance, initialTransact
                             </CardContent>
                         </Card>
                          <DailyRewardClient apiSettings={apiSettings} />
+                         <RedeemCodeCard />
                     </div>
 
                     <div className="md:col-span-2">

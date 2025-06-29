@@ -190,6 +190,7 @@ export const authOptions: AuthOptions = {
             if (typeof dbUser.unlockedAchievements === 'undefined') updateOps.unlockedAchievements = [];
             if (typeof dbUser.adRemovalExpiresAt === 'undefined') updateOps.adRemovalExpiresAt = null;
             if (typeof dbUser.dailyRewardLastClaimed === 'undefined') updateOps.dailyRewardLastClaimed = null;
+            if (typeof dbUser.lastDailyCodeClaim === 'undefined') updateOps.lastDailyCodeClaim = null;
 
             if (Object.keys(updateOps).length > 0) {
                  await usersCollection.updateOne(

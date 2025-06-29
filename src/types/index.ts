@@ -170,6 +170,7 @@ export type StoreItem = {
   roleId?: string;
   xpAmount?: number;
   isActive: boolean;
+  stock?: number;
   createdAt: Date | string;
 };
 
@@ -442,4 +443,56 @@ export type RecentUser = {
   name: string;
   avatar: string;
   joinDate: string;
+};
+
+export type StickerAlbum = {
+  _id: string | ObjectId;
+  name: string;
+  coverImageUrl: string;
+  price: number;
+  stock: number;
+  createdAt: Date | string;
+};
+
+export type StickerPack = {
+  _id: string | ObjectId;
+  albumId: string | ObjectId;
+  name: string;
+  price: number;
+  stickerCount: number;
+  stock: number;
+  packImageUrl: string;
+  createdAt: Date | string;
+};
+
+export type AlbumPage = {
+  _id: string | ObjectId;
+  albumId: string | ObjectId;
+  name: string;
+  pageImageUrl?: string | null;
+  createdAt: Date | string;
+};
+
+export type Sticker = {
+  _id: string | ObjectId;
+  albumId: string | ObjectId;
+  pageId: string | ObjectId;
+  name: string;
+  stickerImageUrl: string;
+  rarity: 'Comum' | 'Rara' | 'Épica' | 'Lendária';
+  createdAt: Date | string;
+};
+
+export type PromoCode = {
+  _id: string | ObjectId;
+  code: string;
+  type: 'MONEY' | 'XP' | 'ROLE' | 'DAILY';
+  description: string;
+  value: number | string; // amount for money/xp, roleId for role
+  status: 'ACTIVE' | 'REDEEMED' | 'EXPIRED' | 'REVOKED';
+  createdAt: Date | string;
+  expiresAt?: Date | string | null;
+  createdBy: string; // discordId of admin or 'SYSTEM'
+  redeemedBy?: string | null; // discordId of user
+  redeemedAt?: Date | string | null;
 };
