@@ -50,13 +50,14 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Loader2, PlusCircle, Trash2, Edit, HelpCircle } from 'lucide-react';
+import { Loader2, PlusCircle, Trash2, Edit, HelpCircle, Sparkles } from 'lucide-react';
 import type { Quiz, QuizQuestion } from '@/types';
 import type { DiscordChannel, DiscordRole } from '@/actions/bot-config-actions';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { RadioGroup, RadioGroupItem } from './ui/radio-group';
 import { Alert, AlertDescription, AlertTitle } from './ui/alert';
 import { Separator } from './ui/separator';
+import { generateQuizQuestions } from '@/ai/flows/quiz-generator-flow';
 
 const questionSchema = z.object({
   question: z.string().min(1, 'A pergunta não pode estar vazia.'),
@@ -73,6 +74,7 @@ const quizSchema = z.object({
   winnerLimit: z.coerce.number().int().min(0, "O limite de vencedores não pode ser negativo."),
   channelId: z.string().min(1, 'É necessário selecionar um canal.'),
   mentionRoleId: z.string().optional(),
+  schedule: z.array(z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, "Formato inválido. Use HH:mm")).optional(),
   questions: z.array(questionSchema).min(1, 'É necessária pelo menos uma pergunta.'),
 });
 
@@ -82,6 +84,8 @@ export function AdminQuizClient({ initialQuizzes, discordChannels, discordRoles,
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState<string | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [isGenerating, setIsGenerating] = useState(false);
+    const [aiTheme, setAiTheme] = useState('');
     const [currentQuiz, setCurrentQuiz] = useState<Quiz | null>(null);
 
     const form = useForm<z.infer<typeof quizSchema>>({
@@ -93,6 +97,38 @@ export function AdminQuizClient({ initialQuizzes, discordChannels, discordRoles,
         control: form.control,
         name: "questions"
     });
+    
+    const { fields: scheduleFields, append: appendSchedule, remove: removeSchedule } = useFieldArray({
+        control: form.control,
+        name: "schedule"
+    });
+
+    const handleGenerateQuestions = async () => {
+        if (!aiTheme) {
+            toast({ title: 'Erro', description: 'Por favor, insira um tema para a IA.', variant: 'destructive' });
+            return;
+        }
+        setIsGenerating(true);
+        try {
+            const generatedQuestions = await generateQuizQuestions({ theme: aiTheme });
+            if (generatedQuestions && generatedQuestions.length > 0) {
+                // Ensure each question has exactly 4 options for the form
+                const formattedQuestions = generatedQuestions.map(q => ({
+                    ...q,
+                    options: q.options.concat(Array(4 - q.options.length).fill('')).slice(0, 4)
+                }));
+                form.setValue('questions', formattedQuestions);
+                toast({ title: 'Sucesso!', description: `${generatedQuestions.length} perguntas foram geradas.` });
+            } else {
+                toast({ title: 'Atenção', description: 'A IA não retornou perguntas. Tente um tema diferente.', variant: 'default' });
+            }
+        } catch (e) {
+            console.error(e);
+            toast({ title: 'Erro de IA', description: 'Não foi possível gerar as perguntas.', variant: 'destructive' });
+        }
+        setIsGenerating(false);
+    };
+
 
     const handleOpenDialog = (quiz: Quiz | null) => {
         setCurrentQuiz(quiz);
@@ -106,6 +142,7 @@ export function AdminQuizClient({ initialQuizzes, discordChannels, discordRoles,
                 winnerLimit: quiz.winnerLimit,
                 channelId: quiz.channelId,
                 mentionRoleId: quiz.mentionRoleId || undefined,
+                schedule: quiz.schedule || [],
                 questions: quiz.questions.map(q => ({...q, options: q.options.concat(Array(4 - q.options.length).fill('')).slice(0, 4)})), // Ensure 4 options
             });
         } else {
@@ -117,6 +154,7 @@ export function AdminQuizClient({ initialQuizzes, discordChannels, discordRoles,
                 winnerLimit: 0,
                 channelId: undefined,
                 mentionRoleId: undefined,
+                schedule: [],
                 questions: [{ question: '', options: ['', '', '', ''], answer: 0 }],
             });
         }
@@ -211,123 +249,174 @@ export function AdminQuizClient({ initialQuizzes, discordChannels, discordRoles,
                 <DialogHeader>
                     <DialogTitle>{currentQuiz ? 'Editar Quiz' : 'Novo Quiz'}</DialogTitle>
                 </DialogHeader>
-                <div className="flex-grow overflow-y-auto pr-6 -mr-6">
-                    <Form {...form}>
-                        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 pt-4">
-                            <div className="space-y-6 px-1">
-                                <FormField control={form.control} name="name" render={({ field }) => (
-                                    <FormItem><FormLabel>Nome do Quiz</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+                <Form {...form}>
+                    <form onSubmit={form.handleSubmit(onSubmit)} className="flex-grow overflow-y-auto pr-6 -mr-6 space-y-6">
+                        <div className="space-y-6 px-1">
+                            <FormField control={form.control} name="name" render={({ field }) => (
+                                <FormItem><FormLabel>Nome do Quiz</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+                            )}/>
+                            <FormField control={form.control} name="description" render={({ field }) => (
+                                <FormItem><FormLabel>Descrição (Opcional)</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+                            )}/>
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                <FormField control={form.control} name="rewardPerQuestion" render={({ field }) => (
+                                    <FormItem><FormLabel>Recompensa por Acerto (R$)</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>
                                 )}/>
-                                <FormField control={form.control} name="description" render={({ field }) => (
-                                    <FormItem><FormLabel>Descrição (Opcional)</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+                                <FormField control={form.control} name="channelId" render={({ field }) => (
+                                    <FormItem>
+                                    <FormLabel>Canal do Quiz</FormLabel>
+                                    <Select onValueChange={field.onChange} value={field.value} disabled={discordChannels.length === 0}>
+                                        <FormControl><SelectTrigger><SelectValue placeholder="Selecione um canal" /></SelectTrigger></FormControl>
+                                        <SelectContent>
+                                        {discordChannels.map(channel => (
+                                            <SelectItem key={channel.id} value={channel.id}>#{channel.name}</SelectItem>
+                                        ))}
+                                        </SelectContent>
+                                    </Select>
+                                    <FormMessage />
+                                    </FormItem>
                                 )}/>
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                    <FormField control={form.control} name="rewardPerQuestion" render={({ field }) => (
-                                        <FormItem><FormLabel>Recompensa por Acerto (R$)</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>
-                                    )}/>
-                                    <FormField control={form.control} name="channelId" render={({ field }) => (
-                                        <FormItem>
-                                        <FormLabel>Canal do Quiz</FormLabel>
-                                        <Select onValueChange={field.onChange} value={field.value} disabled={discordChannels.length === 0}>
-                                            <FormControl><SelectTrigger><SelectValue placeholder="Selecione um canal" /></SelectTrigger></FormControl>
-                                            <SelectContent>
-                                            {discordChannels.map(channel => (
-                                                <SelectItem key={channel.id} value={channel.id}>#{channel.name}</SelectItem>
+                                <FormField control={form.control} name="mentionRoleId" render={({ field }) => (
+                                    <FormItem>
+                                    <FormLabel>Cargo para Notificar (Opcional)</FormLabel>
+                                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                        <FormControl><SelectTrigger><SelectValue placeholder="Selecione um cargo" /></SelectTrigger></FormControl>
+                                        <SelectContent>
+                                            <SelectItem value="">Nenhum</SelectItem>
+                                            {discordRoles.map(role => (
+                                                <SelectItem key={role.id} value={role.id}>@{role.name}</SelectItem>
                                             ))}
-                                            </SelectContent>
-                                        </Select>
+                                        </SelectContent>
+                                    </Select>
+                                    <FormMessage />
+                                    </FormItem>
+                                )}/>
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <FormField control={form.control} name="questionsPerGame" render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Perguntas por Rodada</FormLabel>
+                                        <FormControl><Input type="number" {...field} /></FormControl>
+                                        <FormDescription>Quantas perguntas (aleatórias) serão feitas do total.</FormDescription>
                                         <FormMessage />
-                                        </FormItem>
-                                    )}/>
-                                    <FormField control={form.control} name="mentionRoleId" render={({ field }) => (
-                                        <FormItem>
-                                        <FormLabel>Cargo para Notificar (Opcional)</FormLabel>
-                                        <Select onValueChange={field.onChange} value={field.value} disabled={discordRoles.length === 0}>
-                                            <FormControl><SelectTrigger><SelectValue placeholder="Selecione um cargo" /></SelectTrigger></FormControl>
-                                            <SelectContent>
-                                                {discordRoles.map(role => (
-                                                    <SelectItem key={role.id} value={role.id}>@{role.name}</SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
+                                    </FormItem>
+                                )}/>
+                                <FormField control={form.control} name="winnerLimit" render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Limite de Vencedores Únicos</FormLabel>
+                                        <FormControl><Input type="number" {...field} /></FormControl>
+                                        <FormDescription>Quantos usuários diferentes podem ganhar prêmios. Use 0 para ilimitado.</FormDescription>
                                         <FormMessage />
-                                        </FormItem>
-                                    )}/>
-                                </div>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <FormField control={form.control} name="questionsPerGame" render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>Perguntas por Rodada</FormLabel>
-                                            <FormControl><Input type="number" {...field} /></FormControl>
-                                            <FormDescription>Quantas perguntas (aleatórias) serão feitas do total.</FormDescription>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}/>
-                                    <FormField control={form.control} name="winnerLimit" render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>Limite de Vencedores Únicos</FormLabel>
-                                            <FormControl><Input type="number" {...field} /></FormControl>
-                                            <FormDescription>Quantos usuários diferentes podem ganhar prêmios. Use 0 para ilimitado.</FormDescription>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}/>
-                                </div>
-                                
-                                <Separator className="!my-6" />
-                                <h3 className="text-lg font-semibold">Perguntas</h3>
-                                
-                                <div className="space-y-4">
-                                    {fields.map((field, index) => (
-                                        <Card key={field.id} className="p-4 bg-muted/50">
-                                        <div className="flex justify-between items-center mb-4">
-                                            <h4 className="font-semibold">Pergunta {index + 1}</h4>
-                                            <Button type="button" variant="ghost" size="icon" onClick={() => remove(index)} disabled={fields.length <= 1}>
-                                            <Trash2 className="h-4 w-4 text-destructive"/>
-                                            </Button>
-                                        </div>
-                                        <div className="space-y-4">
-                                            <FormField control={form.control} name={`questions.${index}.question`} render={({ field }) => (
-                                                <FormItem><FormLabel>Texto da Pergunta</FormLabel><FormControl><Textarea {...field} /></FormControl><FormMessage /></FormItem>
-                                            )}/>
-                                            <FormField
-                                                control={form.control}
-                                                name={`questions.${index}.answer`}
-                                                render={({ field }) => (
-                                                    <FormItem>
-                                                    <FormLabel>Opções (Marque a correta)</FormLabel>
-                                                    <RadioGroup onValueChange={field.onChange} value={String(field.value)} className="space-y-2">
-                                                        {form.getValues(`questions.${index}.options`).map((_, optionIndex) => (
-                                                        <FormField key={`${field.name}-option-${optionIndex}`} control={form.control} name={`questions.${index}.options.${optionIndex}`} render={({ field: optionField }) => (
-                                                            <FormItem className="flex items-center gap-2">
-                                                            <FormControl>
-                                                                <RadioGroupItem value={String(optionIndex)} id={`${field.name}-${optionIndex}`} />
-                                                            </FormControl>
-                                                            <Input {...optionField} placeholder={`Opção ${optionIndex + 1}`} className="flex-1"/>
-                                                            </FormItem>
-                                                        )}/>
-                                                        ))}
-                                                    </RadioGroup>
-                                                    <FormMessage />
-                                                    </FormItem>
-                                                )}
-                                                />
-                                        </div>
-                                        </Card>
-                                    ))}
-                                </div>
+                                    </FormItem>
+                                )}/>
                             </div>
                             
-                            <DialogFooter className="sticky bottom-0 bg-background pt-4 pb-1 -mx-6 px-6 border-t">
-                                <Button type="button" variant="outline" size="sm" onClick={() => append({ question: '', options: ['', '', '', ''], answer: 0 })}>
-                                    <PlusCircle className="mr-2 h-4 w-4" /> Adicionar Pergunta
+                             <Separator className="!my-6" />
+
+                            <Card className="bg-muted/30">
+                                <CardHeader>
+                                    <CardTitle className="flex items-center gap-2"><Sparkles className="text-yellow-400"/> Gerador de Perguntas com IA</CardTitle>
+                                    <CardDescription>Não sabe o que perguntar? Deixe a IA criar 5 perguntas para você com base em um tema.</CardDescription>
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="flex flex-col sm:flex-row gap-2">
+                                        <Input
+                                            placeholder="Ex: História do Corinthians"
+                                            value={aiTheme}
+                                            onChange={(e) => setAiTheme(e.target.value)}
+                                            disabled={isGenerating}
+                                        />
+                                        <Button type="button" onClick={handleGenerateQuestions} disabled={isGenerating || !aiTheme}>
+                                            {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
+                                            Gerar Perguntas
+                                        </Button>
+                                    </div>
+                                </CardContent>
+                            </Card>
+                            
+                            <Separator className="!my-6" />
+
+                             <div>
+                                <h3 className="text-lg font-semibold">Agendamento (Opcional)</h3>
+                                <FormDescription className="mb-4">
+                                    Defina horários para o quiz ser iniciado automaticamente no canal selecionado. O horário segue a timezone de São Paulo (UTC-3).
+                                </FormDescription>
+                                <div className="space-y-2">
+                                    {scheduleFields.map((field, index) => (
+                                        <FormField
+                                            key={field.id}
+                                            control={form.control}
+                                            name={`schedule.${index}`}
+                                            render={({ field }) => (
+                                                <FormItem className="flex items-center gap-2">
+                                                    <FormControl><Input type="time" {...field} className="w-48" /></FormControl>
+                                                    <Button type="button" variant="ghost" size="icon" onClick={() => removeSchedule(index)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+                                    ))}
+                                </div>
+                                <Button type="button" variant="outline" size="sm" className="mt-2" onClick={() => appendSchedule('')}>
+                                    <PlusCircle className="mr-2 h-4 w-4" /> Adicionar Horário
                                 </Button>
-                                <div className="flex-grow" />
-                                <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>Cancelar</Button>
-                                <Button type="submit" disabled={isSubmitting}>{isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Salvar Quiz</Button>
-                            </DialogFooter>
-                        </form>
-                    </Form>
-                </div>
+                            </div>
+                            
+                            <Separator className="!my-6" />
+
+                            <h3 className="text-lg font-semibold">Perguntas</h3>
+                            
+                            <div className="space-y-4">
+                                {fields.map((field, index) => (
+                                    <Card key={field.id} className="p-4 bg-muted/50">
+                                    <div className="flex justify-between items-center mb-4">
+                                        <h4 className="font-semibold">Pergunta {index + 1}</h4>
+                                        <Button type="button" variant="ghost" size="icon" onClick={() => remove(index)} disabled={fields.length <= 1}>
+                                        <Trash2 className="h-4 w-4 text-destructive"/>
+                                        </Button>
+                                    </div>
+                                    <div className="space-y-4">
+                                        <FormField control={form.control} name={`questions.${index}.question`} render={({ field }) => (
+                                            <FormItem><FormLabel>Texto da Pergunta</FormLabel><FormControl><Textarea {...field} /></FormControl><FormMessage /></FormItem>
+                                        )}/>
+                                        <FormField
+                                            control={form.control}
+                                            name={`questions.${index}.answer`}
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                <FormLabel>Opções (Marque a correta)</FormLabel>
+                                                <RadioGroup onValueChange={field.onChange} value={String(field.value)} className="space-y-2">
+                                                    {form.getValues(`questions.${index}.options`).map((_, optionIndex) => (
+                                                    <FormField key={`${field.name}-option-${optionIndex}`} control={form.control} name={`questions.${index}.options.${optionIndex}`} render={({ field: optionField }) => (
+                                                        <FormItem className="flex items-center gap-2">
+                                                        <FormControl>
+                                                            <RadioGroupItem value={String(optionIndex)} id={`${field.name}-${optionIndex}`} />
+                                                        </FormControl>
+                                                        <Input {...optionField} placeholder={`Opção ${optionIndex + 1}`} className="flex-1"/>
+                                                        </FormItem>
+                                                    )}/>
+                                                    ))}
+                                                </RadioGroup>
+                                                <FormMessage />
+                                                </FormItem>
+                                            )}
+                                            />
+                                    </div>
+                                    </Card>
+                                ))}
+                            </div>
+                        </div>
+                        
+                        <DialogFooter className="sticky bottom-0 bg-background pt-4 pb-1 -mx-6 px-6 border-t">
+                            <Button type="button" variant="outline" size="sm" onClick={() => append({ question: '', options: ['', '', '', ''], answer: 0 })}>
+                                <PlusCircle className="mr-2 h-4 w-4" /> Adicionar Pergunta
+                            </Button>
+                            <div className="flex-grow" />
+                            <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>Cancelar</Button>
+                            <Button type="submit" disabled={isSubmitting}>{isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Salvar Quiz</Button>
+                        </DialogFooter>
+                    </form>
+                </Form>
             </DialogContent>
         </Dialog>
 

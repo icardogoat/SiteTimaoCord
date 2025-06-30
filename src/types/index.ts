@@ -476,6 +476,8 @@ export type Quiz = {
     channelId: string;
     mentionRoleId?: string;
     questions: QuizQuestion[];
+    schedule?: string[];
+    lastScheduledTriggers?: Record<string, string>; // e.g. { '10:00': '2024-07-30' }
     createdBy: string;
     createdAt: Date | string;
 };

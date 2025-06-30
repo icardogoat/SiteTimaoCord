@@ -14,9 +14,10 @@ import random
 load_dotenv()
 
 class QuizQuestionView(ui.View):
-    def __init__(self, question_data):
+    def __init__(self, question_data, quiz_doc):
         super().__init__(timeout=30.0) # 30 second timeout per question
         self.question_data = question_data
+        self.quiz_doc = quiz_doc
         self.winner = None
         self.message = None
 
@@ -51,7 +52,10 @@ class QuizQuestionView(ui.View):
             await interaction.response.edit_message(embed=new_embed, view=self)
             self.stop()
         else:
+            # Check if this quiz allows multiple attempts (future feature)
+            # For now, just send an ephemeral message
             await interaction.response.send_message("❌ Resposta incorreta!", ephemeral=True)
+
 
 class Quiz(commands.Cog):
     def __init__(self, bot):
@@ -61,6 +65,8 @@ class Quiz(commands.Cog):
         self.quizzes_collection = self.db.quizzes
         self.wallets_collection = self.db.wallets
         self.users_collection = self.db.users
+        # Track active quizzes to prevent multiple instances
+        self.active_quizzes = set()
 
     def cog_unload(self):
         self.client.close()
@@ -102,44 +108,62 @@ class Quiz(commands.Cog):
             },
             upsert=True
         )
-
-    @app_commands.command(name="iniciar_quiz", description="[Admin] Inicia uma rodada de um quiz personalizado.")
-    @app_commands.autocomplete(quiz_id=quiz_autocomplete)
-    @app_commands.describe(quiz_id="O nome do quiz que você deseja iniciar.")
-    @app_commands.checks.has_permissions(administrator=True)
-    async def iniciar_quiz(self, interaction: discord.Interaction, quiz_id: str):
-        await interaction.response.defer(ephemeral=True)
+    
+    async def start_quiz_flow(self, quiz_id: str, interaction: discord.Interaction = None):
+        """ The main logic for running a quiz. Can be called by a command or a task. """
         
+        if quiz_id in self.active_quizzes:
+            if interaction:
+                await interaction.followup.send("❌ Este quiz já está em andamento.", ephemeral=True)
+            else:
+                print(f"Quiz {quiz_id} is already active. Skipping scheduled start.")
+            return
+            
         try:
             quiz_obj_id = ObjectId(quiz_id)
         except Exception:
-            await interaction.followup.send("❌ ID do quiz inválido.", ephemeral=True)
+            if interaction:
+                await interaction.followup.send("❌ ID do quiz inválido.", ephemeral=True)
             return
 
         quiz_doc = self.quizzes_collection.find_one({"_id": quiz_obj_id})
         
         if not quiz_doc:
-            await interaction.followup.send("❌ Quiz não encontrado com este ID.", ephemeral=True)
+            if interaction:
+                await interaction.followup.send("❌ Quiz não encontrado com este ID.", ephemeral=True)
             return
 
         questions = quiz_doc.get('questions', [])
         if not questions:
-            await interaction.followup.send("❌ Este quiz não tem perguntas configuradas.", ephemeral=True)
+            if interaction:
+                await interaction.followup.send("❌ Este quiz não tem perguntas configuradas.", ephemeral=True)
             return
+        
+        self.active_quizzes.add(quiz_id)
             
         channel_id = quiz_doc.get('channelId')
         if not channel_id:
-            await interaction.followup.send("❌ O canal de eventos não está configurado para este quiz no painel de admin.", ephemeral=True)
+            if interaction:
+                await interaction.followup.send("❌ O canal de eventos não está configurado para este quiz no painel de admin.", ephemeral=True)
+            self.active_quizzes.remove(quiz_id)
             return
             
         try:
             event_channel = self.bot.get_channel(int(channel_id))
             if not event_channel:
-                 await interaction.followup.send(f"❌ Canal de evento com ID `{channel_id}` não encontrado.", ephemeral=True)
-                 return
+                if interaction:
+                    await interaction.followup.send(f"❌ Canal de evento com ID `{channel_id}` não encontrado.", ephemeral=True)
+                self.active_quizzes.remove(quiz_id)
+                return
         except (ValueError, TypeError):
-            await interaction.followup.send(f"❌ ID do canal de evento `{channel_id}` é inválido.", ephemeral=True)
+            if interaction:
+                await interaction.followup.send(f"❌ ID do canal de evento `{channel_id}` é inválido.", ephemeral=True)
+            self.active_quizzes.remove(quiz_id)
             return
+
+        # Tell the user the quiz is starting (if it's a manual command)
+        if interaction:
+            await interaction.followup.send(f"✅ Quiz '{quiz_doc['name']}' sendo iniciado no canal {event_channel.mention}!", ephemeral=True)
 
         # Get quiz settings
         questions_per_game = quiz_doc.get('questionsPerGame', len(questions))
@@ -154,8 +178,6 @@ class Quiz(commands.Cog):
         if mention_role_id:
             mention_text = f"<@&{mention_role_id}>"
 
-        await interaction.followup.send(f"✅ Quiz '{quiz_doc['name']}' sendo iniciado no canal {event_channel.mention}!", ephemeral=True)
-        
         start_embed = discord.Embed(
             title=f"🧠 Quiz '{quiz_doc.get('name', 'Quiz do Timão')}' vai começar!",
             description=f"Prepare-se! A primeira pergunta será enviada em 10 segundos...",
@@ -175,7 +197,7 @@ class Quiz(commands.Cog):
             )
             question_embed.set_footer(text="O primeiro a acertar ganha! Você tem 30 segundos.")
 
-            view = QuizQuestionView(question_data)
+            view = QuizQuestionView(question_data, quiz_doc)
             
             quiz_message = await event_channel.send(embed=question_embed, view=view)
             view.message = quiz_message
@@ -187,12 +209,16 @@ class Quiz(commands.Cog):
                 scores[winner.id] += 1
 
                 is_new_winner = winner.id not in unique_winners_with_prize
-                can_win_prize = (winner_limit == 0) or (len(unique_winners_with_prize) < winner_limit) or not is_new_winner
+                # Check if the prize limit has been reached for new winners
+                can_win_prize = (winner_limit == 0) or (len(unique_winners_with_prize) < winner_limit) or (not is_new_winner)
 
                 if can_win_prize:
                     prize = quiz_doc.get('rewardPerQuestion', 0)
                     if prize > 0:
-                        unique_winners_with_prize.add(winner.id)
+                        # Only add to the set if they are a new winner receiving a prize
+                        if is_new_winner:
+                            unique_winners_with_prize.add(winner.id)
+
                         await self.award_prize(winner, prize, quiz_doc.get('name', 'Quiz'))
                         await event_channel.send(f"🏆 {winner.mention} acertou e ganhou **R$ {prize:.2f}**!")
                     else:
@@ -217,24 +243,36 @@ class Quiz(commands.Cog):
 
         if not scores:
             await event_channel.send("Ninguém pontuou neste quiz. Mais sorte na próxima!")
-            return
+        else:
+            sorted_scores = sorted(scores.items(), key=lambda item: item[1], reverse=True)
+            
+            leaderboard_description = ""
+            for i, (user_id, score) in enumerate(sorted_scores[:10]):
+                try:
+                    user = self.bot.get_user(user_id) or await self.bot.fetch_user(user_id)
+                    leaderboard_description += f"**{i+1}º:** {user.mention} - {score} acerto(s)\n"
+                except discord.NotFound:
+                    leaderboard_description += f"**{i+1}º:** Usuário Desconhecido - {score} acerto(s)\n"
 
-        sorted_scores = sorted(scores.items(), key=lambda item: item[1], reverse=True)
-        
-        leaderboard_description = ""
-        for i, (user_id, score) in enumerate(sorted_scores[:10]):
-            try:
-                user = self.bot.get_user(user_id) or await self.bot.fetch_user(user_id)
-                leaderboard_description += f"**{i+1}º:** {user.mention} - {score} acerto(s)\n"
-            except discord.NotFound:
-                leaderboard_description += f"**{i+1}º:** Usuário Desconhecido - {score} acerto(s)\n"
+            leaderboard_embed = discord.Embed(
+                title="🏆 Ranking Final do Quiz 🏆",
+                description=leaderboard_description,
+                color=0xFFD700
+            )
+            await event_channel.send(embed=leaderboard_embed)
 
-        leaderboard_embed = discord.Embed(
-            title="🏆 Ranking Final do Quiz 🏆",
-            description=leaderboard_description,
-            color=0xFFD700
-        )
-        await event_channel.send(embed=leaderboard_embed)
+        # Remove from active set once finished
+        self.active_quizzes.remove(quiz_id)
+
+
+    @app_commands.command(name="iniciar_quiz", description="[Admin] Inicia uma rodada de um quiz personalizado.")
+    @app_commands.autocomplete(quiz_id=quiz_autocomplete)
+    @app_commands.describe(quiz_id="O nome do quiz que você deseja iniciar.")
+    @app_commands.checks.has_permissions(administrator=True)
+    async def iniciar_quiz(self, interaction: discord.Interaction, quiz_id: str):
+        await interaction.response.defer(ephemeral=True)
+        await self.start_quiz_flow(quiz_id, interaction)
+
 
     @iniciar_quiz.error
     async def on_quiz_error(self, interaction: discord.Interaction, error: app_commands.AppCommandError):
