@@ -33,6 +33,7 @@ export async function getBotConfig(): Promise<Partial<BotConfig>> {
                 newsChannelId: '',
                 newsMentionRoleId: '',
                 adminRoleId: '',
+                moderationLogChannelId: '',
                 vipRoleIds: [],
                 postCreatorRoleId: '',
                 streamViewerRoleId: '',
@@ -57,6 +58,7 @@ export async function getBotConfig(): Promise<Partial<BotConfig>> {
             newsChannelId: config.newsChannelId || '',
             newsMentionRoleId: config.newsMentionRoleId || '',
             adminRoleId: config.adminRoleId || '',
+            moderationLogChannelId: config.moderationLogChannelId || '',
             vipRoleIds: config.vipRoleIds || [],
             postCreatorRoleId: config.postCreatorRoleId || '',
             streamViewerRoleId: config.streamViewerRoleId || '',
@@ -82,6 +84,7 @@ export async function getBotConfig(): Promise<Partial<BotConfig>> {
             newsChannelId: '',
             newsMentionRoleId: '',
             adminRoleId: '',
+            moderationLogChannelId: '',
             vipRoleIds: [],
             postCreatorRoleId: '',
             streamViewerRoleId: '',
@@ -105,6 +108,7 @@ type UpdateConfigData = {
     newsChannelId: string;
     newsMentionRoleId: string;
     adminRoleId: string;
+    moderationLogChannelId: string;
     postCreatorRoleId: string;
     vipRoleIds: string[];
     streamViewerRoleId: string;

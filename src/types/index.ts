@@ -298,6 +298,7 @@ export type BotConfig = {
   newsChannelId: string;
   newsMentionRoleId: string;
   adminRoleId: string;
+  moderationLogChannelId?: string;
   vipRoleIds: string[];
   postCreatorRoleId?: string;
   streamViewerRoleId?: string;
@@ -545,4 +546,18 @@ export type ForcaGameWord = {
   hint: string;
   createdBy: string; // admin userId
   createdAt: Date | string;
+};
+
+export type ModerationAction = {
+    _id: string | ObjectId;
+    userId: string;
+    userName: string;
+    userAvatar: string;
+    moderatorId: string;
+    moderatorName: string;
+    type: 'WARN' | 'MUTE' | 'BAN' | 'UNBAN' | 'UNMUTE' | 'KICK';
+    reason: string;
+    duration?: string | null;
+    expiresAt?: Date | string | null;
+    createdAt: Date | string;
 };

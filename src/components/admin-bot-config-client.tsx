@@ -59,6 +59,7 @@ const formSchema = z.object({
   newsChannelId: z.string().optional(),
   newsMentionRoleId: z.string().optional(),
   adminRoleId: z.string().optional(),
+  moderationLogChannelId: z.string().optional(),
   postCreatorRoleId: z.string().optional(),
   vipRoleIds: z.array(z.string()).max(3, { message: "Você pode selecionar no máximo 3 cargos VIP." }).optional(),
   streamViewerRoleId: z.string().optional(),
@@ -98,6 +99,7 @@ export default function AdminBotConfigClient({ initialConfig, initialChannels, i
             newsChannelId: initialConfig.newsChannelId || "",
             newsMentionRoleId: initialConfig.newsMentionRoleId || "",
             adminRoleId: initialConfig.adminRoleId || "",
+            moderationLogChannelId: initialConfig.moderationLogChannelId || "",
             postCreatorRoleId: initialConfig.postCreatorRoleId || "",
             vipRoleIds: initialConfig.vipRoleIds || [],
             streamViewerRoleId: initialConfig.streamViewerRoleId || "",
@@ -128,6 +130,7 @@ export default function AdminBotConfigClient({ initialConfig, initialChannels, i
             newsChannelId: '',
             newsMentionRoleId: '',
             adminRoleId: '',
+            moderationLogChannelId: '',
             postCreatorRoleId: '',
             vipRoleIds: [],
             streamViewerRoleId: '',
@@ -149,7 +152,7 @@ export default function AdminBotConfigClient({ initialConfig, initialChannels, i
         setIsLoadingDetails(false);
     };
 
-    const handleTest = async (channelType: 'welcome' | 'log' | 'betting' | 'winners' | 'bolao' | 'mvp' | 'news' | 'levelUp' | 'event') => {
+    const handleTest = async (channelType: 'welcome' | 'log' | 'betting' | 'winners' | 'bolao' | 'mvp' | 'news' | 'levelUp' | 'event' | 'moderationLog') => {
         const channelId = form.getValues(`${channelType}ChannelId` as keyof FormValues);
         if (!channelId) {
             toast({ title: "Nenhum canal selecionado", variant: "destructive" });
@@ -166,6 +169,17 @@ export default function AdminBotConfigClient({ initialConfig, initialChannels, i
                 break;
             case 'betting': 
                 payload = { content: '⚽ Esta é uma mensagem de teste do canal de apostas.' }; 
+                break;
+            case 'moderationLog':
+                payload = {
+                    embeds: [{
+                        color: 0xef4444, // red-500
+                        title: '✅ Teste do Canal de Moderação ✅',
+                        description: 'Se você pode ver esta mensagem, os logs de moderação funcionarão corretamente!',
+                        footer: { text: 'Teste enviado pelo Painel Admin' },
+                        timestamp: new Date().toISOString(),
+                    }]
+                };
                 break;
             case 'winners':
                 payload = {
@@ -252,6 +266,7 @@ export default function AdminBotConfigClient({ initialConfig, initialChannels, i
             guildInviteUrl: values.guildInviteUrl || '',
             welcomeChannelId: values.welcomeChannelId || '',
             logChannelId: values.logChannelId || '',
+            moderationLogChannelId: values.moderationLogChannelId || '',
             bettingChannelId: values.bettingChannelId || '',
             winnersChannelId: values.winnersChannelId || '',
             bolaoChannelId: values.bolaoChannelId || '',
@@ -399,7 +414,7 @@ export default function AdminBotConfigClient({ initialConfig, initialChannels, i
                                 name="logChannelId"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel>Canal de Logs</FormLabel>
+                                        <FormLabel>Canal de Logs Gerais</FormLabel>
                                         <div className="flex items-center gap-2">
                                             <Select onValueChange={field.onChange} value={field.value} disabled={channels.length === 0}>
                                                 <FormControl>
@@ -423,6 +438,40 @@ export default function AdminBotConfigClient({ initialConfig, initialChannels, i
                                                 aria-label="Testar canal de logs"
                                             >
                                                 {isTesting === 'log' ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Testar'}
+                                            </Button>
+                                        </div>
+                                    </FormItem>
+                                )}
+                            />
+                             <FormField
+                                control={form.control}
+                                name="moderationLogChannelId"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Canal de Logs de Moderação</FormLabel>
+                                        <div className="flex items-center gap-2">
+                                            <Select onValueChange={field.onChange} value={field.value} disabled={channels.length === 0}>
+                                                <FormControl>
+                                                    <SelectTrigger>
+                                                        <SelectValue placeholder="Selecione um canal" />
+                                                    </SelectTrigger>
+                                                </FormControl>
+                                                <SelectContent>
+                                                    {channels.map(channel => (
+                                                        <SelectItem key={channel.id} value={channel.id}>
+                                                            #{channel.name}
+                                                        </SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
+                                            <Button 
+                                                type="button" 
+                                                variant="outline" 
+                                                onClick={() => handleTest('moderationLog')}
+                                                disabled={!field.value || isTesting !== null}
+                                                aria-label="Testar canal de logs de moderação"
+                                            >
+                                                {isTesting === 'moderationLog' ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Testar'}
                                             </Button>
                                         </div>
                                     </FormItem>
