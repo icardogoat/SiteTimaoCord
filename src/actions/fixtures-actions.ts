@@ -145,16 +145,22 @@ export async function updateFixturesFromApi() {
                     const isGameFinished = ['FT', 'AET', 'PEN'].includes(fixture.fixture.status.short);
                     const isGameTerminated = ['PST', 'CANC', 'ABD', 'AWD', 'WO'].includes(fixture.fixture.status.short);
                     
-                    const updateFields: any = {
-                        homeTeam: fixture.teams.home.name,
-                        homeLogo: fixture.teams.home.logo,
-                        awayTeam: fixture.teams.away.name,
-                        awayLogo: fixture.teams.away.logo,
-                        league: fixture.league.name,
-                        timestamp: fixture.fixture.timestamp,
-                        status: fixture.fixture.status.short,
-                        goals: fixture.goals,
-                        isFinished: isGameFinished,
+                    const updateOperation: any = {
+                        $set: {
+                            homeTeam: fixture.teams.home.name,
+                            homeLogo: fixture.teams.home.logo,
+                            awayTeam: fixture.teams.away.name,
+                            awayLogo: fixture.teams.away.logo,
+                            league: fixture.league.name,
+                            timestamp: fixture.fixture.timestamp,
+                            status: fixture.fixture.status.short,
+                            goals: fixture.goals,
+                            isFinished: isGameFinished,
+                        },
+                        $setOnInsert: {
+                            markets: [], // Default to empty array on insert
+                            isNotificationSent: false,
+                        }
                     };
                     
                     // Only update markets if the game is still open for betting
@@ -169,7 +175,7 @@ export async function updateFixturesFromApi() {
                                 })).map(translateMarketData);
                                 
                                 if (markets.length > 0) {
-                                    updateFields.markets = markets;
+                                    updateOperation.$set.markets = markets;
                                 }
                             }
                         }
@@ -177,7 +183,7 @@ export async function updateFixturesFromApi() {
                     
                     const result = await matchesCollection.updateOne(
                         { _id: fixture.fixture.id },
-                        { $set: updateFields },
+                        updateOperation,
                         { upsert: true }
                     );
 
