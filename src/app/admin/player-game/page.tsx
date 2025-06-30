@@ -1,6 +1,4 @@
 
-'use server';
-
 import { AdminPlayerGameClient } from '@/components/admin-player-game-client';
 import { getPlayerGames } from '@/actions/player-game-actions';
 import { getBotConfig, getDiscordServerDetails } from '@/actions/bot-config-actions';

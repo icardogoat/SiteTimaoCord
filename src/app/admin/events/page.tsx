@@ -1,6 +1,4 @@
 
-'use server';
-
 import { getAdminEvents } from '@/actions/admin-actions';
 import AdminEventsClient from '@/components/admin-events-client';
 

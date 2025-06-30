@@ -1,6 +1,4 @@
 
-'use server';
-
 import { getModerationLogs } from '@/actions/moderation-actions';
 import { AdminModerationClient } from '@/components/admin-moderation-client';
 import { getAdminUsers } from '@/actions/admin-actions';

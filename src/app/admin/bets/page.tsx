@@ -1,4 +1,3 @@
-'use server';
 
 import { getAdminBets } from "@/actions/admin-actions";
 import { AdminBetsClient } from "@/components/admin-bets-client";

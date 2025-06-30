@@ -1,6 +1,4 @@
 
-'use server';
-
 import { getApiSettings, getSiteSettings } from '@/actions/settings-actions';
 import AdminSettingsClient from '@/components/admin-settings-client';
 

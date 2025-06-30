@@ -1,4 +1,3 @@
-'use server';
 
 import { getBotConfig, getDiscordServerDetails } from '@/actions/bot-config-actions';
 import AdminBotConfigClient from '@/components/admin-bot-config-client';

@@ -1,6 +1,4 @@
 
-'use server';
-
 import { getBotConfig, getGuildDetails, getRoleMemberCounts } from '@/actions/bot-config-actions';
 import { getDbStats, getMemberActivityStats } from '@/actions/admin-actions';
 import { AdminServerPanelClient } from '@/components/admin-server-panel-client';

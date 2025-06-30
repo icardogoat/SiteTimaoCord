@@ -1,4 +1,3 @@
-'use server';
 
 import { getPromoCodes } from "@/actions/admin-actions";
 import AdminCodesClient from "@/components/admin-codes-client";

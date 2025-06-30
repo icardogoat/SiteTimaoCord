@@ -1,6 +1,4 @@
 
-'use server';
-
 import AdminPostsClient from "@/components/admin-announcements-client";
 import { getAdminPosts } from "@/actions/admin-actions";
 

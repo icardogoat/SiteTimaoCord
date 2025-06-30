@@ -1,4 +1,3 @@
-'use server';
 
 import { getLiveStreams } from '@/actions/stream-actions';
 import { AdminStreamClient } from '@/components/admin-stream-client';

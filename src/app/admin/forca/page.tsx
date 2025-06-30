@@ -1,6 +1,4 @@
 
-'use server';
-
 import { getForcaWords } from '@/actions/forca-actions';
 import { getBotConfig, getDiscordServerDetails } from '@/actions/bot-config-actions';
 import { AdminForcaClient } from '@/components/admin-forca-client';

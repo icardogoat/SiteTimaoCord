@@ -1,6 +1,4 @@
 
-'use server';
-
 import { getAdminVotings } from "@/actions/admin-actions";
 import AdminMvpClient from "@/components/admin-mvp-client";
 

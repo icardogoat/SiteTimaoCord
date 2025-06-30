@@ -1,4 +1,3 @@
-'use server';
 
 import { getLevelConfig } from '@/actions/level-actions';
 import AdminLevelClient from '@/components/admin-level-client';

@@ -1,4 +1,3 @@
-'use server';
 
 import { getAdminPurchases } from "@/actions/admin-actions";
 import AdminPurchasesClient from "@/components/admin-purchases-client";

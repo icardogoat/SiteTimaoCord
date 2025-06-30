@@ -1,4 +1,3 @@
-'use server';
 
 import { getAdminUsers } from "@/actions/admin-actions";
 import AdminUsersClient from "@/components/admin-users-client";

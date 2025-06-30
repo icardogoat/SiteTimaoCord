@@ -1,6 +1,4 @@
 
-'use server';
-
 import { getQuizzes } from '@/actions/quiz-actions';
 import { AdminQuizClient } from '@/components/admin-quiz-client';
 import { getBotConfig, getDiscordServerDetails } from '@/actions/bot-config-actions';

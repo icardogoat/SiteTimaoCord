@@ -1,6 +1,4 @@
 
-'use server';
-
 import { getApiSettings } from '@/actions/settings-actions';
 import AdminRewardsClient from '@/components/admin-rewards-client';
 

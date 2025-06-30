@@ -1,4 +1,3 @@
-'use server';
 
 import { getDashboardStats, getChartData, getTopBettors, getRecentUsers } from "@/actions/admin-actions";
 import { getRichestUsers, getTopLevelUsers, getTopInviters } from "@/actions/user-actions";

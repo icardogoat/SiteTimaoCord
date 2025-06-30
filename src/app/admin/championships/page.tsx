@@ -1,6 +1,4 @@
 
-'use server';
-
 import { getAdminChampionships } from "@/actions/admin-actions";
 import { AdminChampionshipsClient } from "@/components/admin-championships-client";
 
