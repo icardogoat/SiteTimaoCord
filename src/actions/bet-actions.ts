@@ -284,7 +284,7 @@ export async function getMatches({ league, page = 1 }: { league?: string; page?:
         timeString = `${date.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', timeZone })}, ${matchTimePart}`;
       }
       
-      const translatedMarkets = dbMatch.markets.map(translateMarketData);
+      const translatedMarkets = (dbMatch.markets || []).map(translateMarketData);
 
       return {
         id: dbMatch._id,
