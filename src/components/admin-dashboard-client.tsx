@@ -19,7 +19,7 @@ import {
   type ChartConfig,
 } from "@/components/ui/chart"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import type { DashboardStats, TopBettor, RecentUser, BetVolumeData, ProfitLossData, RichestUserRanking, TopLevelUserRanking } from "@/types"
+import type { DashboardStats, TopBettor, RecentUser, BetVolumeData, ProfitLossData, RichestUserRanking, TopLevelUserRanking, InviterRanking } from "@/types"
 import { useToast } from "@/hooks/use-toast"
 import { Button, buttonVariants } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
@@ -71,6 +71,7 @@ interface AdminDashboardClientProps {
     recentUsers: RecentUser[];
     richestUsers: RichestUserRanking[];
     topLevelUsers: TopLevelUserRanking[];
+    topInviters: InviterRanking[];
 }
 
 const obfuscateEmail = (email: string) => {
@@ -85,7 +86,7 @@ const obfuscateEmail = (email: string) => {
 };
 
 
-export function AdminDashboardClient({ stats, initialChartData, topBettors, recentUsers, richestUsers, topLevelUsers }: AdminDashboardClientProps) {
+export function AdminDashboardClient({ stats, initialChartData, topBettors, recentUsers, richestUsers, topLevelUsers, topInviters }: AdminDashboardClientProps) {
     const { toast } = useToast();
     const [isProcessingAll, setIsProcessingAll] = useState(false);
     const [isNotifying, setIsNotifying] = useState(false);
@@ -309,32 +310,57 @@ export function AdminDashboardClient({ stats, initialChartData, topBettors, rece
                         <Link href="/ranking" className={cn(buttonVariants({ variant: "outline", size: "sm" }), "w-full")}>Ver Ranking Completo</Link>
                     </CardFooter>
                 </Card>
-            </div>
-            <Card>
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-2"><Zap /> Top Níveis</CardTitle>
-                    <CardDescription>Usuários com mais experiência (XP).</CardDescription>
-                </CardHeader>
-                <CardContent className="grid gap-4">
-                    {topLevelUsers.map(user => (
-                        <div className="flex items-center gap-4" key={user.discordId}>
-                            <Avatar className={cn("hidden h-9 w-9 sm:flex", user.isVip && "ring-2 ring-vip")}>
-                                <AvatarImage src={user.avatar} alt="Avatar" data-ai-hint="user avatar" />
-                                <AvatarFallback><AvatarFallbackText name={user.name} /></AvatarFallback>
-                            </Avatar>
-                            <div className="grid gap-1">
-                                <p className="text-sm font-medium leading-none">{user.name}</p>
-                                <p className="text-sm text-muted-foreground">{user.xp.toLocaleString('pt-BR')} XP</p>
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2"><Zap /> Top Níveis</CardTitle>
+                        <CardDescription>Usuários com mais experiência (XP).</CardDescription>
+                    </CardHeader>
+                    <CardContent className="grid gap-4">
+                        {topLevelUsers.map(user => (
+                            <div className="flex items-center gap-4" key={user.discordId}>
+                                <Avatar className={cn("hidden h-9 w-9 sm:flex", user.isVip && "ring-2 ring-vip")}>
+                                    <AvatarImage src={user.avatar} alt="Avatar" data-ai-hint="user avatar" />
+                                    <AvatarFallback><AvatarFallbackText name={user.name} /></AvatarFallback>
+                                </Avatar>
+                                <div className="grid gap-1">
+                                    <p className="text-sm font-medium leading-none">{user.name}</p>
+                                    <p className="text-sm text-muted-foreground">{user.xp.toLocaleString('pt-BR')} XP</p>
+                                </div>
+                                <div className="ml-auto font-medium">Nível {user.level}</div>
                             </div>
-                            <div className="ml-auto font-medium">Nível {user.level}</div>
-                        </div>
-                    ))}
-                    {topLevelUsers.length === 0 && <p className="text-sm text-center text-muted-foreground">Nenhum usuário encontrado.</p>}
-                </CardContent>
-                <CardFooter>
-                    <Link href="/ranking" className={cn(buttonVariants({ variant: "outline", size: "sm" }), "w-full")}>Ver Ranking Completo</Link>
-                </CardFooter>
-            </Card>
+                        ))}
+                        {topLevelUsers.length === 0 && <p className="text-sm text-center text-muted-foreground">Nenhum usuário encontrado.</p>}
+                    </CardContent>
+                    <CardFooter>
+                        <Link href="/ranking" className={cn(buttonVariants({ variant: "outline", size: "sm" }), "w-full")}>Ver Ranking Completo</Link>
+                    </CardFooter>
+                </Card>
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2"><UserPlus />Top Convites</CardTitle>
+                        <CardDescription>Usuários que mais convidaram.</CardDescription>
+                    </CardHeader>
+                    <CardContent className="grid gap-4">
+                        {topInviters.map(user => (
+                            <div className="flex items-center gap-4" key={user.inviterId}>
+                                <Avatar className={cn("hidden h-9 w-9 sm:flex", user.isVip && "ring-2 ring-vip")}>
+                                    <AvatarImage src={user.avatar} alt="Avatar" data-ai-hint="user avatar" />
+                                    <AvatarFallback><AvatarFallbackText name={user.name} /></AvatarFallback>
+                                </Avatar>
+                                <div className="grid gap-1">
+                                    <p className="text-sm font-medium leading-none">{user.name}</p>
+                                    <p className="text-sm text-muted-foreground">Rank: {user.rank}</p>
+                                </div>
+                                <div className="ml-auto font-medium">{user.inviteCount} convites</div>
+                            </div>
+                        ))}
+                        {topInviters.length === 0 && <p className="text-sm text-center text-muted-foreground">Nenhum convidador encontrado.</p>}
+                    </CardContent>
+                    <CardFooter>
+                        <Link href="/convites" className={cn(buttonVariants({ variant: "outline", size: "sm" }), "w-full")}>Ver Página de Convites</Link>
+                    </CardFooter>
+                </Card>
+            </div>
         </div>
 
       <div className="grid auto-rows-max gap-4 md:gap-8 lg:col-span-1">
