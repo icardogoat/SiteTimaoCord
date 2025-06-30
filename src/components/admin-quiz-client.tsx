@@ -212,115 +212,115 @@ export function AdminQuizClient({ initialQuizzes, discordChannels, discordRoles,
                 <DialogTitle>{currentQuiz ? 'Editar Quiz' : 'Novo Quiz'}</DialogTitle>
             </DialogHeader>
             <Form {...form}>
-                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 flex flex-col flex-grow min-h-0">
-                    <ScrollArea className="flex-grow pr-6 -mr-6">
-                    <div className="space-y-4 p-1">
-                        <FormField control={form.control} name="name" render={({ field }) => (
-                            <FormItem><FormLabel>Nome do Quiz</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
-                        )}/>
-                         <FormField control={form.control} name="description" render={({ field }) => (
-                            <FormItem><FormLabel>Descrição (Opcional)</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
-                        )}/>
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                            <FormField control={form.control} name="rewardPerQuestion" render={({ field }) => (
-                                <FormItem><FormLabel>Recompensa por Acerto (R$)</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>
+                <form onSubmit={form.handleSubmit(onSubmit)} className="flex-1 flex flex-col overflow-y-hidden">
+                    <ScrollArea className="flex-1 pr-6 -mr-6">
+                        <div className="space-y-6 p-1">
+                            <FormField control={form.control} name="name" render={({ field }) => (
+                                <FormItem><FormLabel>Nome do Quiz</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
                             )}/>
-                            <FormField control={form.control} name="channelId" render={({ field }) => (
-                                <FormItem>
-                                <FormLabel>Canal do Quiz</FormLabel>
-                                <Select onValueChange={field.onChange} value={field.value} disabled={discordChannels.length === 0}>
-                                    <FormControl><SelectTrigger><SelectValue placeholder="Selecione um canal" /></SelectTrigger></FormControl>
-                                    <SelectContent>
-                                    {discordChannels.map(channel => (
-                                        <SelectItem key={channel.id} value={channel.id}>#{channel.name}</SelectItem>
-                                    ))}
-                                    </SelectContent>
-                                </Select>
-                                <FormMessage />
-                                </FormItem>
+                            <FormField control={form.control} name="description" render={({ field }) => (
+                                <FormItem><FormLabel>Descrição (Opcional)</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
                             )}/>
-                            <FormField control={form.control} name="mentionRoleId" render={({ field }) => (
-                                <FormItem>
-                                <FormLabel>Cargo para Notificar (Opcional)</FormLabel>
-                                <Select onValueChange={field.onChange} value={field.value || ''} disabled={discordRoles.length === 0}>
-                                    <FormControl><SelectTrigger><SelectValue placeholder="Selecione um cargo" /></SelectTrigger></FormControl>
-                                    <SelectContent>
-                                        {discordRoles.map(role => (
-                                            <SelectItem key={role.id} value={role.id}>@{role.name}</SelectItem>
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                <FormField control={form.control} name="rewardPerQuestion" render={({ field }) => (
+                                    <FormItem><FormLabel>Recompensa por Acerto (R$)</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>
+                                )}/>
+                                <FormField control={form.control} name="channelId" render={({ field }) => (
+                                    <FormItem>
+                                    <FormLabel>Canal do Quiz</FormLabel>
+                                    <Select onValueChange={field.onChange} value={field.value} disabled={discordChannels.length === 0}>
+                                        <FormControl><SelectTrigger><SelectValue placeholder="Selecione um canal" /></SelectTrigger></FormControl>
+                                        <SelectContent>
+                                        {discordChannels.map(channel => (
+                                            <SelectItem key={channel.id} value={channel.id}>#{channel.name}</SelectItem>
                                         ))}
-                                    </SelectContent>
-                                </Select>
-                                <FormMessage />
-                                </FormItem>
-                            )}/>
-                        </div>
-                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                             <FormField control={form.control} name="questionsPerGame" render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Perguntas por Rodada</FormLabel>
-                                    <FormControl><Input type="number" {...field} /></FormControl>
-                                    <FormDescription>Quantas perguntas (aleatórias) serão feitas do total.</FormDescription>
+                                        </SelectContent>
+                                    </Select>
                                     <FormMessage />
-                                </FormItem>
-                            )}/>
-                             <FormField control={form.control} name="winnerLimit" render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Limite de Vencedores Únicos</FormLabel>
-                                    <FormControl><Input type="number" {...field} /></FormControl>
-                                    <FormDescription>Quantos usuários diferentes podem ganhar prêmios. Use 0 para ilimitado.</FormDescription>
+                                    </FormItem>
+                                )}/>
+                                <FormField control={form.control} name="mentionRoleId" render={({ field }) => (
+                                    <FormItem>
+                                    <FormLabel>Cargo para Notificar (Opcional)</FormLabel>
+                                    <Select onValueChange={field.onChange} value={field.value || ''} disabled={discordRoles.length === 0}>
+                                        <FormControl><SelectTrigger><SelectValue placeholder="Selecione um cargo" /></SelectTrigger></FormControl>
+                                        <SelectContent>
+                                            {discordRoles.map(role => (
+                                                <SelectItem key={role.id} value={role.id}>@{role.name}</SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
                                     <FormMessage />
-                                </FormItem>
-                            )}/>
+                                    </FormItem>
+                                )}/>
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <FormField control={form.control} name="questionsPerGame" render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Perguntas por Rodada</FormLabel>
+                                        <FormControl><Input type="number" {...field} /></FormControl>
+                                        <FormDescription>Quantas perguntas (aleatórias) serão feitas do total.</FormDescription>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}/>
+                                <FormField control={form.control} name="winnerLimit" render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Limite de Vencedores Únicos</FormLabel>
+                                        <FormControl><Input type="number" {...field} /></FormControl>
+                                        <FormDescription>Quantos usuários diferentes podem ganhar prêmios. Use 0 para ilimitado.</FormDescription>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}/>
+                            </div>
+                            
+                            <Separator className="!my-6" />
+                            <h3 className="text-lg font-semibold">Perguntas</h3>
+                            
+                            <div className="space-y-4">
+                                {fields.map((field, index) => (
+                                    <Card key={field.id} className="p-4 bg-muted/50">
+                                    <div className="flex justify-between items-center mb-4">
+                                        <h4 className="font-semibold">Pergunta {index + 1}</h4>
+                                        <Button type="button" variant="ghost" size="icon" onClick={() => remove(index)} disabled={fields.length <= 1}>
+                                        <Trash2 className="h-4 w-4 text-destructive"/>
+                                        </Button>
+                                    </div>
+                                    <div className="space-y-4">
+                                        <FormField control={form.control} name={`questions.${index}.question`} render={({ field }) => (
+                                            <FormItem><FormLabel>Texto da Pergunta</FormLabel><FormControl><Textarea {...field} /></FormControl><FormMessage /></FormItem>
+                                        )}/>
+                                        <FormField
+                                            control={form.control}
+                                            name={`questions.${index}.answer`}
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                <FormLabel>Opções (Marque a correta)</FormLabel>
+                                                <RadioGroup onValueChange={field.onChange} value={String(field.value)} className="space-y-2">
+                                                    {form.getValues(`questions.${index}.options`).map((_, optionIndex) => (
+                                                    <FormField key={`${field.name}-option-${optionIndex}`} control={form.control} name={`questions.${index}.options.${optionIndex}`} render={({ field: optionField }) => (
+                                                        <FormItem className="flex items-center gap-2">
+                                                        <FormControl>
+                                                            <RadioGroupItem value={String(optionIndex)} id={`${field.name}-${optionIndex}`} />
+                                                        </FormControl>
+                                                        <Input {...optionField} placeholder={`Opção ${optionIndex + 1}`} className="flex-1"/>
+                                                        </FormItem>
+                                                    )}/>
+                                                    ))}
+                                                </RadioGroup>
+                                                <FormMessage />
+                                                </FormItem>
+                                            )}
+                                            />
+                                    </div>
+                                    </Card>
+                                ))}
+                            </div>
+                            <Button type="button" variant="outline" size="sm" onClick={() => append({ question: '', options: ['', '', '', ''], answer: 0 })}>
+                                <PlusCircle className="mr-2 h-4 w-4" /> Adicionar Pergunta
+                            </Button>
                         </div>
-                        
-                        <Separator className="!my-6" />
-                        <h3 className="text-lg font-semibold">Perguntas</h3>
-                        
-                        <div className="space-y-4">
-                            {fields.map((field, index) => (
-                                <Card key={field.id} className="p-4 bg-muted/50">
-                                <div className="flex justify-between items-center mb-4">
-                                    <h4 className="font-semibold">Pergunta {index + 1}</h4>
-                                    <Button type="button" variant="ghost" size="icon" onClick={() => remove(index)} disabled={fields.length <= 1}>
-                                    <Trash2 className="h-4 w-4 text-destructive"/>
-                                    </Button>
-                                </div>
-                                <div className="space-y-4">
-                                    <FormField control={form.control} name={`questions.${index}.question`} render={({ field }) => (
-                                        <FormItem><FormLabel>Texto da Pergunta</FormLabel><FormControl><Textarea {...field} /></FormControl><FormMessage /></FormItem>
-                                    )}/>
-                                     <FormField
-                                        control={form.control}
-                                        name={`questions.${index}.answer`}
-                                        render={({ field }) => (
-                                            <FormItem>
-                                            <FormLabel>Opções (Marque a correta)</FormLabel>
-                                            <RadioGroup onValueChange={field.onChange} value={String(field.value)} className="space-y-2">
-                                                {form.getValues(`questions.${index}.options`).map((_, optionIndex) => (
-                                                <FormField key={`${field.name}-option-${optionIndex}`} control={form.control} name={`questions.${index}.options.${optionIndex}`} render={({ field: optionField }) => (
-                                                    <FormItem className="flex items-center gap-2">
-                                                    <FormControl>
-                                                         <RadioGroupItem value={String(optionIndex)} id={`${field.name}-${optionIndex}`} />
-                                                    </FormControl>
-                                                    <Input {...optionField} placeholder={`Opção ${optionIndex + 1}`} className="flex-1"/>
-                                                    </FormItem>
-                                                )}/>
-                                                ))}
-                                            </RadioGroup>
-                                            <FormMessage />
-                                            </FormItem>
-                                        )}
-                                        />
-                                </div>
-                                </Card>
-                            ))}
-                        </div>
-                        <Button type="button" variant="outline" size="sm" onClick={() => append({ question: '', options: ['', '', '', ''], answer: 0 })}>
-                            <PlusCircle className="mr-2 h-4 w-4" /> Adicionar Pergunta
-                        </Button>
-                    </div>
                     </ScrollArea>
-                    <DialogFooter className="pt-4 border-t">
+                    <DialogFooter className="pt-4 border-t shrink-0">
                         <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>Cancelar</Button>
                         <Button type="submit" disabled={isSubmitting}>{isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Salvar Quiz</Button>
                     </DialogFooter>
