@@ -1,6 +1,4 @@
 
-'use server';
-
 import { getBotConfig } from '@/actions/bot-config-actions';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';

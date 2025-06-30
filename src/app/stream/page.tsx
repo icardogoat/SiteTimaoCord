@@ -1,4 +1,3 @@
-'use server';
 
 import { getLiveStreams } from '@/actions/stream-actions';
 import { AppLayout } from '@/components/app-layout';

@@ -1,6 +1,4 @@
 
-'use server';
-
 import { BetPageClient } from '@/components/bet-page-client';
 import { getAvailableLeagues, getMatches } from '@/actions/bet-actions';
 import { getDisplayAdvertisements } from '@/actions/ad-actions';

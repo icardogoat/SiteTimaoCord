@@ -1,7 +1,4 @@
 
-
-'use server';
-
 import { AppLayout } from "@/components/app-layout";
 import { getAvailableLeagues } from "@/actions/bet-actions";
 import { getTopWinners, getMostActiveBettors, getTopLevelUsers, getRichestUsers, getTopInviters } from "@/actions/user-actions";

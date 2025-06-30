@@ -1,6 +1,4 @@
 
-'use server';
-
 import { getAvailableLeagues } from "@/actions/bet-actions";
 import { getPostById, getAuthorInfo } from "@/actions/news-actions";
 import { AppLayout } from "@/components/app-layout";
