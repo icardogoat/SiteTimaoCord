@@ -301,6 +301,7 @@ export type BotConfig = {
   postCreatorRoleId?: string;
   streamViewerRoleId?: string;
   eventChannelId?: string;
+  playerGameChannelId?: string;
 };
 
 export type ApiKeyEntry = {
@@ -477,7 +478,7 @@ export type Quiz = {
     mentionRoleId?: string;
     questions: QuizQuestion[];
     schedule?: string[];
-    lastScheduledTriggers?: Record<string, string>; // e.g. { '10:00': '2024-07-30' }
+    lastScheduledTriggers?: Record<string, string>; // e.g., { '10:00': '2024-07-30' }
     createdBy: string;
     createdAt: Date | string;
 };
@@ -517,4 +518,19 @@ export type MemberActivityStats = {
     monthly: { joins: number; leaves: number; net: number };
     annual: { joins: number; leaves: number; net: number };
     chartData: { date: string; joins: number; leaves: number }[];
+};
+
+export type PlayerGuessingGame = {
+    _id: string | ObjectId;
+    playerName: string;
+    hints: string[];
+    nationality: string; // e.g., 'br', 'ar' for flag emojis
+    status: 'draft' | 'active' | 'finished';
+    prizeAmount: number;
+    createdBy: string; // admin userId
+    createdAt: Date | string;
+    startedAt?: Date | string;
+    winnerId?: string;
+    winnerName?: string;
+    winnerAvatar?: string;
 };

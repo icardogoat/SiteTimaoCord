@@ -34,6 +34,7 @@ export async function getBotConfig(): Promise<Partial<BotConfig>> {
                 vipRoleIds: [],
                 postCreatorRoleId: '',
                 streamViewerRoleId: '',
+                playerGameChannelId: '',
             };
         }
 
@@ -55,6 +56,7 @@ export async function getBotConfig(): Promise<Partial<BotConfig>> {
             vipRoleIds: config.vipRoleIds || [],
             postCreatorRoleId: config.postCreatorRoleId || '',
             streamViewerRoleId: config.streamViewerRoleId || '',
+            playerGameChannelId: config.playerGameChannelId || '',
         };
     } catch (error) {
         console.error("Error fetching bot config:", error);
@@ -75,6 +77,7 @@ export async function getBotConfig(): Promise<Partial<BotConfig>> {
             vipRoleIds: [],
             postCreatorRoleId: '',
             streamViewerRoleId: '',
+            playerGameChannelId: '',
         };
     }
 }
@@ -96,6 +99,7 @@ type UpdateConfigData = {
     postCreatorRoleId: string;
     vipRoleIds: string[];
     streamViewerRoleId: string;
+    playerGameChannelId: string;
 };
 
 export async function updateBotConfig(data: UpdateConfigData): Promise<{ success: boolean; message: string }> {
