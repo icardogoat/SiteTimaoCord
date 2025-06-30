@@ -9,13 +9,14 @@ export default async function AdminQuizPage() {
     const quizzes = await getQuizzes();
     const config = await getBotConfig();
     
-    let serverDetails = { channels: [] };
+    let serverDetails = { channels: [], roles: [] };
     let error: string | null = null;
 
     if (config.guildId) {
         const result = await getDiscordServerDetails(config.guildId);
         if (result.success && result.data) {
             serverDetails.channels = result.data.channels;
+            serverDetails.roles = result.data.roles;
         } else {
             error = result.error || 'Ocorreu um erro desconhecido ao buscar os detalhes do servidor.';
         }
@@ -27,6 +28,7 @@ export default async function AdminQuizPage() {
         <AdminQuizClient 
             initialQuizzes={quizzes} 
             discordChannels={serverDetails.channels}
+            discordRoles={serverDetails.roles}
             error={error}
         />
     );

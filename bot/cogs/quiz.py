@@ -1,3 +1,4 @@
+
 import discord
 from discord.ext import commands
 from discord import app_commands, ui
@@ -8,6 +9,7 @@ from bson.objectid import ObjectId
 import datetime
 import asyncio
 from collections import defaultdict
+import random
 
 load_dotenv()
 
@@ -120,7 +122,8 @@ class Quiz(commands.Cog):
             await interaction.followup.send("❌ Quiz não encontrado com este ID.", ephemeral=True)
             return
 
-        if not quiz_doc.get('questions'):
+        questions = quiz_doc.get('questions', [])
+        if not questions:
             await interaction.followup.send("❌ Este quiz não tem perguntas configuradas.", ephemeral=True)
             return
             
@@ -138,6 +141,19 @@ class Quiz(commands.Cog):
             await interaction.followup.send(f"❌ ID do canal de evento `{channel_id}` é inválido.", ephemeral=True)
             return
 
+        # Get quiz settings
+        questions_per_game = quiz_doc.get('questionsPerGame', len(questions))
+        winner_limit = quiz_doc.get('winnerLimit', 0)
+        mention_role_id = quiz_doc.get('mentionRoleId')
+
+        # Shuffle and slice questions
+        random.shuffle(questions)
+        questions_to_ask = questions[:questions_per_game]
+
+        mention_text = ""
+        if mention_role_id:
+            mention_text = f"<@&{mention_role_id}>"
+
         await interaction.followup.send(f"✅ Quiz '{quiz_doc['name']}' sendo iniciado no canal {event_channel.mention}!", ephemeral=True)
         
         start_embed = discord.Embed(
@@ -145,14 +161,15 @@ class Quiz(commands.Cog):
             description=f"Prepare-se! A primeira pergunta será enviada em 10 segundos...",
             color=0x1E90FF
         )
-        await event_channel.send(embed=start_embed)
+        await event_channel.send(content=mention_text, embed=start_embed)
         await asyncio.sleep(10)
 
         scores = defaultdict(int)
+        unique_winners_with_prize = set()
         
-        for index, question_data in enumerate(quiz_doc['questions']):
+        for index, question_data in enumerate(questions_to_ask):
             question_embed = discord.Embed(
-                title=f"Pergunta {index + 1}/{len(quiz_doc['questions'])}",
+                title=f"Pergunta {index + 1}/{len(questions_to_ask)}",
                 description=f"**{question_data['question']}**",
                 color=0x1E1E1E
             )
@@ -167,12 +184,21 @@ class Quiz(commands.Cog):
             
             if view.winner:
                 winner = view.winner
-                prize = quiz_doc.get('rewardAmount', 0)
                 scores[winner.id] += 1
-                
-                await self.award_prize(winner, prize, quiz_doc.get('name', 'Quiz'))
-                
-                await event_channel.send(f"🏆 {winner.mention} acertou e ganhou **R$ {prize:.2f}**!")
+
+                is_new_winner = winner.id not in unique_winners_with_prize
+                can_win_prize = (winner_limit == 0) or (len(unique_winners_with_prize) < winner_limit) or not is_new_winner
+
+                if can_win_prize:
+                    prize = quiz_doc.get('rewardPerQuestion', 0)
+                    if prize > 0:
+                        unique_winners_with_prize.add(winner.id)
+                        await self.award_prize(winner, prize, quiz_doc.get('name', 'Quiz'))
+                        await event_channel.send(f"🏆 {winner.mention} acertou e ganhou **R$ {prize:.2f}**!")
+                    else:
+                        await event_channel.send(f"🎉 {winner.mention} acertou!")
+                else:
+                    await event_channel.send(f"🎉 {winner.mention} acertou! O limite de vencedores com prêmio já foi atingido, mas seu acerto foi computado para o ranking final.")
             else: 
                 timeout_embed = quiz_message.embeds[0]
                 timeout_embed.color = 0xFF0000
@@ -183,7 +209,7 @@ class Quiz(commands.Cog):
                 await quiz_message.edit(embed=timeout_embed, view=view)
                 await event_channel.send("Ninguém acertou a tempo. Próxima pergunta em breve...")
             
-            if index < len(quiz_doc['questions']) - 1:
+            if index < len(questions_to_ask) - 1:
                 await asyncio.sleep(8)
         
         await event_channel.send(embed=discord.Embed(title="🏁 Quiz Finalizado! 🏁", color=0x1E1E1E))
@@ -197,8 +223,11 @@ class Quiz(commands.Cog):
         
         leaderboard_description = ""
         for i, (user_id, score) in enumerate(sorted_scores[:10]):
-            user = self.bot.get_user(user_id) or await self.bot.fetch_user(user_id)
-            leaderboard_description += f"**{i+1}º:** {user.mention} - {score} acerto(s)\n"
+            try:
+                user = self.bot.get_user(user_id) or await self.bot.fetch_user(user_id)
+                leaderboard_description += f"**{i+1}º:** {user.mention} - {score} acerto(s)\n"
+            except discord.NotFound:
+                leaderboard_description += f"**{i+1}º:** Usuário Desconhecido - {score} acerto(s)\n"
 
         leaderboard_embed = discord.Embed(
             title="🏆 Ranking Final do Quiz 🏆",

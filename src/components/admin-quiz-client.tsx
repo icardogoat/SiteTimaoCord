@@ -32,6 +32,7 @@ import {
 import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -51,7 +52,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Loader2, PlusCircle, Trash2, Edit, HelpCircle } from 'lucide-react';
 import type { Quiz, QuizQuestion } from '@/types';
-import type { DiscordChannel } from '@/actions/bot-config-actions';
+import type { DiscordChannel, DiscordRole } from '@/actions/bot-config-actions';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { RadioGroup, RadioGroupItem } from './ui/radio-group';
 import { ScrollArea } from './ui/scroll-area';
@@ -67,12 +68,15 @@ const quizSchema = z.object({
   id: z.string().optional(),
   name: z.string().min(3, 'O nome deve ter pelo menos 3 caracteres.'),
   description: z.string().optional(),
-  rewardAmount: z.coerce.number().min(1, 'A recompensa deve ser de pelo menos 1.'),
+  rewardPerQuestion: z.coerce.number().min(1, 'A recompensa deve ser de pelo menos 1.'),
+  questionsPerGame: z.coerce.number().int().min(1, "O quiz deve ter pelo menos 1 pergunta por rodada."),
+  winnerLimit: z.coerce.number().int().min(0, "O limite de vencedores não pode ser negativo."),
   channelId: z.string().min(1, 'É necessário selecionar um canal.'),
+  mentionRoleId: z.string().optional(),
   questions: z.array(questionSchema).min(1, 'É necessária pelo menos uma pergunta.'),
 });
 
-export function AdminQuizClient({ initialQuizzes, discordChannels, error }: { initialQuizzes: Quiz[], discordChannels: DiscordChannel[], error: string | null }) {
+export function AdminQuizClient({ initialQuizzes, discordChannels, discordRoles, error }: { initialQuizzes: Quiz[], discordChannels: DiscordChannel[], discordRoles: DiscordRole[], error: string | null }) {
     const { toast } = useToast();
     const [quizzes, setQuizzes] = useState(initialQuizzes);
     const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -85,7 +89,7 @@ export function AdminQuizClient({ initialQuizzes, discordChannels, error }: { in
         defaultValues: { name: '', questions: [{ question: '', options: ['', ''], answer: 0 }] }
     });
 
-    const { fields, append, remove, update } = useFieldArray({
+    const { fields, append, remove } = useFieldArray({
         control: form.control,
         name: "questions"
     });
@@ -97,16 +101,22 @@ export function AdminQuizClient({ initialQuizzes, discordChannels, error }: { in
                 id: quiz._id.toString(),
                 name: quiz.name,
                 description: quiz.description,
-                rewardAmount: quiz.rewardAmount,
+                rewardPerQuestion: quiz.rewardPerQuestion,
+                questionsPerGame: quiz.questionsPerGame,
+                winnerLimit: quiz.winnerLimit,
                 channelId: quiz.channelId,
+                mentionRoleId: quiz.mentionRoleId,
                 questions: quiz.questions,
             });
         } else {
             form.reset({
                 name: '',
                 description: '',
-                rewardAmount: 500,
+                rewardPerQuestion: 100,
+                questionsPerGame: 5,
+                winnerLimit: 0,
                 channelId: '',
+                mentionRoleId: '',
                 questions: [{ question: '', options: ['', ''], answer: 0 }],
             });
         }
@@ -180,7 +190,7 @@ export function AdminQuizClient({ initialQuizzes, discordChannels, error }: { in
                         <p className="text-sm text-muted-foreground">{quiz.description}</p>
                     </TableCell>
                     <TableCell className="text-center">{quiz.questions.length}</TableCell>
-                    <TableCell className="text-right font-mono">R$ {quiz.rewardAmount.toFixed(2)}</TableCell>
+                    <TableCell className="text-right font-mono">R$ {quiz.rewardPerQuestion.toFixed(2)}</TableCell>
                     <TableCell className="text-right">
                         <Button variant="outline" size="icon" className="mr-2" onClick={() => handleOpenDialog(quiz)}><Edit className="h-4 w-4" /></Button>
                         <Button variant="destructive" size="icon" onClick={() => setIsDeleteDialogOpen(quiz._id.toString())}><Trash2 className="h-4 w-4" /></Button>
@@ -211,14 +221,14 @@ export function AdminQuizClient({ initialQuizzes, discordChannels, error }: { in
                          <FormField control={form.control} name="description" render={({ field }) => (
                             <FormItem><FormLabel>Descrição (Opcional)</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
                         )}/>
-                        <div className="grid grid-cols-2 gap-4">
-                            <FormField control={form.control} name="rewardAmount" render={({ field }) => (
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            <FormField control={form.control} name="rewardPerQuestion" render={({ field }) => (
                                 <FormItem><FormLabel>Recompensa por Acerto (R$)</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>
                             )}/>
                             <FormField control={form.control} name="channelId" render={({ field }) => (
                                 <FormItem>
                                 <FormLabel>Canal do Quiz</FormLabel>
-                                <Select onValueChange={field.onChange} defaultValue={field.value} disabled={discordChannels.length === 0}>
+                                <Select onValueChange={field.onChange} value={field.value} disabled={discordChannels.length === 0}>
                                     <FormControl><SelectTrigger><SelectValue placeholder="Selecione um canal" /></SelectTrigger></FormControl>
                                     <SelectContent>
                                     {discordChannels.map(channel => (
@@ -227,6 +237,39 @@ export function AdminQuizClient({ initialQuizzes, discordChannels, error }: { in
                                     </SelectContent>
                                 </Select>
                                 <FormMessage />
+                                </FormItem>
+                            )}/>
+                            <FormField control={form.control} name="mentionRoleId" render={({ field }) => (
+                                <FormItem>
+                                <FormLabel>Cargo para Notificar (Opcional)</FormLabel>
+                                <Select onValueChange={field.onChange} value={field.value} disabled={discordRoles.length === 0}>
+                                    <FormControl><SelectTrigger><SelectValue placeholder="Selecione um cargo" /></SelectTrigger></FormControl>
+                                    <SelectContent>
+                                        <SelectItem value="">Nenhum</SelectItem>
+                                        {discordRoles.map(role => (
+                                            <SelectItem key={role.id} value={role.id}>@{role.name}</SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                                <FormMessage />
+                                </FormItem>
+                            )}/>
+                        </div>
+                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                             <FormField control={form.control} name="questionsPerGame" render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Perguntas por Rodada</FormLabel>
+                                    <FormControl><Input type="number" {...field} /></FormControl>
+                                    <FormDescription>Quantas perguntas (aleatórias) serão feitas do total.</FormDescription>
+                                    <FormMessage />
+                                </FormItem>
+                            )}/>
+                             <FormField control={form.control} name="winnerLimit" render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Limite de Vencedores Únicos</FormLabel>
+                                    <FormControl><Input type="number" {...field} /></FormControl>
+                                    <FormDescription>Quantos usuários diferentes podem ganhar prêmios. Use 0 para ilimitado.</FormDescription>
+                                    <FormMessage />
                                 </FormItem>
                             )}/>
                         </div>

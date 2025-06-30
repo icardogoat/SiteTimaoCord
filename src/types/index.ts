@@ -470,8 +470,11 @@ export type Quiz = {
     _id: string | ObjectId;
     name: string;
     description: string;
-    rewardAmount: number;
+    rewardPerQuestion: number;
+    questionsPerGame: number;
+    winnerLimit: number; // 0 for unlimited
     channelId: string;
+    mentionRoleId?: string;
     questions: QuizQuestion[];
     createdBy: string;
     createdAt: Date | string;
