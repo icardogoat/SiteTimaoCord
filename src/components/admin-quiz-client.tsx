@@ -51,7 +51,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Loader2, PlusCircle, Trash2, Edit, HelpCircle, Sparkles } from 'lucide-react';
-import type { Quiz, QuizQuestion } from '@/types';
+import type { Quiz } from '@/types';
 import type { DiscordChannel, DiscordRole } from '@/actions/bot-config-actions';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { RadioGroup, RadioGroupItem } from './ui/radio-group';
@@ -61,7 +61,7 @@ import { generateQuizQuestions } from '@/ai/flows/quiz-generator-flow';
 
 const questionSchema = z.object({
   question: z.string().min(1, 'A pergunta não pode estar vazia.'),
-  options: z.array(z.string().min(1, 'A opção não pode estar vazia.')).min(2, 'São necessárias pelo menos 2 opções.').max(4, 'Máximo de 4 opções.'),
+  options: z.array(z.string().min(1, 'A opção não pode estar vazia.')).length(4, 'São necessárias 4 opções.'),
   answer: z.coerce.number().min(0).max(3),
 });
 
@@ -143,7 +143,7 @@ export function AdminQuizClient({ initialQuizzes, discordChannels, discordRoles,
                 channelId: quiz.channelId,
                 mentionRoleId: quiz.mentionRoleId || undefined,
                 schedule: quiz.schedule || [],
-                questions: quiz.questions.map(q => ({...q, options: q.options.concat(Array(4 - q.options.length).fill('')).slice(0, 4)})), // Ensure 4 options
+                questions: quiz.questions.map(q => ({...q, options: q.options.concat(Array(4 - q.options.length).fill('')).slice(0, 4)})),
             });
         } else {
             form.reset({
@@ -249,9 +249,9 @@ export function AdminQuizClient({ initialQuizzes, discordChannels, discordRoles,
                 <DialogHeader>
                     <DialogTitle>{currentQuiz ? 'Editar Quiz' : 'Novo Quiz'}</DialogTitle>
                 </DialogHeader>
-                <Form {...form}>
-                    <form onSubmit={form.handleSubmit(onSubmit)} className="flex-grow overflow-y-auto pr-6 -mr-6 space-y-6">
-                        <div className="space-y-6 px-1">
+                <div className="flex-grow overflow-y-auto pr-6 -mr-6">
+                    <Form {...form}>
+                        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
                             <FormField control={form.control} name="name" render={({ field }) => (
                                 <FormItem><FormLabel>Nome do Quiz</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
                             )}/>
@@ -279,10 +279,9 @@ export function AdminQuizClient({ initialQuizzes, discordChannels, discordRoles,
                                 <FormField control={form.control} name="mentionRoleId" render={({ field }) => (
                                     <FormItem>
                                     <FormLabel>Cargo para Notificar (Opcional)</FormLabel>
-                                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                    <Select onValueChange={field.onChange} value={field.value || undefined}>
                                         <FormControl><SelectTrigger><SelectValue placeholder="Selecione um cargo" /></SelectTrigger></FormControl>
                                         <SelectContent>
-                                            <SelectItem value="">Nenhum</SelectItem>
                                             {discordRoles.map(role => (
                                                 <SelectItem key={role.id} value={role.id}>@{role.name}</SelectItem>
                                             ))}
@@ -311,7 +310,7 @@ export function AdminQuizClient({ initialQuizzes, discordChannels, discordRoles,
                                 )}/>
                             </div>
                             
-                             <Separator className="!my-6" />
+                             <Separator />
 
                             <Card className="bg-muted/30">
                                 <CardHeader>
@@ -334,7 +333,7 @@ export function AdminQuizClient({ initialQuizzes, discordChannels, discordRoles,
                                 </CardContent>
                             </Card>
                             
-                            <Separator className="!my-6" />
+                            <Separator />
 
                              <div>
                                 <h3 className="text-lg font-semibold">Agendamento (Opcional)</h3>
@@ -362,7 +361,7 @@ export function AdminQuizClient({ initialQuizzes, discordChannels, discordRoles,
                                 </Button>
                             </div>
                             
-                            <Separator className="!my-6" />
+                            <Separator />
 
                             <h3 className="text-lg font-semibold">Perguntas</h3>
                             
@@ -405,18 +404,19 @@ export function AdminQuizClient({ initialQuizzes, discordChannels, discordRoles,
                                     </Card>
                                 ))}
                             </div>
-                        </div>
-                        
-                        <DialogFooter className="sticky bottom-0 bg-background pt-4 pb-1 -mx-6 px-6 border-t">
-                            <Button type="button" variant="outline" size="sm" onClick={() => append({ question: '', options: ['', '', '', ''], answer: 0 })}>
-                                <PlusCircle className="mr-2 h-4 w-4" /> Adicionar Pergunta
-                            </Button>
-                            <div className="flex-grow" />
-                            <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>Cancelar</Button>
-                            <Button type="submit" disabled={isSubmitting}>{isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Salvar Quiz</Button>
-                        </DialogFooter>
-                    </form>
-                </Form>
+                             <div className="sticky bottom-0 bg-background pt-4 -mb-6">
+                                <Button type="button" variant="outline" size="sm" onClick={() => append({ question: '', options: ['', '', '', ''], answer: 0 })}>
+                                    <PlusCircle className="mr-2 h-4 w-4" /> Adicionar Pergunta
+                                </Button>
+                            </div>
+
+                             <DialogFooter className="sticky bottom-0 bg-background py-4 -mx-6 px-6 border-t mt-auto">
+                                <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>Cancelar</Button>
+                                <Button type="submit" disabled={isSubmitting}>{isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Salvar Quiz</Button>
+                            </DialogFooter>
+                        </form>
+                    </Form>
+                </div>
             </DialogContent>
         </Dialog>
 

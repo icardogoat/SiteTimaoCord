@@ -24,7 +24,7 @@ export async function getQuizzes(): Promise<Quiz[]> {
     }
 }
 
-type QuizData = Omit<Quiz, '_id' | 'createdAt' | 'createdBy'>;
+type QuizData = Omit<Quiz, '_id' | 'createdAt' | 'createdBy' | 'lastScheduledTriggers'>;
 
 export async function createQuiz(data: QuizData): Promise<{ success: boolean; message: string }> {
     const session = await getServerSession(authOptions);
