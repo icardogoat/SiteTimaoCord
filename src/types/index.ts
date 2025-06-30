@@ -488,3 +488,20 @@ export type Championship = {
   createdAt: Date | string;
 };
 
+export type GuildDetails = {
+    id: string;
+    name: string;
+    iconUrl: string | null;
+    memberCount: number;
+    onlineCount: number;
+    boostTier: number;
+    boostCount: number;
+    createdAt: string;
+};
+
+export type RoleWithMemberCount = {
+    id: string;
+    name: string;
+    memberCount: number;
+    color: number;
+};
