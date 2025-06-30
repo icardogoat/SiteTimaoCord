@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import type { PromoCode } from '@/types';
 import { useToast } from '@/hooks/use-toast';
 import { revokePromoCode, getPromoCodes } from '@/actions/admin-actions';
@@ -33,11 +33,11 @@ const getStatusVariant = (status: PromoCode['status']) => {
 const TimeAgo = ({ date }: { date: string | Date }) => {
     const [timeAgo, setTimeAgo] = useState('');
 
-    useState(() => {
+    useEffect(() => {
         setTimeAgo(formatDistanceToNow(new Date(date), { addSuffix: true, locale: ptBR }));
-    });
+    }, [date]);
 
-    return <>{timeAgo}</>;
+    return <>{timeAgo || '...'}</>;
 };
 
 export default function AdminCodesClient({ initialCodes }: AdminCodesClientProps) {

@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import type { ModerationAction } from '@/types';
 import { useToast } from '@/hooks/use-toast';
 import { getModerationLogs, issueWarningFromSite } from '@/actions/moderation-actions';
@@ -51,6 +51,15 @@ const getActionDetails = (action: ModerationAction) => {
         default: return { icon: ShieldAlert, color: 'text-gray-500', label: action.type };
     }
 }
+
+// Client-side component to prevent hydration mismatch
+const TimeAgo = ({ date }: { date: string | Date }) => {
+    const [timeAgo, setTimeAgo] = useState('');
+    useEffect(() => {
+        setTimeAgo(formatDistanceToNow(new Date(date), { addSuffix: true, locale: ptBR }));
+    }, [date]);
+    return <>{timeAgo || '...'}</>;
+};
 
 export function AdminModerationClient({ initialLogs, allUsers, modLogChannelId, error }: { initialLogs: ModerationAction[], allUsers: any[], modLogChannelId?: string, error: string | null }) {
     const { toast } = useToast();
@@ -153,7 +162,7 @@ export function AdminModerationClient({ initialLogs, allUsers, modLogChannelId, 
                                             <TableCell className="hidden md:table-cell">{log.moderatorName}</TableCell>
                                             <TableCell className="hidden lg:table-cell max-w-xs truncate">{log.reason}</TableCell>
                                             <TableCell className="text-right text-xs text-muted-foreground">
-                                                {formatDistanceToNow(new Date(log.createdAt), { addSuffix: true, locale: ptBR })}
+                                                <TimeAgo date={log.createdAt} />
                                             </TableCell>
                                         </TableRow>
                                     )
