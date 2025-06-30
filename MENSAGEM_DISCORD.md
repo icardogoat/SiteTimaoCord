@@ -41,9 +41,23 @@ Aqui está a lista de tudo que você pode fazer diretamente pelo Discord:
 - `/ranking [categoria]`: Veja os rankings do servidor (Maiores Ganhadores, Mais Ricos, etc.).
 - `/convites`: Mostra quantos membros você já convidou para o servidor.
 
-### ✨ **Geral**
+### ✨ **Eventos e Jogos Interativos**
+- **Quiz do Timão:** Fique de olho no canal de eventos! Quando um quiz começar, perguntas de múltipla escolha aparecerão. Clique na resposta que você acha correta para participar e concorrer a prêmios!
+- **Quem é o Jogador?:** Um jogador misterioso será anunciado no canal de eventos e dicas serão reveladas aos poucos. Se você adivinhar quem é, basta **digitar o nome do jogador no chat** para ganhar!
+
+### ⚙️ **Geral**
 - `/ajuda`: Mostra esta lista de comandos.
 - `/ping`: Verifica a latência do bot.
+
+---
+
+## 🔒 Comandos para Administradores 🔒
+
+Estes comandos são exclusivos para a equipe de administração do servidor.
+
+- `/iniciar_quiz [id]`: Inicia uma rodada de um quiz criado no painel de administração.
+- `/iniciar_jogador [id]`: Inicia uma rodada do jogo "Quem é o Jogador?" usando um jogo criado no painel.
+- `/gerar_codigo`: Gera códigos promocionais de dinheiro ou XP para os usuários.
 
 ---
 
