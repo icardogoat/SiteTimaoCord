@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState } from 'react';
@@ -67,6 +68,7 @@ const gameFormSchema = z.object({
   prizeAmount: z.coerce.number().min(1, "O prêmio deve ser de pelo menos 1."),
   hints: z.array(z.string().min(1, "A dica não pode estar vazia.")).min(5, "São necessárias pelo menos 5 dicas."),
   nationality: z.string().length(2, "Deve ser um código de país de 2 letras.").min(1, "A nacionalidade é obrigatória."),
+  schedule: z.array(z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, "Formato inválido. Use HH:mm")).optional(),
 });
 
 type FormValues = z.infer<typeof gameFormSchema>;
@@ -89,12 +91,17 @@ export function AdminPlayerGameClient({ initialGames, discordChannels, error }: 
 
     const form = useForm<FormValues>({
         resolver: zodResolver(gameFormSchema),
-        defaultValues: { playerName: '', prizeAmount: 500, hints: Array(5).fill(''), nationality: '' }
+        defaultValues: { playerName: '', prizeAmount: 500, hints: Array(5).fill(''), nationality: '', schedule: [] }
     });
 
      const { fields, append, remove } = useFieldArray({
         control: form.control,
         name: "hints"
+    });
+    
+    const { fields: scheduleFields, append: appendSchedule, remove: removeSchedule } = useFieldArray({
+        control: form.control,
+        name: "schedule"
     });
 
     const handleGenerateByAI = async () => {
@@ -129,7 +136,8 @@ export function AdminPlayerGameClient({ initialGames, discordChannels, error }: 
             prizeAmount: game.prizeAmount,
             hints: game.hints,
             nationality: game.nationality,
-        } : { playerName: '', prizeAmount: 500, hints: Array(5).fill(''), nationality: '' });
+            schedule: game.schedule || [],
+        } : { playerName: '', prizeAmount: 500, hints: Array(5).fill(''), nationality: '', schedule: [] });
         setIsDialogOpen(true);
     };
 
@@ -336,6 +344,34 @@ export function AdminPlayerGameClient({ initialGames, discordChannels, error }: 
                                 </div>
                                 <Button type="button" variant="outline" size="sm" className="mt-2" onClick={() => append('')}>
                                     <PlusCircle className="mr-2 h-4 w-4" /> Adicionar Dica
+                                </Button>
+                            </div>
+                            
+                            <Separator />
+
+                            <div>
+                                <h3 className="text-lg font-semibold">Agendamento (Opcional)</h3>
+                                <FormDescription className="mb-4">
+                                    Defina horários para este jogo ser iniciado automaticamente.
+                                </FormDescription>
+                                <div className="space-y-2">
+                                    {scheduleFields.map((field, index) => (
+                                        <FormField
+                                            key={field.id}
+                                            control={form.control}
+                                            name={`schedule.${index}`}
+                                            render={({ field }) => (
+                                                <FormItem className="flex items-center gap-2">
+                                                    <FormControl><Input type="time" {...field} className="w-48" /></FormControl>
+                                                    <Button type="button" variant="ghost" size="icon" onClick={() => removeSchedule(index)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+                                    ))}
+                                </div>
+                                <Button type="button" variant="outline" size="sm" className="mt-2" onClick={() => appendSchedule({value: ''} as any)}>
+                                    <PlusCircle className="mr-2 h-4 w-4" /> Adicionar Horário
                                 </Button>
                             </div>
                         </div>

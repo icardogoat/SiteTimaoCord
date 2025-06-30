@@ -527,6 +527,8 @@ export type PlayerGuessingGame = {
     channelId?: string;
     status: 'draft' | 'active' | 'finished';
     prizeAmount: number;
+    schedule?: string[];
+    lastScheduledTriggers?: Record<string, string>;
     createdBy: string; // admin userId
     createdAt: Date | string;
     startedAt?: Date | string;
