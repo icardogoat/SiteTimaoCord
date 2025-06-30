@@ -5,6 +5,8 @@ import { AdminPlayerGameClient } from '@/components/admin-player-game-client';
 import { getPlayerGames } from '@/actions/player-game-actions';
 import { getBotConfig, getDiscordServerDetails } from '@/actions/bot-config-actions';
 
+export const dynamic = 'force-dynamic';
+
 export default async function AdminPlayerGamePage() {
     const [games, config] = await Promise.all([
         getPlayerGames(),

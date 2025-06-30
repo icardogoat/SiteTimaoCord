@@ -6,6 +6,8 @@ import { AdminModerationClient } from '@/components/admin-moderation-client';
 import { getAdminUsers } from '@/actions/admin-actions';
 import { getBotConfig, getDiscordServerDetails } from '@/actions/bot-config-actions';
 
+export const dynamic = 'force-dynamic';
+
 export default async function AdminModerationPage() {
     const [logs, users, config] = await Promise.all([
         getModerationLogs(),

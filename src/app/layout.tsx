@@ -1,5 +1,5 @@
 
-import type {Metadata} from 'next';
+import type {Metadata, Viewport} from 'next';
 import './globals.css';
 import { Toaster } from "@/components/ui/toaster"
 import SessionProviderWrapper from '@/components/session-provider-wrapper';
@@ -43,6 +43,9 @@ export const metadata: Metadata = {
     description: siteDescription,
     images: [ogImage],
   },
+};
+
+export const viewport: Viewport = {
   themeColor: '#1A1A1A',
 };
 

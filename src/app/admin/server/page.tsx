@@ -6,6 +6,8 @@ import { getDbStats, getMemberActivityStats } from '@/actions/admin-actions';
 import { AdminServerPanelClient } from '@/components/admin-server-panel-client';
 import type { GuildDetails, RoleWithMemberCount, DbStats, MemberActivityStats } from '@/types';
 
+export const dynamic = 'force-dynamic';
+
 export default async function AdminServerPage() {
     const config = await getBotConfig();
     

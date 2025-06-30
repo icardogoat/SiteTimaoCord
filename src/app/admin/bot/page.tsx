@@ -3,6 +3,8 @@
 import { getBotConfig, getDiscordServerDetails } from '@/actions/bot-config-actions';
 import AdminBotConfigClient from '@/components/admin-bot-config-client';
 
+export const dynamic = 'force-dynamic';
+
 export default async function AdminBotConfigPage() {
     const config = await getBotConfig();
     

@@ -5,6 +5,8 @@ import { getQuizzes } from '@/actions/quiz-actions';
 import { AdminQuizClient } from '@/components/admin-quiz-client';
 import { getBotConfig, getDiscordServerDetails } from '@/actions/bot-config-actions';
 
+export const dynamic = 'force-dynamic';
+
 export default async function AdminQuizPage() {
     const quizzes = await getQuizzes();
     const config = await getBotConfig();
