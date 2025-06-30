@@ -301,7 +301,6 @@ export type BotConfig = {
   postCreatorRoleId?: string;
   streamViewerRoleId?: string;
   eventChannelId?: string;
-  playerGameChannelId?: string;
 };
 
 export type ApiKeyEntry = {
@@ -525,6 +524,7 @@ export type PlayerGuessingGame = {
     playerName: string;
     hints: string[];
     nationality: string; // e.g., 'br', 'ar' for flag emojis
+    channelId?: string;
     status: 'draft' | 'active' | 'finished';
     prizeAmount: number;
     createdBy: string; // admin userId

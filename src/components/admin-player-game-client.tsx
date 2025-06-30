@@ -57,9 +57,12 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from './ui/badge';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
+import type { DiscordChannel } from '@/actions/bot-config-actions';
 
 const gameFormSchema = z.object({
   id: z.string().optional(),
+  channelId: z.string().optional(),
   playerName: z.string().min(1, "O nome do jogador é obrigatório."),
   prizeAmount: z.coerce.number().min(1, "O prêmio deve ser de pelo menos 1."),
   hints: z.array(z.string().min(1, "A dica não pode estar vazia.")).min(5, "São necessárias pelo menos 5 dicas."),
@@ -70,10 +73,11 @@ type FormValues = z.infer<typeof gameFormSchema>;
 
 interface AdminPlayerGameClientProps {
     initialGames: PlayerGuessingGame[];
+    discordChannels: DiscordChannel[];
     error: string | null;
 }
 
-export function AdminPlayerGameClient({ initialGames, error }: AdminPlayerGameClientProps) {
+export function AdminPlayerGameClient({ initialGames, discordChannels, error }: AdminPlayerGameClientProps) {
     const { toast } = useToast();
     const [games, setGames] = useState(initialGames);
     const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -120,6 +124,7 @@ export function AdminPlayerGameClient({ initialGames, error }: AdminPlayerGameCl
         setCurrentGame(game);
         form.reset(game ? {
             id: game._id.toString(),
+            channelId: game.channelId,
             playerName: game.playerName,
             prizeAmount: game.prizeAmount,
             hints: game.hints,
@@ -155,9 +160,18 @@ export function AdminPlayerGameClient({ initialGames, error }: AdminPlayerGameCl
         setIsDeleteDialogOpen(null);
     };
     
-    const handleStatusChange = async (id: string, newStatus: 'draft' | 'active') => {
+    const handleStatusChange = async (game: PlayerGuessingGame, newStatus: 'draft' | 'active') => {
+        if (newStatus === 'active' && !game.channelId) {
+            toast({
+                title: "Canal não selecionado",
+                description: "Por favor, edite o jogo e selecione um canal antes de iniciá-lo.",
+                variant: "destructive"
+            });
+            return;
+        }
+
         setIsSubmitting(true);
-        const result = await setPlayerGameStatus(id, newStatus);
+        const result = await setPlayerGameStatus(game._id.toString(), newStatus);
          if (result.success) {
             toast({ title: "Sucesso!", description: result.message });
             setGames(await getPlayerGames());
@@ -199,6 +213,7 @@ export function AdminPlayerGameClient({ initialGames, error }: AdminPlayerGameCl
                     <TableHeader>
                         <TableRow>
                             <TableHead>Jogador</TableHead>
+                            <TableHead className="text-center">Canal</TableHead>
                             <TableHead className="text-center">Prêmio</TableHead>
                             <TableHead className="text-center">Status</TableHead>
                             <TableHead className="text-right">Ações</TableHead>
@@ -208,16 +223,19 @@ export function AdminPlayerGameClient({ initialGames, error }: AdminPlayerGameCl
                         {games.length > 0 ? games.map(game => (
                             <TableRow key={game._id.toString()}>
                                 <TableCell className="font-medium">{game.playerName}</TableCell>
+                                <TableCell className="text-center text-sm text-muted-foreground">
+                                    {discordChannels.find(c => c.id === game.channelId)?.name ?? 'Nenhum'}
+                                </TableCell>
                                 <TableCell className="text-center font-mono">R$ {game.prizeAmount.toFixed(2)}</TableCell>
                                 <TableCell className="text-center">{getStatusBadge(game.status)}</TableCell>
                                 <TableCell className="text-right space-x-2">
                                      {game.status === 'draft' && (
-                                        <Button size="sm" onClick={() => handleStatusChange(game._id.toString(), 'active')} disabled={isSubmitting || !!error}>
+                                        <Button size="sm" onClick={() => handleStatusChange(game, 'active')} disabled={isSubmitting || !!error}>
                                             <Play className="mr-2 h-4 w-4" /> Iniciar
                                         </Button>
                                     )}
                                      {game.status === 'active' && (
-                                        <Button size="sm" variant="secondary" onClick={() => handleStatusChange(game._id.toString(), 'draft')} disabled={isSubmitting}>
+                                        <Button size="sm" variant="secondary" onClick={() => handleStatusChange(game, 'draft')} disabled={isSubmitting}>
                                             <Pause className="mr-2 h-4 w-4" /> Pausar
                                         </Button>
                                     )}
@@ -227,7 +245,7 @@ export function AdminPlayerGameClient({ initialGames, error }: AdminPlayerGameCl
                             </TableRow>
                         )) : (
                             <TableRow>
-                                <TableCell colSpan={4} className="text-center h-24 text-muted-foreground">
+                                <TableCell colSpan={5} className="text-center h-24 text-muted-foreground">
                                      <Gamepad2 className="mx-auto h-8 w-8 mb-2" />
                                     Nenhum jogo criado.
                                 </TableCell>
@@ -267,24 +285,43 @@ export function AdminPlayerGameClient({ initialGames, error }: AdminPlayerGameCl
 
                             <Separator />
 
-                             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                <FormField control={form.control} name="playerName" render={({ field }) => (
-                                    <FormItem className="md:col-span-2"><FormLabel>Nome do Jogador</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <FormField control={form.control} name="channelId" render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Canal do Jogo</FormLabel>
+                                        <Select onValueChange={field.onChange} value={field.value}>
+                                            <FormControl>
+                                                <SelectTrigger>
+                                                    <SelectValue placeholder="Selecione um canal" />
+                                                </SelectTrigger>
+                                            </FormControl>
+                                            <SelectContent>
+                                                {discordChannels.map(c => <SelectItem key={c.id} value={c.id}>#{c.name}</SelectItem>)}
+                                            </SelectContent>
+                                        </Select>
+                                        <FormDescription>Canal onde o jogo será postado.</FormDescription>
+                                        <FormMessage />
+                                    </FormItem>
                                 )}/>
                                 <FormField control={form.control} name="prizeAmount" render={({ field }) => (
                                     <FormItem><FormLabel>Prêmio (R$)</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>
                                 )}/>
                             </div>
                             
-                            <FormField control={form.control} name="nationality" render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Nacionalidade</FormLabel>
-                                    <FormControl><Input {...field} maxLength={2} placeholder="Ex: BR, AR, PT" /></FormControl>
-                                    <FormDescription>Código do país de 2 letras (ISO 3166-1 alpha-2).</FormDescription>
-                                    <FormMessage />
-                                </FormItem>
-                            )}/>
-                            
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <FormField control={form.control} name="playerName" render={({ field }) => (
+                                    <FormItem><FormLabel>Nome do Jogador</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+                                )}/>
+                                 <FormField control={form.control} name="nationality" render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Nacionalidade</FormLabel>
+                                        <FormControl><Input {...field} maxLength={2} placeholder="Ex: BR, AR, PT" /></FormControl>
+                                        <FormDescription>Código do país de 2 letras (ISO 3166-1 alpha-2).</FormDescription>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}/>
+                            </div>
+
                             <div>
                                 <Label>Dicas</Label>
                                 <div className="space-y-2 mt-2">

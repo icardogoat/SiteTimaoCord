@@ -1,4 +1,5 @@
 
+
 'use server';
 
 import clientPromise from '@/lib/mongodb';
@@ -8,7 +9,6 @@ import type { PlayerGuessingGame } from '@/types';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import { generatePlayerGame } from '@/ai/flows/player-generator-flow';
-import { getBotConfig } from './bot-config-actions';
 
 export async function getPlayerGames(): Promise<PlayerGuessingGame[]> {
     try {
@@ -76,17 +76,16 @@ export async function deletePlayerGame(id: string): Promise<{ success: boolean; 
 }
 
 export async function setPlayerGameStatus(id: string, status: 'draft' | 'active'): Promise<{ success: boolean, message: string }> {
-    const { playerGameChannelId } = await getBotConfig();
-    if (status === 'active' && !playerGameChannelId) {
-        return { success: false, message: "Não é possível iniciar o jogo. O canal do jogo não está configurado nas configurações do bot." };
-    }
-
     try {
         const client = await clientPromise;
         const db = client.db('timaocord');
-        const collection = db.collection('player_guessing_games');
+        const collection = db.collection<PlayerGuessingGame>('player_guessing_games');
 
         if (status === 'active') {
+             const gameToActivate = await collection.findOne({ _id: new ObjectId(id) });
+            if (!gameToActivate?.channelId) {
+                 return { success: false, message: "Não é possível iniciar o jogo. Um canal precisa ser selecionado nas configurações do jogo." };
+            }
             // Ensure no other game is active
             const activeGame = await collection.findOne({ status: 'active' });
             if (activeGame) {
