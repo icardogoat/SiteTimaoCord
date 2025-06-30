@@ -8,3 +8,4 @@ To get started, take a look at src/app/page.tsx.
 ---
 
 Para instruções sobre como gerenciar a plataforma, acesse o arquivo `PAINEL_ADMIN.md` após clonar ou iniciar o projeto.
+# SiteTimaoCord
