@@ -1,7 +1,7 @@
 
 'use client';
 
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import type { GuildDetails, RoleWithMemberCount, DbStats, MemberActivityStats } from "@/types";
 import { Users, UserCheck, Gem, Calendar, Terminal, Database, ServerCrash, Trash2, Loader2 } from "lucide-react";
@@ -14,7 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Button } from "./ui/button";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "./ui/alert-dialog";
 import { cleanupOldData } from "@/actions/admin-actions";
-import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts"
+import { AreaChart, Area, CartesianGrid, XAxis } from "recharts"
 import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@/components/ui/chart"
 
 interface AdminServerPanelClientProps {
@@ -42,6 +42,10 @@ export function AdminServerPanelClient({ initialGuildDetails, initialRolesWithCo
     const { toast } = useToast();
     const [isCleaning, setIsCleaning] = useState(false);
     const [isCleanDialogOpen, setIsCleanDialogOpen] = useState(false);
+    const [rolesExpanded, setRolesExpanded] = useState(false);
+
+    const rolesToShow = rolesExpanded ? initialRolesWithCounts : initialRolesWithCounts.slice(0, 5);
+    const hasMoreRoles = initialRolesWithCounts.length > 5;
 
     const handleCleanup = async () => {
         setIsCleaning(true);
@@ -107,14 +111,50 @@ export function AdminServerPanelClient({ initialGuildDetails, initialRolesWithCo
                     </Card>
                 </div>
                 <ChartContainer config={activityChartConfig} className="h-[250px] w-full">
-                    <BarChart accessibilityLayer data={initialActivityStats.chartData}>
+                     <AreaChart
+                        accessibilityLayer
+                        data={initialActivityStats.chartData}
+                        margin={{ left: 12, right: 12, top: 10 }}
+                    >
                         <CartesianGrid vertical={false} />
-                        <XAxis dataKey="date" tickLine={false} tickMargin={10} axisLine={false} />
-                        <YAxis />
-                        <ChartTooltip content={<ChartTooltipContent />} />
-                        <Bar dataKey="joins" fill="var(--color-joins)" radius={4} name="Entradas" />
-                        <Bar dataKey="leaves" fill="var(--color-leaves)" radius={4} name="Saídas" />
-                    </BarChart>
+                        <XAxis
+                            dataKey="date"
+                            tickLine={false}
+                            axisLine={false}
+                            tickMargin={8}
+                            tickFormatter={(value) => value.slice(0, 5)}
+                        />
+                        <ChartTooltip
+                            cursor={false}
+                            content={<ChartTooltipContent indicator="dot" />}
+                        />
+                        <defs>
+                            <linearGradient id="fillJoins" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="5%" stopColor="var(--color-joins)" stopOpacity={0.8} />
+                                <stop offset="95%" stopColor="var(--color-joins)" stopOpacity={0.1} />
+                            </linearGradient>
+                            <linearGradient id="fillLeaves" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="5%" stopColor="var(--color-leaves)" stopOpacity={0.8} />
+                                <stop offset="95%" stopColor="var(--color-leaves)" stopOpacity={0.1} />
+                            </linearGradient>
+                        </defs>
+                        <Area
+                            dataKey="joins"
+                            type="natural"
+                            fill="url(#fillJoins)"
+                            fillOpacity={0.4}
+                            stroke="var(--color-joins)"
+                            stackId="a"
+                        />
+                         <Area
+                            dataKey="leaves"
+                            type="natural"
+                            fill="url(#fillLeaves)"
+                            fillOpacity={0.4}
+                            stroke="var(--color-leaves)"
+                            stackId="b"
+                        />
+                    </AreaChart>
                 </ChartContainer>
             </CardContent>
         </Card>
@@ -247,7 +287,7 @@ export function AdminServerPanelClient({ initialGuildDetails, initialRolesWithCo
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {initialRolesWithCounts.map((role) => (
+                        {rolesToShow.map((role) => (
                             <TableRow key={role.id}>
                                 <TableCell>
                                     <div className="flex items-center gap-2">
@@ -271,6 +311,13 @@ export function AdminServerPanelClient({ initialGuildDetails, initialRolesWithCo
                     </TableBody>
                 </Table>
             </CardContent>
+             {hasMoreRoles && (
+                <CardFooter className="justify-center border-t pt-4">
+                    <Button variant="ghost" size="sm" onClick={() => setRolesExpanded(!rolesExpanded)}>
+                        {rolesExpanded ? 'Ver menos' : `Ver mais ${initialRolesWithCounts.length - 5} cargos`}
+                    </Button>
+                </CardFooter>
+            )}
         </Card>
     );
 
@@ -300,9 +347,13 @@ export function AdminServerPanelClient({ initialGuildDetails, initialRolesWithCo
                     </Alert>
                 )}
                 
-                {dbStatsContent}
-
+                {initialGuildDetails && guildDetailsContent}
+                
                 {activityStatsContent}
+
+                {rolesContent}
+
+                {dbStatsContent}
 
                 <Card>
                     <CardHeader>
@@ -330,9 +381,6 @@ export function AdminServerPanelClient({ initialGuildDetails, initialRolesWithCo
                         </Button>
                     </CardContent>
                 </Card>
-
-                {initialGuildDetails && guildDetailsContent}
-                {initialGuildDetails && rolesContent}
             </div>
 
             <AlertDialog open={isCleanDialogOpen} onOpenChange={setIsCleanDialogOpen}>
