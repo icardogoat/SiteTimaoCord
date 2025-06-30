@@ -14,56 +14,43 @@ import random
 load_dotenv()
 
 class QuizQuestionView(ui.View):
-    def __init__(self, question_data, quiz_doc):
-        super().__init__(timeout=30.0) # 30 second timeout per question
+    def __init__(self, question_data, question_winner_limit: int):
+        super().__init__(timeout=30.0)
         self.question_data = question_data
-        self.quiz_doc = quiz_doc
-        self.winner = None
+        self.question_winner_limit = question_winner_limit
+        self.winners = []
         self.message = None
-        self.attempted_users = set() # Keep track of users who have tried
+        self.attempted_users = set()
 
         for i, option in enumerate(self.question_data['options']):
             button = ui.Button(label=option, style=discord.ButtonStyle.secondary, custom_id=f"quiz_option_{i}")
             button.callback = self.button_callback
             self.add_item(button)
 
+    async def on_timeout(self):
+        # The main loop will handle UI updates on timeout.
+        self.stop()
+        
     async def button_callback(self, interaction: discord.Interaction):
-        # If someone has already won, no one else can answer.
-        if self.winner:
-            await interaction.response.send_message("Alguém já acertou esta pergunta. Aguarde a próxima!", ephemeral=True)
+        if self.is_finished():
+            await interaction.response.send_message("Esta pergunta já foi encerrada.", ephemeral=True)
             return
 
-        # Check if the user has already attempted this question.
         if interaction.user.id in self.attempted_users:
             await interaction.response.send_message("Você já tentou responder esta pergunta.", ephemeral=True)
             return
 
-        # Add user to the list of attempted users.
         self.attempted_users.add(interaction.user.id)
-
         selected_option_index = int(interaction.data['custom_id'].split('_')[-1])
         correct_answer_index = self.question_data.get('answer', -1)
 
         if selected_option_index == correct_answer_index:
-            self.winner = interaction.user
-            
-            # Disable all buttons and show the correct answer.
-            for item in self.children:
-                if isinstance(item, ui.Button):
-                    item.disabled = True
-                    if item.custom_id == interaction.data['custom_id']:
-                        item.style = discord.ButtonStyle.success
-                    else:
-                        item.style = discord.ButtonStyle.danger
+            await interaction.response.send_message("✅ Resposta correta!", ephemeral=True)
+            self.winners.append(interaction.user)
 
-            new_embed = interaction.message.embeds[0]
-            new_embed.color = 0x00FF00
-            new_embed.description = f"**{self.winner.mention} acertou a resposta!**"
-            
-            await interaction.response.edit_message(embed=new_embed, view=self)
-            self.stop()
+            if self.question_winner_limit > 0 and len(self.winners) >= self.question_winner_limit:
+                self.stop()
         else:
-            # If the answer is incorrect, inform the user. They cannot try again.
             await interaction.response.send_message("❌ Resposta incorreta! Você não pode tentar novamente.", ephemeral=True)
 
 
@@ -171,22 +158,17 @@ class Quiz(commands.Cog):
             self.active_quizzes.remove(quiz_id)
             return
 
-        # Tell the user the quiz is starting (if it's a manual command)
         if interaction:
             await interaction.followup.send(f"✅ Quiz '{quiz_doc['name']}' sendo iniciado no canal {event_channel.mention}!", ephemeral=True)
 
-        # Get quiz settings
         questions_per_game = quiz_doc.get('questionsPerGame', len(questions))
-        winner_limit = quiz_doc.get('winnerLimit', 0)
+        question_winner_limit = quiz_doc.get('winnerLimit', 0)
         mention_role_id = quiz_doc.get('mentionRoleId')
 
-        # Shuffle and slice questions
         random.shuffle(questions)
         questions_to_ask = questions[:questions_per_game]
 
-        mention_text = ""
-        if mention_role_id:
-            mention_text = f"<@&{mention_role_id}>"
+        mention_text = f"<@&{mention_role_id}>" if mention_role_id else ""
 
         start_embed = discord.Embed(
             title=f"🧠 Quiz '{quiz_doc.get('name', 'Quiz do Timão')}' vai começar!",
@@ -197,7 +179,6 @@ class Quiz(commands.Cog):
         await asyncio.sleep(10)
 
         scores = defaultdict(int)
-        unique_winners_with_prize = set()
         
         for index, question_data in enumerate(questions_to_ask):
             question_embed = discord.Embed(
@@ -205,44 +186,53 @@ class Quiz(commands.Cog):
                 description=f"**{question_data['question']}**",
                 color=0x1E1E1E
             )
-            question_embed.set_footer(text="O primeiro a acertar ganha! Você tem 30 segundos.")
-
-            view = QuizQuestionView(question_data, quiz_doc)
             
+            if question_winner_limit == 1:
+                question_embed.set_footer(text="O primeiro a acertar ganha! Você tem 30 segundos.")
+            elif question_winner_limit > 1:
+                question_embed.set_footer(text=f"Os primeiros {question_winner_limit} a acertarem ganham! Você tem 30 segundos.")
+            else:
+                question_embed.set_footer(text="Acerte e ganhe! Você tem 30 segundos.")
+
+            view = QuizQuestionView(question_data, question_winner_limit)
             quiz_message = await event_channel.send(embed=question_embed, view=view)
             view.message = quiz_message
 
             await view.wait()
             
-            if view.winner:
-                winner = view.winner
-                scores[winner.id] += 1
-
-                is_new_winner = winner.id not in unique_winners_with_prize
-                # Check if the prize limit has been reached for new winners
-                can_win_prize = (winner_limit == 0) or (len(unique_winners_with_prize) < winner_limit) or (not is_new_winner)
-
-                if can_win_prize:
-                    prize = quiz_doc.get('rewardPerQuestion', 0)
-                    if prize > 0:
-                        # Only add to the set if they are a new winner receiving a prize
-                        if is_new_winner:
-                            unique_winners_with_prize.add(winner.id)
-
-                        await self.award_prize(winner, prize, quiz_doc.get('name', 'Quiz'))
-                        await event_channel.send(f"🏆 {winner.mention} acertou e ganhou **R$ {prize:.2f}**!")
+            # --- After question is done (timeout or limit reached) ---
+            correct_answer_index = question_data.get('answer', -1)
+            for item in view.children:
+                if isinstance(item, ui.Button):
+                    item.disabled = True
+                    if item.custom_id == f"quiz_option_{correct_answer_index}":
+                        item.style = discord.ButtonStyle.success
                     else:
-                        await event_channel.send(f"🎉 {winner.mention} acertou!")
-                else:
-                    await event_channel.send(f"🎉 {winner.mention} acertou! O limite de vencedores com prêmio já foi atingido, mas seu acerto foi computado para o ranking final.")
-            else: 
-                timeout_embed = quiz_message.embeds[0]
-                timeout_embed.color = 0xFF0000
-                correct_answer_text = question_data['options'][question_data['answer']]
-                timeout_embed.description = f"Tempo esgotado! A resposta correta era: **{correct_answer_text}**"
-                for item in view.children:
-                    if isinstance(item, ui.Button): item.disabled = True
-                await quiz_message.edit(embed=timeout_embed, view=view)
+                        item.style = discord.ButtonStyle.danger
+            
+            new_embed = quiz_message.embeds[0]
+            
+            if view.winners:
+                prize = quiz_doc.get('rewardPerQuestion', 0)
+                if prize > 0:
+                    for winner in view.winners:
+                        await self.award_prize(winner, prize, quiz_doc.get('name', 'Quiz'))
+                
+                for winner in view.winners:
+                    scores[winner.id] += 1
+                
+                new_embed.color = 0x00FF00
+                winner_mentions = ", ".join([w.mention for w in view.winners])
+                new_embed.description = f"**{winner_mentions} acertaram a resposta!**"
+                await quiz_message.edit(embed=new_embed, view=view)
+                
+                if prize > 0:
+                    await event_channel.send(f"🏆 Os vencedores ganharam **R$ {prize:.2f}** cada!")
+            else:
+                new_embed.color = 0xFF0000
+                correct_answer_text = question_data['options'][correct_answer_index]
+                new_embed.description = f"Tempo esgotado! A resposta correta era: **{correct_answer_text}**"
+                await quiz_message.edit(embed=new_embed, view=view)
                 await event_channel.send("Ninguém acertou a tempo. Próxima pergunta em breve...")
             
             if index < len(questions_to_ask) - 1:
@@ -271,9 +261,7 @@ class Quiz(commands.Cog):
             )
             await event_channel.send(embed=leaderboard_embed)
 
-        # Remove from active set once finished
         self.active_quizzes.remove(quiz_id)
-
 
     @app_commands.command(name="iniciar_quiz", description="[Admin] Inicia uma rodada de um quiz personalizado.")
     @app_commands.autocomplete(quiz_id=quiz_autocomplete)
@@ -282,7 +270,6 @@ class Quiz(commands.Cog):
     async def iniciar_quiz(self, interaction: discord.Interaction, quiz_id: str):
         await interaction.response.defer(ephemeral=True)
         await self.start_quiz_flow(quiz_id, interaction)
-
 
     @iniciar_quiz.error
     async def on_quiz_error(self, interaction: discord.Interaction, error: app_commands.AppCommandError):
