@@ -14,6 +14,7 @@ import {
     setPlayerGameStatus,
     generatePlayerGameByAI,
 } from '@/actions/player-game-actions';
+import { updatePlayerGameSchedule } from '@/actions/bot-config-actions';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import {
@@ -52,7 +53,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Loader2, PlusCircle, Trash2, Edit, HelpCircle, Sparkles, Gamepad2, Play, Pause } from 'lucide-react';
+import { Loader2, PlusCircle, Trash2, Edit, HelpCircle, Sparkles, Gamepad2, Play, Pause, Clock } from 'lucide-react';
 import type { PlayerGuessingGame } from '@/types';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Separator } from '@/components/ui/separator';
@@ -68,8 +69,12 @@ const gameFormSchema = z.object({
   prizeAmount: z.coerce.number().min(1, "O prêmio deve ser de pelo menos 1."),
   hints: z.array(z.string().min(1, "A dica não pode estar vazia.")).min(5, "São necessárias pelo menos 5 dicas."),
   nationality: z.string().length(2, "Deve ser um código de país de 2 letras.").min(1, "A nacionalidade é obrigatória."),
-  schedule: z.array(z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, "Formato inválido. Use HH:mm")).optional(),
 });
+
+const scheduleFormSchema = z.object({
+    schedule: z.array(z.object({ value: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, "Formato inválido. Use HH:mm") })),
+});
+
 
 type FormValues = z.infer<typeof gameFormSchema>;
 
@@ -77,21 +82,30 @@ interface AdminPlayerGameClientProps {
     initialGames: PlayerGuessingGame[];
     discordChannels: DiscordChannel[];
     error: string | null;
+    initialSchedule: string[];
 }
 
-export function AdminPlayerGameClient({ initialGames, discordChannels, error }: AdminPlayerGameClientProps) {
+export function AdminPlayerGameClient({ initialGames, discordChannels, error, initialSchedule }: AdminPlayerGameClientProps) {
     const { toast } = useToast();
     const [games, setGames] = useState(initialGames);
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState<string | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [isScheduleSubmitting, setIsScheduleSubmitting] = useState(false);
     const [isGenerating, setIsGenerating] = useState(false);
     const [aiTheme, setAiTheme] = useState('');
     const [currentGame, setCurrentGame] = useState<PlayerGuessingGame | null>(null);
 
     const form = useForm<FormValues>({
         resolver: zodResolver(gameFormSchema),
-        defaultValues: { playerName: '', prizeAmount: 500, hints: Array(5).fill(''), nationality: '', schedule: [] }
+        defaultValues: { playerName: '', prizeAmount: 500, hints: Array(5).fill(''), nationality: '' }
+    });
+    
+    const scheduleForm = useForm<z.infer<typeof scheduleFormSchema>>({
+        resolver: zodResolver(scheduleFormSchema),
+        defaultValues: {
+            schedule: initialSchedule.map(s => ({ value: s })) || [],
+        },
     });
 
      const { fields, append, remove } = useFieldArray({
@@ -100,7 +114,7 @@ export function AdminPlayerGameClient({ initialGames, discordChannels, error }: 
     });
     
     const { fields: scheduleFields, append: appendSchedule, remove: removeSchedule } = useFieldArray({
-        control: form.control,
+        control: scheduleForm.control,
         name: "schedule"
     });
 
@@ -136,8 +150,7 @@ export function AdminPlayerGameClient({ initialGames, discordChannels, error }: 
             prizeAmount: game.prizeAmount,
             hints: game.hints,
             nationality: game.nationality,
-            schedule: game.schedule || [],
-        } : { playerName: '', prizeAmount: 500, hints: Array(5).fill(''), nationality: '', schedule: [] });
+        } : { playerName: '', prizeAmount: 500, hints: Array(5).fill(''), nationality: '' });
         setIsDialogOpen(true);
     };
 
@@ -152,6 +165,17 @@ export function AdminPlayerGameClient({ initialGames, discordChannels, error }: 
             toast({ title: "Erro", description: result.message, variant: "destructive" });
         }
         setIsSubmitting(false);
+    };
+
+    const onScheduleSubmit = async (values: z.infer<typeof scheduleFormSchema>) => {
+        setIsScheduleSubmitting(true);
+        const result = await updatePlayerGameSchedule(values.schedule.map(s => s.value));
+        if (result.success) {
+            toast({ title: "Sucesso!", description: result.message });
+        } else {
+            toast({ title: "Erro", description: result.message, variant: "destructive" });
+        }
+        setIsScheduleSubmitting(false);
     };
 
     const handleDelete = async () => {
@@ -198,13 +222,53 @@ export function AdminPlayerGameClient({ initialGames, discordChannels, error }: 
     }
 
     return (
-    <>
+    <div className="space-y-6">
+        <Card>
+             <CardHeader>
+                <CardTitle className="flex items-center gap-2"><Clock /> Agendamento Global</CardTitle>
+                <CardDescription>
+                    Defina horários para o jogo ser iniciado automaticamente. O bot irá sortear um dos jogos em "Rascunho" para iniciar.
+                </CardDescription>
+            </CardHeader>
+             <CardContent>
+                <Form {...scheduleForm}>
+                    <form onSubmit={scheduleForm.handleSubmit(onScheduleSubmit)} className="space-y-4">
+                        <div className="space-y-2">
+                            {scheduleFields.map((field, index) => (
+                                <FormField
+                                    key={field.id}
+                                    control={scheduleForm.control}
+                                    name={`schedule.${index}.value`}
+                                    render={({ field }) => (
+                                        <FormItem className="flex items-center gap-2">
+                                            <FormControl><Input type="time" {...field} className="w-48" /></FormControl>
+                                            <Button type="button" variant="ghost" size="icon" onClick={() => removeSchedule(index)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                            ))}
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                            <Button type="button" variant="outline" size="sm" onClick={() => appendSchedule({ value: '' })}>
+                                <PlusCircle className="mr-2 h-4 w-4" /> Adicionar Horário
+                            </Button>
+                            <Button type="submit" size="sm" disabled={isScheduleSubmitting}>
+                                {isScheduleSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                Salvar Agenda
+                            </Button>
+                        </div>
+                    </form>
+                </Form>
+            </CardContent>
+        </Card>
+
         <Card>
             <CardHeader>
                 <div className="flex justify-between items-center">
                     <div>
-                        <CardTitle>Jogo: Quem é o Jogador?</CardTitle>
-                        <CardDescription>Crie e gerencie os jogos de adivinhação.</CardDescription>
+                        <CardTitle>Banco de Jogos</CardTitle>
+                        <CardDescription>Crie e gerencie os jogos de adivinhação. Apenas jogos em "Rascunho" serão sorteados para o agendamento.</CardDescription>
                     </div>
                     <Button onClick={() => handleOpenDialog(null)}><PlusCircle className="mr-2 h-4 w-4" /> Novo Jogo</Button>
                 </div>
@@ -346,34 +410,6 @@ export function AdminPlayerGameClient({ initialGames, discordChannels, error }: 
                                     <PlusCircle className="mr-2 h-4 w-4" /> Adicionar Dica
                                 </Button>
                             </div>
-                            
-                            <Separator />
-
-                            <div>
-                                <h3 className="text-lg font-semibold">Agendamento (Opcional)</h3>
-                                <FormDescription className="mb-4">
-                                    Defina horários para este jogo ser iniciado automaticamente.
-                                </FormDescription>
-                                <div className="space-y-2">
-                                    {scheduleFields.map((field, index) => (
-                                        <FormField
-                                            key={field.id}
-                                            control={form.control}
-                                            name={`schedule.${index}`}
-                                            render={({ field }) => (
-                                                <FormItem className="flex items-center gap-2">
-                                                    <FormControl><Input type="time" {...field} className="w-48" /></FormControl>
-                                                    <Button type="button" variant="ghost" size="icon" onClick={() => removeSchedule(index)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
-                                                    <FormMessage />
-                                                </FormItem>
-                                            )}
-                                        />
-                                    ))}
-                                </div>
-                                <Button type="button" variant="outline" size="sm" className="mt-2" onClick={() => appendSchedule({value: ''} as any)}>
-                                    <PlusCircle className="mr-2 h-4 w-4" /> Adicionar Horário
-                                </Button>
-                            </div>
                         </div>
                         <DialogFooter className="pt-4 border-t">
                             <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>Cancelar</Button>
@@ -398,6 +434,6 @@ export function AdminPlayerGameClient({ initialGames, discordChannels, error }: 
                 </AlertDialogFooter>
             </AlertDialogContent>
       </AlertDialog>
-    </>
+    </div>
     );
 }

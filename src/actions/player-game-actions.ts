@@ -26,7 +26,7 @@ export async function getPlayerGames(): Promise<PlayerGuessingGame[]> {
     }
 }
 
-type UpsertData = Omit<PlayerGuessingGame, '_id' | 'createdAt' | 'createdBy' | 'status' | 'lastScheduledTriggers'> & { id?: string };
+type UpsertData = Omit<PlayerGuessingGame, '_id' | 'createdAt' | 'createdBy' | 'status' | 'startedAt' | 'winnerId' | 'winnerName' | 'winnerAvatar'> & { id?: string };
 
 export async function upsertPlayerGame(data: UpsertData): Promise<{ success: boolean; message: string }> {
     const session = await getServerSession(authOptions);

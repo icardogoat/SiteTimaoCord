@@ -35,6 +35,7 @@ export async function getBotConfig(): Promise<Partial<BotConfig>> {
                 vipRoleIds: [],
                 postCreatorRoleId: '',
                 streamViewerRoleId: '',
+                playerGameSchedule: [],
             };
         }
 
@@ -56,6 +57,8 @@ export async function getBotConfig(): Promise<Partial<BotConfig>> {
             vipRoleIds: config.vipRoleIds || [],
             postCreatorRoleId: config.postCreatorRoleId || '',
             streamViewerRoleId: config.streamViewerRoleId || '',
+            playerGameSchedule: config.playerGameSchedule || [],
+            playerGameLastScheduledTriggers: config.playerGameLastScheduledTriggers || {},
         };
     } catch (error) {
         console.error("Error fetching bot config:", error);
@@ -76,6 +79,7 @@ export async function getBotConfig(): Promise<Partial<BotConfig>> {
             vipRoleIds: [],
             postCreatorRoleId: '',
             streamViewerRoleId: '',
+            playerGameSchedule: [],
         };
     }
 }
@@ -116,6 +120,26 @@ export async function updateBotConfig(data: UpdateConfigData): Promise<{ success
     } catch (error) {
         console.error("Error updating bot config:", error);
         return { success: false, message: 'Falha ao salvar a configuração do bot.' };
+    }
+}
+
+export async function updatePlayerGameSchedule(schedule: string[]): Promise<{ success: boolean; message: string }> {
+    try {
+        const client = await clientPromise;
+        const db = client.db('timaocord_bot');
+        const configCollection = db.collection('config');
+
+        await configCollection.updateOne(
+            { _id: new ObjectId(CONFIG_ID) },
+            { $set: { playerGameSchedule: schedule } },
+            { upsert: true }
+        );
+
+        revalidatePath('/admin/player-game');
+        return { success: true, message: 'Agenda de jogos salva com sucesso!' };
+    } catch (error) {
+        console.error("Error updating player game schedule:", error);
+        return { success: false, message: 'Falha ao salvar a agenda.' };
     }
 }
 
@@ -363,5 +387,3 @@ export async function sendTestDiscordMessage(channelId: string, payload: { conte
         return { success: false, message: 'Ocorreu um erro ao enviar a mensagem de teste.' };
     }
 }
-
-    

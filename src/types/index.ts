@@ -301,6 +301,8 @@ export type BotConfig = {
   postCreatorRoleId?: string;
   streamViewerRoleId?: string;
   eventChannelId?: string;
+  playerGameSchedule?: string[];
+  playerGameLastScheduledTriggers?: Record<string, string>;
 };
 
 export type ApiKeyEntry = {
@@ -527,8 +529,6 @@ export type PlayerGuessingGame = {
     channelId?: string;
     status: 'draft' | 'active' | 'finished';
     prizeAmount: number;
-    schedule?: string[];
-    lastScheduledTriggers?: Record<string, string>;
     createdBy: string; // admin userId
     createdAt: Date | string;
     startedAt?: Date | string;

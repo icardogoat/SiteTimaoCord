@@ -7,8 +7,11 @@ from dotenv import load_dotenv
 import datetime
 from zoneinfo import ZoneInfo
 import random
+from bson import ObjectId
 
 load_dotenv()
+
+BOT_CONFIG_ID = ObjectId('669fdb5a907548817b848c48')
 
 class Tasks(commands.Cog):
     def __init__(self, bot):
@@ -17,6 +20,10 @@ class Tasks(commands.Cog):
         self.db = self.client.timaocord
         self.quizzes_collection = self.db.quizzes
         self.player_games_collection = self.db.player_guessing_games
+        
+        self.bot_db = self.client.timaocord_bot
+        self.bot_config_collection = self.bot_db.config
+
         self.check_for_scheduled_quizzes.start()
         self.check_for_scheduled_player_games.start()
 
@@ -28,14 +35,12 @@ class Tasks(commands.Cog):
     @tasks.loop(minutes=1.0)
     async def check_for_scheduled_quizzes(self):
         try:
-            # Get the current time in São Paulo timezone for accuracy
             sao_paulo_tz = ZoneInfo('America/Sao_Paulo')
             now_sp = datetime.datetime.now(sao_paulo_tz)
             
             current_time_str = now_sp.strftime('%H:%M')
             current_day_str = now_sp.strftime('%Y-%m-%d')
 
-            # Find quizzes scheduled for the current time
             quizzes_to_run = self.quizzes_collection.find({
                 "schedule": current_time_str
             })
@@ -46,7 +51,6 @@ class Tasks(commands.Cog):
                 return
 
             for quiz in quizzes_to_run:
-                # Check if this schedule has already been triggered today to prevent duplicates
                 last_triggers = quiz.get('lastScheduledTriggers', {})
                 last_trigger_day = last_triggers.get(current_time_str)
 
@@ -56,10 +60,8 @@ class Tasks(commands.Cog):
                 print(f"Triggering scheduled quiz: {quiz['name']} ({quiz['_id']})")
                 
                 try:
-                    # Start the quiz flow directly
                     await quiz_cog.start_quiz_flow(str(quiz['_id']))
                     
-                    # Mark as triggered for today to prevent duplicates
                     self.quizzes_collection.update_one(
                         {"_id": quiz['_id']},
                         {"$set": {f"lastScheduledTriggers.{current_time_str}": current_day_str}}
@@ -79,47 +81,48 @@ class Tasks(commands.Cog):
     async def check_for_scheduled_player_games(self):
         try:
             if self.player_games_collection.count_documents({"status": "active"}) > 0:
-                return # A game is already active, do nothing.
+                return 
+
+            bot_config = self.bot_config_collection.find_one({"_id": BOT_CONFIG_ID})
+            if not bot_config:
+                return
+
+            schedule = bot_config.get("playerGameSchedule", [])
+            if not schedule:
+                return
 
             sao_paulo_tz = ZoneInfo('America/Sao_Paulo')
             now_sp = datetime.datetime.now(sao_paulo_tz)
             current_time_str = now_sp.strftime('%H:%M')
             current_day_str = now_sp.strftime('%Y-%m-%d')
-
-            # Find all draft games scheduled for this time
-            candidate_games = list(self.player_games_collection.find({
-                "status": "draft",
-                "schedule": current_time_str
-            }))
-
-            if not candidate_games:
-                return
-
-            # Filter out games that have already run for this schedule today
-            games_to_run = []
-            for game in candidate_games:
-                last_triggers = game.get('lastScheduledTriggers', {})
-                if last_triggers.get(current_time_str) != current_day_str:
-                    games_to_run.append(game)
-
-            if not games_to_run:
-                return
-
-            # Pick one random game from the valid candidates
-            game_to_start = random.choice(games_to_run)
             
-            print(f"Triggering scheduled player game: {game_to_start['playerName']} ({game_to_start['_id']})")
-            
-            # Activate the chosen game and update its trigger time
-            self.player_games_collection.update_one(
-                {"_id": game_to_start['_id']},
-                {
-                    "$set": {
-                        "status": "active",
-                        f"lastScheduledTriggers.{current_time_str}": current_day_str
-                    }
-                }
-            )
+            last_triggers = bot_config.get('playerGameLastScheduledTriggers', {})
+
+            for scheduled_time in schedule:
+                if scheduled_time == current_time_str:
+                    if last_triggers.get(scheduled_time) != current_day_str:
+                        # Time to trigger!
+                        candidate_games = list(self.player_games_collection.find({"status": "draft"}))
+                        if not candidate_games:
+                            print(f"Scheduled player game at {scheduled_time} found no draft games to run.")
+                            continue
+                        
+                        game_to_start = random.choice(candidate_games)
+                        
+                        print(f"Triggering scheduled player game: {game_to_start['playerName']} ({game_to_start['_id']})")
+                        
+                        # Activate game
+                        self.player_games_collection.update_one(
+                            {"_id": game_to_start['_id']},
+                            {"$set": {"status": "active"}}
+                        )
+                        
+                        # Update global schedule trigger
+                        self.bot_config_collection.update_one(
+                            {"_id": bot_config['_id']},
+                            {"$set": {f"playerGameLastScheduledTriggers.{scheduled_time}": current_day_str}}
+                        )
+                        break
 
         except Exception as e:
             print(f"An error occurred in the player game scheduler task: {e}")

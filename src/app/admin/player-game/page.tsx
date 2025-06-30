@@ -25,5 +25,10 @@ export default async function AdminPlayerGamePage() {
         error = "O ID do Servidor Discord não está configurado. Configure-o na aba 'Bot' para selecionar um canal para o jogo.";
     }
     
-    return <AdminPlayerGameClient initialGames={games} discordChannels={discordChannels} error={error} />;
+    return <AdminPlayerGameClient 
+        initialGames={games} 
+        discordChannels={discordChannels} 
+        error={error} 
+        initialSchedule={config.playerGameSchedule || []}
+    />;
 }
