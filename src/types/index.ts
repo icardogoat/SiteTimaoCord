@@ -476,3 +476,14 @@ export type Quiz = {
     createdBy: string;
     createdAt: Date | string;
 };
+
+export type Championship = {
+  _id: string | ObjectId;
+  name: string;
+  leagueId: number;
+  season: number;
+  country?: string;
+  logo?: string;
+  isActive: boolean;
+  createdAt: Date | string;
+};

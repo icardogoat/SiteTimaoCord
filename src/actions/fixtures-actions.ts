@@ -43,9 +43,9 @@ interface ApiOdd {
 }
 
 // Function to fetch fixtures for a given date from the external API
-async function fetchFixturesByDate(date: string) {
+async function fetchFixturesByLeagueAndDate(leagueId: number, season: number, date: string) {
     const apiKey = await getAvailableUpdateApiKey();
-    const url = `https://api-football-v1.p.rapidapi.com/v3/fixtures?date=${date}`;
+    const url = `https://api-football-v1.p.rapidapi.com/v3/fixtures?league=${leagueId}&season=${season}&date=${date}`;
     const options = {
         method: 'GET',
         headers: {
@@ -56,7 +56,10 @@ async function fetchFixturesByDate(date: string) {
     };
     const response = await fetch(url, options);
     if (!response.ok) {
-        throw new Error(`API error fetching fixtures for ${date}: ${response.statusText}`);
+        const errorData = await response.json().catch(() => ({}));
+        console.error(`API error fetching fixtures for league ${leagueId} on ${date}: ${response.statusText}`, errorData);
+        // Don't throw, just return empty array to not halt the entire process for one league.
+        return []; 
     }
     const data = await response.json();
     return data.response as ApiFixture[];
@@ -100,6 +103,15 @@ export async function updateFixturesFromApi() {
     const client = await clientPromise;
     const db = client.db('timaocord');
     const matchesCollection = db.collection('matches');
+    const championshipsCollection = db.collection('championships');
+
+    const activeChampionships = await championshipsCollection.find({ isActive: true }).toArray();
+
+    if (activeChampionships.length === 0) {
+        const msg = 'No active championships configured. Skipping fixture update.';
+        console.log(msg);
+        return { success: true, message: msg };
+    }
     
     const today = new Date().toISOString().split('T')[0];
     const tomorrowDate = new Date();
@@ -107,13 +119,33 @@ export async function updateFixturesFromApi() {
     const tomorrow = tomorrowDate.toISOString().split('T')[0];
 
     try {
-        const [todayFixtures, tomorrowFixtures] = await Promise.all([
-            fetchFixturesByDate(today),
-            fetchFixturesByDate(tomorrow)
-        ]);
+        let allFixtures: ApiFixture[] = [];
 
-        const allFixtures = [...todayFixtures, ...tomorrowFixtures];
-        console.log(`Found ${allFixtures.length} total fixtures for today and tomorrow.`);
+        for (const champ of activeChampionships) {
+            try {
+                const [todayFixtures, tomorrowFixtures] = await Promise.all([
+                    fetchFixturesByLeagueAndDate(champ.leagueId, champ.season, today),
+                    fetchFixturesByLeagueAndDate(champ.leagueId, champ.season, tomorrow)
+                ]);
+                allFixtures.push(...todayFixtures, ...tomorrowFixtures);
+
+                // Auto-update logo and country if missing
+                const firstFixture = todayFixtures[0] || tomorrowFixtures[0];
+                if (firstFixture && (!champ.logo || !champ.country)) {
+                    await championshipsCollection.updateOne(
+                        { _id: champ._id },
+                        { $set: { 
+                            logo: firstFixture.league.logo,
+                            country: firstFixture.league.country,
+                        }}
+                    );
+                }
+            } catch (e) {
+                console.error(`Failed to process fixtures for league ${champ.name} (${champ.leagueId}):`, e);
+            }
+        }
+
+        console.log(`Found ${allFixtures.length} total fixtures for active championships.`);
 
         let updatedCount = 0;
         let newCount = 0;

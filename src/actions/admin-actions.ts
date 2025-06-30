@@ -2399,7 +2399,7 @@ export async function getAdminChampionships(): Promise<Championship[]> {
     }
 }
 
-export async function upsertChampionship(data: { id?: string; name: string; leagueId: number; season: number; country?: string; logo?: string; isActive?: boolean }): Promise<{ success: boolean; message: string }> {
+export async function upsertChampionship(data: { id?: string; name: string; leagueId: number; season: number; isActive: boolean }): Promise<{ success: boolean; message: string }> {
     const { id, ...champData } = data;
 
     try {
@@ -2407,10 +2407,17 @@ export async function upsertChampionship(data: { id?: string; name: string; leag
         const db = client.db('timaocord');
         const collection = db.collection<Championship>('championships');
 
+        const dataToSave: Partial<Championship> = {
+            name: champData.name,
+            leagueId: champData.leagueId,
+            season: champData.season,
+            isActive: champData.isActive,
+        };
+
         if (id) {
-            await collection.updateOne({ _id: new ObjectId(id) }, { $set: champData });
+            await collection.updateOne({ _id: new ObjectId(id) }, { $set: dataToSave });
         } else {
-            await collection.insertOne({ ...champData, createdAt: new Date() } as Championship);
+            await collection.insertOne({ ...dataToSave, createdAt: new Date() } as Championship);
         }
 
         revalidatePath('/admin/championships');
