@@ -86,6 +86,7 @@ export function AdminQuizClient({ initialQuizzes, discordChannels, discordRoles,
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isGenerating, setIsGenerating] = useState(false);
     const [aiTheme, setAiTheme] = useState('');
+    const [aiQuestionCount, setAiQuestionCount] = useState(5);
     const [currentQuiz, setCurrentQuiz] = useState<Quiz | null>(null);
 
     const form = useForm<z.infer<typeof quizSchema>>({
@@ -110,7 +111,7 @@ export function AdminQuizClient({ initialQuizzes, discordChannels, discordRoles,
         }
         setIsGenerating(true);
         try {
-            const generatedQuestions = await generateQuizQuestions({ theme: aiTheme });
+            const generatedQuestions = await generateQuizQuestions({ theme: aiTheme, questionCount: aiQuestionCount });
             if (generatedQuestions && generatedQuestions.length > 0) {
                 // Ensure each question has exactly 4 options for the form
                 const formattedQuestions = generatedQuestions.map(q => ({
@@ -249,9 +250,9 @@ export function AdminQuizClient({ initialQuizzes, discordChannels, discordRoles,
                 <DialogHeader>
                     <DialogTitle>{currentQuiz ? 'Editar Quiz' : 'Novo Quiz'}</DialogTitle>
                 </DialogHeader>
-                <div className="flex-grow overflow-y-auto pr-6 -mr-6">
-                    <Form {...form}>
-                        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                 <Form {...form}>
+                    <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col flex-grow overflow-hidden">
+                        <div className="flex-grow overflow-y-auto pr-6 -mr-6 space-y-6">
                             <FormField control={form.control} name="name" render={({ field }) => (
                                 <FormItem><FormLabel>Nome do Quiz</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
                             )}/>
@@ -310,32 +311,9 @@ export function AdminQuizClient({ initialQuizzes, discordChannels, discordRoles,
                                 )}/>
                             </div>
                             
-                             <Separator />
-
-                            <Card className="bg-muted/30">
-                                <CardHeader>
-                                    <CardTitle className="flex items-center gap-2"><Sparkles className="text-yellow-400"/> Gerador de Perguntas com IA</CardTitle>
-                                    <CardDescription>Não sabe o que perguntar? Deixe a IA criar 5 perguntas para você com base em um tema.</CardDescription>
-                                </CardHeader>
-                                <CardContent>
-                                    <div className="flex flex-col sm:flex-row gap-2">
-                                        <Input
-                                            placeholder="Ex: História do Corinthians"
-                                            value={aiTheme}
-                                            onChange={(e) => setAiTheme(e.target.value)}
-                                            disabled={isGenerating}
-                                        />
-                                        <Button type="button" onClick={handleGenerateQuestions} disabled={isGenerating || !aiTheme}>
-                                            {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
-                                            Gerar Perguntas
-                                        </Button>
-                                    </div>
-                                </CardContent>
-                            </Card>
-                            
                             <Separator />
 
-                             <div>
+                            <div>
                                 <h3 className="text-lg font-semibold">Agendamento (Opcional)</h3>
                                 <FormDescription className="mb-4">
                                     Defina horários para o quiz ser iniciado automaticamente no canal selecionado. O horário segue a timezone de São Paulo (UTC-3).
@@ -356,10 +334,47 @@ export function AdminQuizClient({ initialQuizzes, discordChannels, discordRoles,
                                         />
                                     ))}
                                 </div>
-                                <Button type="button" variant="outline" size="sm" className="mt-2" onClick={() => appendSchedule('')}>
+                                <Button type="button" variant="outline" size="sm" className="mt-2" onClick={() => appendSchedule({value: ''} as any)}>
                                     <PlusCircle className="mr-2 h-4 w-4" /> Adicionar Horário
                                 </Button>
                             </div>
+                            
+                             <Separator />
+
+                            <Card className="bg-muted/30">
+                                <CardHeader>
+                                    <CardTitle className="flex items-center gap-2"><Sparkles className="text-yellow-400"/> Gerador de Perguntas com IA</CardTitle>
+                                    <CardDescription>Não sabe o que perguntar? Deixe a IA criar as perguntas para você com base em um tema.</CardDescription>
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="flex flex-col sm:flex-row gap-2">
+                                        <Input
+                                            placeholder="Ex: História do Corinthians"
+                                            value={aiTheme}
+                                            onChange={(e) => setAiTheme(e.target.value)}
+                                            disabled={isGenerating}
+                                            className="flex-grow"
+                                        />
+                                        <div className="flex items-center gap-2">
+                                            <Input
+                                                type="number"
+                                                min="1"
+                                                max="10"
+                                                value={aiQuestionCount}
+                                                onChange={(e) => setAiQuestionCount(Math.max(1, Math.min(10, parseInt(e.target.value, 10) || 1)))}
+                                                disabled={isGenerating}
+                                                className="w-20"
+                                                aria-label="Número de perguntas"
+                                            />
+                                            <Button type="button" onClick={handleGenerateQuestions} disabled={isGenerating || !aiTheme}>
+                                                {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
+                                                Gerar
+                                            </Button>
+                                        </div>
+                                    </div>
+                                    <FormDescription className="mt-2">Você pode gerar de 1 a 10 perguntas.</FormDescription>
+                                </CardContent>
+                            </Card>
                             
                             <Separator />
 
@@ -404,19 +419,18 @@ export function AdminQuizClient({ initialQuizzes, discordChannels, discordRoles,
                                     </Card>
                                 ))}
                             </div>
-                             <div className="sticky bottom-0 bg-background pt-4 -mb-6">
+                            <div className="sticky bottom-0 bg-background pt-4">
                                 <Button type="button" variant="outline" size="sm" onClick={() => append({ question: '', options: ['', '', '', ''], answer: 0 })}>
                                     <PlusCircle className="mr-2 h-4 w-4" /> Adicionar Pergunta
                                 </Button>
                             </div>
-
-                             <DialogFooter className="sticky bottom-0 bg-background py-4 -mx-6 px-6 border-t mt-auto">
-                                <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>Cancelar</Button>
-                                <Button type="submit" disabled={isSubmitting}>{isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Salvar Quiz</Button>
-                            </DialogFooter>
-                        </form>
-                    </Form>
-                </div>
+                        </div>
+                        <DialogFooter className="sticky bottom-0 bg-background py-4 -mx-6 px-6 border-t mt-auto">
+                            <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>Cancelar</Button>
+                            <Button type="submit" disabled={isSubmitting}>{isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Salvar Quiz</Button>
+                        </DialogFooter>
+                    </form>
+                </Form>
             </DialogContent>
         </Dialog>
 

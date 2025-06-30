@@ -11,10 +11,9 @@
 import {ai} from '@/ai/genkit';
 import {z} from 'zod';
 
-const QUESTION_COUNT = 5;
-
 const QuizGenerationInputSchema = z.object({
   theme: z.string().describe('The central theme for the quiz questions, e.g., "História do Corinthians".'),
+  questionCount: z.number().int().min(1).max(10).describe('The number of questions to generate.'),
 });
 export type QuizGenerationInput = z.infer<typeof QuizGenerationInputSchema>;
 
@@ -36,7 +35,7 @@ const prompt = ai.definePrompt({
   input: {schema: QuizGenerationInputSchema},
   output: {schema: QuizGenerationOutputSchema},
   prompt: `Você é um especialista em criar quizzes divertidos e desafiadores.
-Sua tarefa é gerar ${QUESTION_COUNT} perguntas de múltipla escolha sobre o tema fornecido.
+Sua tarefa é gerar {{{questionCount}}} perguntas de múltipla escolha sobre o tema fornecido.
 Cada pergunta deve ter exatamente 4 opções de resposta, e você deve indicar qual é a correta.
 O tema é: {{{theme}}}
 
