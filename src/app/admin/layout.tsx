@@ -4,25 +4,35 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
-import { useMemo } from "react";
+import { useMemo, useState, useEffect } from "react";
 import {
-    Bot, Home, Megaphone, Menu, Receipt, Server, Settings, ShoppingBag, Star, Ticket, Trophy, Users, FilePen, Tv, PartyPopper, Layers, Sparkles, Gift, QrCode, HelpCircle, BarChart,
+    Bot, Home, Megaphone, Receipt, Server, Settings, ShoppingBag, Star, Ticket, Trophy, Users, FilePen, Tv, PartyPopper, Layers, Gift, QrCode, HelpCircle, BarChart,
 } from "lucide-react";
 import { useSession, signOut } from "next-auth/react";
-import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { FielBetLogo } from "@/components/icons";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import { AvatarFallbackText } from "@/components/avatar-fallback-text";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { SidebarProvider } from "@/components/ui/sidebar";
+import {
+  SidebarProvider,
+  Sidebar,
+  SidebarHeader,
+  SidebarContent,
+  SidebarMenu,
+  SidebarMenuItem,
+  SidebarMenuButton,
+  SidebarMenuSub,
+  SidebarMenuSubItem,
+  SidebarMenuSubButton,
+  SidebarTrigger,
+  SidebarInset,
+} from "@/components/ui/sidebar";
 
 interface AdminLayoutProps {
     children: ReactNode;
@@ -31,12 +41,14 @@ interface AdminLayoutProps {
 const allNavGroups = [
   {
     title: 'Principal',
+    icon: Home,
     links: [
       { href: "/admin/dashboard", label: "Dashboard", icon: Home, adminOnly: true },
     ]
   },
   {
     title: 'Gerenciamento',
+    icon: Trophy,
     links: [
       { href: "/admin/matches", label: "Partidas", icon: Trophy, adminOnly: true },
       { href: "/admin/championships", label: "Campeonatos", icon: BarChart, adminOnly: true },
@@ -47,6 +59,7 @@ const allNavGroups = [
   },
   {
     title: 'Comunidade & Eventos',
+    icon: Star,
     links: [
         { href: "/admin/mvp", label: "MVP Votação", icon: Star, adminOnly: true },
         { href: "/admin/level", label: "Níveis", icon: Layers, adminOnly: true },
@@ -58,6 +71,7 @@ const allNavGroups = [
   },
   {
     title: 'Monetização',
+    icon: ShoppingBag,
     links: [
         { href: "/admin/store", label: "Loja", icon: ShoppingBag, adminOnly: true },
         { href: "/admin/ads", label: "Anúncios", icon: Megaphone, adminOnly: true },
@@ -67,6 +81,7 @@ const allNavGroups = [
   },
   {
     title: 'Configuração',
+    icon: Settings,
     links: [
         { href: "/admin/server", label: "Servidor", icon: Server, adminOnly: true },
         { href: "/admin/bot", label: "Bot", icon: Bot, adminOnly: true },
@@ -74,19 +89,6 @@ const allNavGroups = [
     ]
   }
 ];
-
-const NavLink = ({ href, label, icon: Icon, pathname }: { href: string; label: string; icon: React.ElementType; pathname: string }) => (
-  <Link
-    href={href}
-    className={cn(
-      "flex items-center gap-3 rounded-md px-3 py-2 text-muted-foreground transition-all hover:text-primary",
-      pathname.startsWith(href) && "bg-muted text-primary font-semibold"
-    )}
-  >
-    <Icon className="h-4 w-4" />
-    {label}
-  </Link>
-);
 
 
 export default function AdminLayout({ children }: AdminLayoutProps) {
@@ -108,118 +110,126 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     })).filter(group => group.links.length > 0);
   }, [user]);
   
-  const activeGroupValue = useMemo(() => {
-      const activeGroup = navGroups.find(group => group.links.some(link => pathname.startsWith(link.href)));
-      return activeGroup?.title;
+  const [openMenus, setOpenMenus] = useState<string[]>([]);
+  const [isInitialStateLoaded, setIsInitialStateLoaded] = useState(false);
+
+  // Load state from localStorage on mount
+  useEffect(() => {
+    const activeGroup = navGroups.find(group => group.links.some(link => pathname.startsWith(link.href)));
+    const defaultOpen = activeGroup ? [activeGroup.title] : [];
+    try {
+        const storedState = localStorage.getItem('adminSidebarOpenMenus');
+        setOpenMenus(storedState ? JSON.parse(storedState) : defaultOpen);
+    } catch {
+        setOpenMenus(defaultOpen);
+    }
+    setIsInitialStateLoaded(true);
   }, [navGroups, pathname]);
 
-  const renderNav = () => (
-    <div className="w-full space-y-1">
-      {navGroups.map((group) => {
-        const isActiveGroup = activeGroupValue === group.title;
-        return (
-          <div key={group.title} className="group"
-            onMouseEnter={(e) => e.currentTarget.querySelector('[data-nav-group-content]')?.classList.remove('hidden')}
-            onMouseLeave={(e) => {
-                if(activeGroupValue !== group.title) {
-                    e.currentTarget.querySelector('[data-nav-group-content]')?.classList.add('hidden')
-                }
-            }}
-          >
-            <div className="flex items-center rounded-md px-3 py-2 text-base font-medium text-foreground lg:text-sm cursor-default hover:bg-muted">
-              {group.title}
-            </div>
-            <div 
-                data-nav-group-content
-                className={cn(
-                "hidden pt-1 pl-4 space-y-1",
-                isActiveGroup && "block"
-            )}>
-               <nav className="grid items-start font-medium">
-                  {group.links.map(link => (
-                      <NavLink key={link.href} {...link} pathname={pathname} />
-                  ))}
-               </nav>
-            </div>
-          </div>
-        );
-      })}
-    </div>
-  );
+
+  // Find active group and open it if not already open
+  useEffect(() => {
+      const activeGroup = navGroups.find(group => group.links.some(link => pathname.startsWith(link.href)));
+      if (activeGroup && !openMenus.includes(activeGroup.title)) {
+          // Use a timeout to ensure state is settled before updating
+          setTimeout(() => setOpenMenus(prev => [...prev, activeGroup.title]), 0);
+      }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pathname, navGroups]);
+
+  // Persist state to localStorage
+  useEffect(() => {
+    if (isInitialStateLoaded) {
+        try {
+            localStorage.setItem('adminSidebarOpenMenus', JSON.stringify(openMenus));
+        } catch (error) {
+            console.error("Failed to save admin sidebar state to localStorage:", error);
+        }
+    }
+  }, [openMenus, isInitialStateLoaded]);
+
+  const toggleMenu = (title: string) => {
+    setOpenMenus(prev =>
+      prev.includes(title)
+        ? prev.filter((item) => item !== title)
+        : [...prev, title]
+    );
+  };
 
   const userName = user?.name ?? 'Admin';
   const userImage = user?.image ?? 'https://placehold.co/40x40.png';
 
+  const renderNav = () => (
+    <SidebarMenu>
+        {navGroups.map((group) => {
+            const GroupIcon = group.icon;
+            return (
+                <SidebarMenuItem key={group.title}>
+                    <SidebarMenuButton
+                        onClick={() => toggleMenu(group.title)}
+                        data-state={openMenus.includes(group.title) ? 'open' : 'closed'}
+                    >
+                        <GroupIcon />
+                        <span>{group.title}</span>
+                    </SidebarMenuButton>
+                    {openMenus.includes(group.title) && (
+                        <SidebarMenuSub>
+                            {group.links.map(link => (
+                                <SidebarMenuSubItem key={link.href}>
+                                    <SidebarMenuSubButton
+                                        asChild
+                                        isActive={pathname.startsWith(link.href)}
+                                    >
+                                        <Link href={link.href}>
+                                            <link.icon/>
+                                            <span>{link.label}</span>
+                                        </Link>
+                                    </SidebarMenuSubButton>
+                                </SidebarMenuSubItem>
+                            ))}
+                        </SidebarMenuSub>
+                    )}
+                </SidebarMenuItem>
+            )
+        })}
+    </SidebarMenu>
+  );
+
   return (
     <SidebarProvider>
-        <div className="grid min-h-screen w-full md:grid-cols-[220px_1fr] lg:grid-cols-[280px_1fr]">
-        <div className="hidden border-r bg-muted/40 md:block">
-            <div className="flex h-full max-h-screen flex-col gap-2">
-            <div className="flex h-14 items-center border-b px-4 lg:h-[60px] lg:px-6">
-                <Link href="/admin/dashboard" className="flex items-center gap-2 font-semibold">
-                <FielBetLogo className="h-6 w-6 text-primary" />
-                <span className="text-lg">Painel Admin</span>
-                </Link>
-            </div>
-            <ScrollArea className="flex-1">
-                <div className="px-2 py-4 lg:px-4">
-                {renderNav()}
-                </div>
-            </ScrollArea>
-            </div>
-        </div>
-        <div className="flex flex-col">
-            <header className="flex h-14 items-center gap-4 border-b bg-muted/40 px-4 lg:h-[60px] lg:px-6">
-                <Sheet>
-                    <SheetTrigger asChild>
-                        <Button
-                        variant="outline"
-                        size="icon"
-                        className="shrink-0 md:hidden"
-                        >
-                        <Menu className="h-5 w-5" />
-                        <span className="sr-only">Toggle navigation menu</span>
-                        </Button>
-                    </SheetTrigger>
-                    <SheetContent side="left" className="flex flex-col p-0">
-                        <SheetHeader className="text-left border-b pb-4 pt-6 px-6">
-                            <SheetTitle>
-                                <Link
-                                    href="/admin/dashboard"
-                                    className="flex items-center gap-2 text-lg font-semibold"
-                                >
-                                    <FielBetLogo className="h-6 w-6" />
-                                    <span>Painel Admin</span>
-                                </Link>
-                            </SheetTitle>
-                        </SheetHeader>
-                        <ScrollArea className="flex-1">
-                            <div className="px-2 py-4 lg:px-4">
-                            {renderNav()}
-                            </div>
-                        </ScrollArea>
-                    </SheetContent>
-                </Sheet>
-            <div className="w-full flex-1" />
-            <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                    <Avatar className={cn("h-9 w-9 cursor-pointer", isVip && "ring-2 ring-offset-2 ring-vip ring-offset-muted")}>
-                        <AvatarImage src={userImage} alt="Admin Avatar" data-ai-hint="user avatar" />
-                        <AvatarFallback><AvatarFallbackText name={userName} /></AvatarFallback>
-                    </Avatar>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                {(user?.admin || user?.canPost) && <DropdownMenuItem asChild><Link href="/admin/dashboard">Painel</Link></DropdownMenuItem>}
-                <DropdownMenuItem asChild><Link href="/bet">Voltar ao App</Link></DropdownMenuItem>
-                <DropdownMenuItem onClick={() => signOut({ callbackUrl: '/' })}>Deslogar</DropdownMenuItem>
-                </DropdownMenuContent>
-            </DropdownMenu>
-            </header>
-            <main className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6 bg-muted/20">
-            {children}
-            </main>
-        </div>
-        </div>
+      <Sidebar>
+        <SidebarHeader>
+          <Link href="/admin/dashboard" className="flex items-center gap-2">
+            <FielBetLogo className="size-7 text-primary" />
+            <h2 className="text-lg font-semibold font-headline text-primary">Painel Admin</h2>
+          </Link>
+        </SidebarHeader>
+        <SidebarContent>
+          {renderNav()}
+        </SidebarContent>
+      </Sidebar>
+      <SidebarInset>
+        <header className="flex h-14 items-center gap-4 border-b bg-muted/40 px-4 lg:h-[60px] lg:px-6">
+          <SidebarTrigger className="md:hidden" />
+          <div className="w-full flex-1" />
+          <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                  <Avatar className={cn("h-9 w-9 cursor-pointer", isVip && "ring-2 ring-offset-2 ring-vip ring-offset-muted")}>
+                      <AvatarImage src={userImage} alt="Admin Avatar" data-ai-hint="user avatar" />
+                      <AvatarFallback><AvatarFallbackText name={userName} /></AvatarFallback>
+                  </Avatar>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+              {(user?.admin || user?.canPost) && <DropdownMenuItem asChild><Link href="/admin/dashboard">Painel</Link></DropdownMenuItem>}
+              <DropdownMenuItem asChild><Link href="/bet">Voltar ao App</Link></DropdownMenuItem>
+              <DropdownMenuItem onClick={() => signOut({ callbackUrl: '/' })}>Deslogar</DropdownMenuItem>
+              </DropdownMenuContent>
+          </DropdownMenu>
+        </header>
+        <main className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6 bg-muted/20">
+          {children}
+        </main>
+      </SidebarInset>
     </SidebarProvider>
   )
 }
