@@ -1,1 +1,1 @@
-// This file has been replaced by tailwind.config.js
+// This file is obsolete. Configuration is now in tailwind.config.js.

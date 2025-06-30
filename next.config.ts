@@ -1,1 +1,1 @@
-// This file has been replaced by next.config.js
+// This file is obsolete. Configuration is now in next.config.js.
