@@ -34,6 +34,11 @@ interface ApiFixture {
     home: number | null;
     away: number | null;
   };
+  bookmakers?: {
+    id: number;
+    name: string;
+    bets: ApiOdd[];
+  }[];
 }
 
 interface ApiOdd {
@@ -42,10 +47,11 @@ interface ApiOdd {
     values: { value: string; odd: string }[];
 }
 
-// Function to fetch fixtures for a given date from the external API
-async function fetchFixturesByLeagueAndDate(leagueId: number, season: number, date: string) {
+// Function to fetch fixtures and odds for a given date from the external API
+async function fetchFixturesAndOdds(leagueId: number, season: number, date: string) {
     const apiKey = await getAvailableUpdateApiKey();
-    const url = `https://api-football-v1.p.rapidapi.com/v3/fixtures?league=${leagueId}&season=${season}&date=${date}&timezone=America/Sao_Paulo`;
+    // By adding the bookmaker to the fixtures endpoint, we get odds in the same call.
+    const url = `https://api-football-v1.p.rapidapi.com/v3/fixtures?league=${leagueId}&season=${season}&date=${date}&timezone=America/Sao_Paulo&bookmaker=8`;
     const options = {
         method: 'GET',
         headers: {
@@ -65,27 +71,6 @@ async function fetchFixturesByLeagueAndDate(leagueId: number, season: number, da
     return data.response as ApiFixture[];
 }
 
-// Function to fetch odds for a given league and date
-async function fetchOddsByLeagueAndDate(leagueId: number, season: number, date: string) {
-    const apiKey = await getAvailableUpdateApiKey();
-    const url = `https://api-football-v1.p.rapidapi.com/v3/odds?league=${leagueId}&season=${season}&date=${date}&bookmaker=8&timezone=America/Sao_Paulo`;
-    const options = {
-        method: 'GET',
-        headers: {
-            'X-RapidAPI-Key': apiKey,
-            'X-RapidAPI-Host': 'api-football-v1.p.rapidapi.com'
-        },
-        cache: 'no-store' as RequestCache
-    };
-    const response = await fetch(url, options);
-    if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        console.warn(`Could not fetch odds for league ${leagueId} on ${date}: ${response.statusText}`, errorData);
-        return [];
-    }
-    const data = await response.json();
-    return data.response; // This is an array of odds objects, each for a different fixture
-}
 
 // The main function to be called by the cron job
 export async function updateFixturesFromApi() {
@@ -118,17 +103,12 @@ export async function updateFixturesFromApi() {
         for (const date of dates) {
             try {
                 // Fetch fixtures and odds concurrently for the same league and date
-                const [fixturesResponse, oddsResponse] = await Promise.all([
-                    fetchFixturesByLeagueAndDate(champ.leagueId, champ.season, date),
-                    fetchOddsByLeagueAndDate(champ.leagueId, champ.season, date)
-                ]);
+                const fixturesResponse = await fetchFixturesAndOdds(champ.leagueId, champ.season, date);
 
                 if (!fixturesResponse || fixturesResponse.length === 0) {
                     continue; // No games for this league on this date
                 }
-
-                const oddsMap = new Map((oddsResponse as any[]).map((o: any) => [o.fixture.id, o]));
-
+                
                 // Update championship logo/country if missing
                 const firstFixture = fixturesResponse[0];
                 if (firstFixture && (!champ.logo || !champ.country)) {
@@ -164,19 +144,16 @@ export async function updateFixturesFromApi() {
                     };
                     
                     // Only update markets if the game is still open for betting
-                    if (!isGameFinished && !isGameTerminated) {
-                        const oddData = oddsMap.get(fixture.fixture.id);
-                        if (oddData) {
-                            const bookmaker = oddData.bookmakers.find((b: any) => b.id === 8);
-                            if (bookmaker) {
-                                const markets: Market[] = bookmaker.bets.map((bet: ApiOdd) => ({
-                                    name: bet.name,
-                                    odds: bet.values.map(v => ({ label: v.value, value: v.odd }))
-                                })).map(translateMarketData);
-                                
-                                if (markets.length > 0) {
-                                    updateOperation.$set.markets = markets;
-                                }
+                    if (!isGameFinished && !isGameTerminated && fixture.bookmakers && fixture.bookmakers.length > 0) {
+                        const bookmaker = fixture.bookmakers.find((b: any) => b.id === 8);
+                        if (bookmaker && bookmaker.bets) {
+                            const markets: Market[] = bookmaker.bets.map((bet: ApiOdd) => ({
+                                name: bet.name,
+                                odds: bet.values.map(v => ({ label: v.value, value: v.odd }))
+                            })).map(translateMarketData);
+                            
+                            if (markets.length > 0) {
+                                updateOperation.$set.markets = markets;
                             }
                         }
                     }
