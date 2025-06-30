@@ -55,7 +55,6 @@ import type { Quiz, QuizQuestion } from '@/types';
 import type { DiscordChannel, DiscordRole } from '@/actions/bot-config-actions';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { RadioGroup, RadioGroupItem } from './ui/radio-group';
-import { ScrollArea } from './ui/scroll-area';
 import { Alert, AlertDescription, AlertTitle } from './ui/alert';
 import { Separator } from './ui/separator';
 
@@ -208,14 +207,13 @@ export function AdminQuizClient({ initialQuizzes, discordChannels, discordRoles,
         </Card>
 
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-            <DialogContent className="sm:max-w-4xl max-h-[90vh] flex flex-col">
-            <DialogHeader>
-                <DialogTitle>{currentQuiz ? 'Editar Quiz' : 'Novo Quiz'}</DialogTitle>
-            </DialogHeader>
-            <Form {...form}>
-                <form onSubmit={form.handleSubmit(onSubmit)} className="flex-1 flex flex-col min-h-0">
-                    <ScrollArea className="flex-1 pr-6 -mr-6">
-                        <div className="space-y-6 p-1">
+            <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto">
+                <DialogHeader>
+                    <DialogTitle>{currentQuiz ? 'Editar Quiz' : 'Novo Quiz'}</DialogTitle>
+                </DialogHeader>
+                <Form {...form}>
+                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 pt-4">
+                        <div className="space-y-6 px-1">
                             <FormField control={form.control} name="name" render={({ field }) => (
                                 <FormItem><FormLabel>Nome do Quiz</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
                             )}/>
@@ -246,6 +244,7 @@ export function AdminQuizClient({ initialQuizzes, discordChannels, discordRoles,
                                     <Select onValueChange={field.onChange} value={field.value || ''} disabled={discordRoles.length === 0}>
                                         <FormControl><SelectTrigger><SelectValue placeholder="Selecione um cargo" /></SelectTrigger></FormControl>
                                         <SelectContent>
+                                            <SelectItem value="">Nenhum</SelectItem>
                                             {discordRoles.map(role => (
                                                 <SelectItem key={role.id} value={role.id}>@{role.name}</SelectItem>
                                             ))}
@@ -316,19 +315,18 @@ export function AdminQuizClient({ initialQuizzes, discordChannels, discordRoles,
                                     </Card>
                                 ))}
                             </div>
+                        
+                            <Button type="button" variant="outline" size="sm" onClick={() => append({ question: '', options: ['', '', '', ''], answer: 0 })}>
+                                <PlusCircle className="mr-2 h-4 w-4" /> Adicionar Pergunta
+                            </Button>
                         </div>
-                    </ScrollArea>
-                    <div className="pt-4 shrink-0">
-                        <Button type="button" variant="outline" size="sm" onClick={() => append({ question: '', options: ['', '', '', ''], answer: 0 })}>
-                            <PlusCircle className="mr-2 h-4 w-4" /> Adicionar Pergunta
-                        </Button>
-                    </div>
-                    <DialogFooter className="pt-4 border-t shrink-0">
-                        <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>Cancelar</Button>
-                        <Button type="submit" disabled={isSubmitting}>{isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Salvar Quiz</Button>
-                    </DialogFooter>
-                </form>
-            </Form>
+                        
+                        <DialogFooter className="pt-6 border-t">
+                            <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>Cancelar</Button>
+                            <Button type="submit" disabled={isSubmitting}>{isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Salvar Quiz</Button>
+                        </DialogFooter>
+                    </form>
+                </Form>
             </DialogContent>
         </Dialog>
 
