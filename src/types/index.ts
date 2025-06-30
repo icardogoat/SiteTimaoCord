@@ -487,3 +487,4 @@ export type Championship = {
   isActive: boolean;
   createdAt: Date | string;
 };
+
