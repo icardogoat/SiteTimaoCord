@@ -507,8 +507,9 @@ export type RoleWithMemberCount = {
 };
 
 export type MemberActivityStats = {
-    daily: { joins: number; leaves: number };
+    daily: { joins: number; leaves: number; net: number };
     weekly: { joins: number; leaves: number; net: number };
     monthly: { joins: number; leaves: number; net: number };
+    annual: { joins: number; leaves: number; net: number };
     chartData: { date: string; joins: number; leaves: number }[];
 };

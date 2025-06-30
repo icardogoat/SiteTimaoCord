@@ -89,14 +89,14 @@ export function AdminServerPanelClient({ initialGuildDetails, initialRolesWithCo
             <CardHeader>
                 <CardTitle className="flex items-center gap-2"><UserCheck /> Atividade de Membros</CardTitle>
                 <CardDescription>
-                    Visão geral de entradas e saídas de membros no servidor do Discord nos últimos 30 dias.
+                    Visão geral de entradas e saídas de membros no servidor do Discord.
                 </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-center">
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 text-center">
                     <Card className="p-4">
                         <p className="text-sm text-muted-foreground">Hoje</p>
-                        <p className="text-2xl font-bold">{renderNetGrowth(initialActivityStats.daily.joins - initialActivityStats.daily.leaves)}</p>
+                        <p className="text-2xl font-bold">{renderNetGrowth(initialActivityStats.daily.net)}</p>
                         <p className="text-xs text-muted-foreground"><span className="text-green-500">+{initialActivityStats.daily.joins}</span> / <span className="text-red-500">-{initialActivityStats.daily.leaves}</span></p>
                     </Card>
                     <Card className="p-4">
@@ -108,6 +108,11 @@ export function AdminServerPanelClient({ initialGuildDetails, initialRolesWithCo
                         <p className="text-sm text-muted-foreground">Últimos 30 dias</p>
                         <p className="text-2xl font-bold">{renderNetGrowth(initialActivityStats.monthly.net)}</p>
                         <p className="text-xs text-muted-foreground"><span className="text-green-500">+{initialActivityStats.monthly.joins}</span> / <span className="text-red-500">-{initialActivityStats.monthly.leaves}</span></p>
+                    </Card>
+                    <Card className="p-4">
+                        <p className="text-sm text-muted-foreground">Anual</p>
+                        <p className="text-2xl font-bold">{renderNetGrowth(initialActivityStats.annual.net)}</p>
+                        <p className="text-xs text-muted-foreground"><span className="text-green-500">+{initialActivityStats.annual.joins}</span> / <span className="text-red-500">-{initialActivityStats.annual.leaves}</span></p>
                     </Card>
                 </div>
                 <ChartContainer config={activityChartConfig} className="h-[250px] w-full">

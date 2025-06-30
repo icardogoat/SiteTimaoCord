@@ -598,7 +598,7 @@ export async function resolveMatch(fixtureId: number, options: { revalidate: boo
 
         const teamsForEval: TeamDataInDB = {
             home: { id: teams.home.id, name: teams.home.name, winner: teams.home.winner },
-            away: { id: teams.away.id, name: teams.away.name, winner: teams.away.winner },
+            away: { id: teams.away.id, name: teams.away.name, winner: teams.home.winner },
         };
 
         const mongoSession = client.startSession();
@@ -2283,14 +2283,20 @@ export async function getMemberActivityStats(): Promise<{ success: boolean; data
         const thirtyDaysAgo = new Date(now);
         thirtyDaysAgo.setDate(now.getDate() - 30);
         thirtyDaysAgo.setUTCHours(0, 0, 0, 0);
+        
+        const oneYearAgo = new Date(now);
+        oneYearAgo.setDate(now.getDate() - 365);
+        oneYearAgo.setUTCHours(0, 0, 0, 0);
 
-        const [dailyJoins, dailyLeaves, weeklyJoins, weeklyLeaves, monthlyJoins, monthlyLeaves, chartData] = await Promise.all([
+        const [dailyJoins, dailyLeaves, weeklyJoins, weeklyLeaves, monthlyJoins, monthlyLeaves, annualJoins, annualLeaves, chartData] = await Promise.all([
             activityCollection.countDocuments({ type: 'join', timestamp: { $gte: todayStart } }),
             activityCollection.countDocuments({ type: 'leave', timestamp: { $gte: todayStart } }),
             activityCollection.countDocuments({ type: 'join', timestamp: { $gte: sevenDaysAgo } }),
             activityCollection.countDocuments({ type: 'leave', timestamp: { $gte: sevenDaysAgo } }),
             activityCollection.countDocuments({ type: 'join', timestamp: { $gte: thirtyDaysAgo } }),
             activityCollection.countDocuments({ type: 'leave', timestamp: { $gte: thirtyDaysAgo } }),
+            activityCollection.countDocuments({ type: 'join', timestamp: { $gte: oneYearAgo } }),
+            activityCollection.countDocuments({ type: 'leave', timestamp: { $gte: oneYearAgo } }),
             activityCollection.aggregate([
                 { $match: { timestamp: { $gte: thirtyDaysAgo } } },
                 {
@@ -2328,9 +2334,10 @@ export async function getMemberActivityStats(): Promise<{ success: boolean; data
         ]);
         
         const stats: MemberActivityStats = {
-            daily: { joins: dailyJoins, leaves: dailyLeaves },
+            daily: { joins: dailyJoins, leaves: dailyLeaves, net: dailyJoins - dailyLeaves },
             weekly: { joins: weeklyJoins, leaves: weeklyLeaves, net: weeklyJoins - weeklyLeaves },
             monthly: { joins: monthlyJoins, leaves: monthlyLeaves, net: monthlyJoins - monthlyLeaves },
+            annual: { joins: annualJoins, leaves: annualLeaves, net: annualJoins - annualLeaves },
             chartData: chartData.map((d: any) => ({...d, date: new Date(d.date).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', timeZone: 'UTC' }) }))
         };
 
