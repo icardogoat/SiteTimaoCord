@@ -57,6 +57,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { RadioGroup, RadioGroupItem } from './ui/radio-group';
 import { ScrollArea } from './ui/scroll-area';
 import { Alert, AlertDescription, AlertTitle } from './ui/alert';
+import { Separator } from './ui/separator';
 
 const questionSchema = z.object({
   question: z.string().min(1, 'A pergunta não pode estar vazia.'),
@@ -86,7 +87,7 @@ export function AdminQuizClient({ initialQuizzes, discordChannels, discordRoles,
 
     const form = useForm<z.infer<typeof quizSchema>>({
         resolver: zodResolver(quizSchema),
-        defaultValues: { name: '', questions: [{ question: '', options: ['', ''], answer: 0 }] }
+        defaultValues: { name: '', questions: [{ question: '', options: ['', '', '', ''], answer: 0 }] }
     });
 
     const { fields, append, remove } = useFieldArray({
@@ -106,7 +107,7 @@ export function AdminQuizClient({ initialQuizzes, discordChannels, discordRoles,
                 winnerLimit: quiz.winnerLimit,
                 channelId: quiz.channelId,
                 mentionRoleId: quiz.mentionRoleId,
-                questions: quiz.questions,
+                questions: quiz.questions.map(q => ({...q, options: q.options.concat(Array(4 - q.options.length).fill('')).slice(0, 4)})), // Ensure 4 options
             });
         } else {
             form.reset({
@@ -117,7 +118,7 @@ export function AdminQuizClient({ initialQuizzes, discordChannels, discordRoles,
                 winnerLimit: 0,
                 channelId: '',
                 mentionRoleId: '',
-                questions: [{ question: '', options: ['', ''], answer: 0 }],
+                questions: [{ question: '', options: ['', '', '', ''], answer: 0 }],
             });
         }
         setIsDialogOpen(true);
@@ -207,13 +208,13 @@ export function AdminQuizClient({ initialQuizzes, discordChannels, discordRoles,
         </Card>
 
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-            <DialogContent className="sm:max-w-4xl max-h-[90vh]">
+            <DialogContent className="sm:max-w-4xl max-h-[90vh] flex flex-col">
             <DialogHeader>
                 <DialogTitle>{currentQuiz ? 'Editar Quiz' : 'Novo Quiz'}</DialogTitle>
             </DialogHeader>
             <Form {...form}>
-                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                    <ScrollArea className="max-h-[70vh] pr-6 -mr-6">
+                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 flex flex-col flex-grow min-h-0">
+                    <ScrollArea className="flex-grow pr-6 -mr-6">
                     <div className="space-y-4 p-1">
                         <FormField control={form.control} name="name" render={({ field }) => (
                             <FormItem><FormLabel>Nome do Quiz</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
@@ -242,9 +243,10 @@ export function AdminQuizClient({ initialQuizzes, discordChannels, discordRoles,
                             <FormField control={form.control} name="mentionRoleId" render={({ field }) => (
                                 <FormItem>
                                 <FormLabel>Cargo para Notificar (Opcional)</FormLabel>
-                                <Select onValueChange={field.onChange} value={field.value} disabled={discordRoles.length === 0}>
+                                <Select onValueChange={field.onChange} value={field.value || ''} disabled={discordRoles.length === 0}>
                                     <FormControl><SelectTrigger><SelectValue placeholder="Selecione um cargo" /></SelectTrigger></FormControl>
                                     <SelectContent>
+                                        <SelectItem value="">Nenhum</SelectItem>
                                         {discordRoles.map(role => (
                                             <SelectItem key={role.id} value={role.id}>@{role.name}</SelectItem>
                                         ))}
@@ -273,7 +275,8 @@ export function AdminQuizClient({ initialQuizzes, discordChannels, discordRoles,
                             )}/>
                         </div>
                         
-                        <h3 className="text-lg font-semibold pt-4 border-t">Perguntas</h3>
+                        <Separator className="!my-6" />
+                        <h3 className="text-lg font-semibold">Perguntas</h3>
                         
                         <div className="space-y-4">
                             {fields.map((field, index) => (
@@ -314,7 +317,7 @@ export function AdminQuizClient({ initialQuizzes, discordChannels, discordRoles,
                                 </Card>
                             ))}
                         </div>
-                        <Button type="button" variant="outline" size="sm" onClick={() => append({ question: '', options: ['', ''], answer: 0 })}>
+                        <Button type="button" variant="outline" size="sm" onClick={() => append({ question: '', options: ['', '', '', ''], answer: 0 })}>
                             <PlusCircle className="mr-2 h-4 w-4" /> Adicionar Pergunta
                         </Button>
                     </div>
