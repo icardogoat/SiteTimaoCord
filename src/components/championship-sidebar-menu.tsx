@@ -16,58 +16,20 @@ import { Globe, Home, Trophy, Star } from 'lucide-react';
 import { getHighlightedLeagues } from '@/actions/settings-actions';
 
 const championships = {
-  // A categoria "destaques" foi removida daqui, pois agora é dinâmica.
   brasil: [
-    'Série B', 'Brasileirão Série B',
-    'Copa do Nordeste',
-    'Copa SP de Futebol Júnior',
-    'Campeonato Pernambucano',
-    'Campeonato Carioca',
-    'Supercopa do Brasil',
+    'Brasileirão Série A',
+    'Brasileirão Série B',
+    'Copa do Brasil',
     'Campeonato Paulista',
-    'Brasileirão Série A', // Adicionado aqui como fallback
   ],
-  americas: [
-    'Copa América',
-    'CONMEBOL Recopa',
-    'CONCACAF Champions Cup',
-    'MLS',
-    'Liga Pro',
-    'Liga Profesional Argentina',
-    'CONMEBOL Libertadores', // Adicionado aqui como fallback
-    'CONMEBOL Sul-Americana', // Adicionado aqui como fallback
-  ],
-  europa: [
+  internacional: [
+    'CONMEBOL Libertadores',
+    'CONMEBOL Sul-Americana',
+    'Mundial de Clubes da FIFA',
+    'FIFA Club World Cup',
     'UEFA Champions League',
-    'UEFA Europa League',
-    'UEFA Nations League',
     'Premier League',
-    'Bundesliga',
-    'La Liga',
-    'Ligue 1',
-    'Serie A',
-    'Primeira Liga',
-    'Eredivisie',
-    'UEFA Conference League',
-    'Supercopa da UEFA',
-  ],
-  asia: [
-    'AFC Champions League',
-    'Copa da Ásia',
-    'J1 League'
-  ],
-  africa: [
-    'CAF Champions League',
-    'Copa Africana de Nações',
-  ],
-  oceania: [
-    'Northern NSW NPL',
-  ],
-  mundo: [
     'Copa do Mundo',
-    'Copa do Mundo Feminina',
-    'FIFA Club World Cup', // Adicionado aqui como fallback
-    'Mundial de Clubes da FIFA', // Adicionado aqui como fallback
   ],
 };
 
@@ -104,12 +66,7 @@ function ChampionshipSidebarMenuInner({ availableLeagues }: ChampionshipSidebarM
 
   const championshipGroups = [
     { name: 'Brasil', list: championships.brasil, icon: Trophy },
-    { name: 'Américas', list: championships.americas, icon: Globe },
-    { name: 'Europa', list: championships.europa, icon: Globe },
-    { name: 'Ásia', list: championships.asia, icon: Globe },
-    { name: 'África', list: championships.africa, icon: Globe },
-    { name: 'Oceania', list: championships.oceania, icon: Globe },
-    { name: 'Mundo', list: championships.mundo, icon: Globe },
+    { name: 'Internacional', list: championships.internacional, icon: Globe },
   ];
   
   const allCategorizedLeagues = new Set(championshipGroups.flatMap(g => g.list));
