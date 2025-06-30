@@ -316,11 +316,13 @@ export function AdminQuizClient({ initialQuizzes, discordChannels, discordRoles,
                                     </Card>
                                 ))}
                             </div>
-                            <Button type="button" variant="outline" size="sm" onClick={() => append({ question: '', options: ['', '', '', ''], answer: 0 })}>
-                                <PlusCircle className="mr-2 h-4 w-4" /> Adicionar Pergunta
-                            </Button>
                         </div>
                     </ScrollArea>
+                    <div className="pt-4 shrink-0">
+                        <Button type="button" variant="outline" size="sm" onClick={() => append({ question: '', options: ['', '', '', ''], answer: 0 })}>
+                            <PlusCircle className="mr-2 h-4 w-4" /> Adicionar Pergunta
+                        </Button>
+                    </div>
                     <DialogFooter className="pt-4 border-t shrink-0">
                         <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>Cancelar</Button>
                         <Button type="submit" disabled={isSubmitting}>{isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Salvar Quiz</Button>
