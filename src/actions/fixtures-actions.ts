@@ -88,13 +88,28 @@ export async function updateFixturesFromApi() {
         return { success: true, message: msg };
     }
     
-    // Get dates based on São Paulo timezone
+    // --- New Optimization Logic ---
+    // Check if there are any games currently live or scheduled in our database.
+    const nonTerminalStatuses = ['NS', '1H', 'HT', '2H', 'ET', 'BT', 'P', 'SUSP', 'INT'];
+    const activeOrUpcomingGamesCount = await matchesCollection.countDocuments({
+        status: { $in: nonTerminalStatuses }
+    });
+
     const saoPauloTime = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
     const today = saoPauloTime.toISOString().split('T')[0];
-    const tomorrowDate = new Date(saoPauloTime);
-    tomorrowDate.setDate(tomorrowDate.getDate() + 1);
-    const tomorrow = tomorrowDate.toISOString().split('T')[0];
-    const dates = [today, tomorrow];
+    let dates = [today]; // Default to only today
+
+    // If there are active or upcoming games, we should also check for tomorrow's games.
+    if (activeOrUpcomingGamesCount > 0) {
+        const tomorrowDate = new Date(saoPauloTime);
+        tomorrowDate.setDate(tomorrowDate.getDate() + 1);
+        const tomorrow = tomorrowDate.toISOString().split('T')[0];
+        dates.push(tomorrow);
+        console.log("Active games found in DB, checking for today and tomorrow.");
+    } else {
+        console.log("No active games found in DB. Checking only for today's games to save API calls.");
+    }
+    // --- End of New Logic ---
     
     let updatedCount = 0;
     let newCount = 0;
