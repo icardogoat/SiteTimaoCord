@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -212,7 +213,7 @@ export function AdminQuizClient({ initialQuizzes, discordChannels, discordRoles,
                 <DialogTitle>{currentQuiz ? 'Editar Quiz' : 'Novo Quiz'}</DialogTitle>
             </DialogHeader>
             <Form {...form}>
-                <form onSubmit={form.handleSubmit(onSubmit)} className="flex-1 flex flex-col overflow-y-hidden">
+                <form onSubmit={form.handleSubmit(onSubmit)} className="flex-1 flex flex-col min-h-0">
                     <ScrollArea className="flex-1 pr-6 -mr-6">
                         <div className="space-y-6 p-1">
                             <FormField control={form.control} name="name" render={({ field }) => (
