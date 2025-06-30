@@ -20,6 +20,7 @@ class QuizQuestionView(ui.View):
         self.quiz_doc = quiz_doc
         self.winner = None
         self.message = None
+        self.attempted_users = set() # Keep track of users who have tried
 
         for i, option in enumerate(self.question_data['options']):
             button = ui.Button(label=option, style=discord.ButtonStyle.secondary, custom_id=f"quiz_option_{i}")
@@ -27,9 +28,18 @@ class QuizQuestionView(ui.View):
             self.add_item(button)
 
     async def button_callback(self, interaction: discord.Interaction):
+        # If someone has already won, no one else can answer.
         if self.winner:
             await interaction.response.send_message("Alguém já acertou esta pergunta. Aguarde a próxima!", ephemeral=True)
             return
+
+        # Check if the user has already attempted this question.
+        if interaction.user.id in self.attempted_users:
+            await interaction.response.send_message("Você já tentou responder esta pergunta.", ephemeral=True)
+            return
+
+        # Add user to the list of attempted users.
+        self.attempted_users.add(interaction.user.id)
 
         selected_option_index = int(interaction.data['custom_id'].split('_')[-1])
         correct_answer_index = self.question_data.get('answer', -1)
@@ -37,6 +47,7 @@ class QuizQuestionView(ui.View):
         if selected_option_index == correct_answer_index:
             self.winner = interaction.user
             
+            # Disable all buttons and show the correct answer.
             for item in self.children:
                 if isinstance(item, ui.Button):
                     item.disabled = True
@@ -52,9 +63,8 @@ class QuizQuestionView(ui.View):
             await interaction.response.edit_message(embed=new_embed, view=self)
             self.stop()
         else:
-            # Check if this quiz allows multiple attempts (future feature)
-            # For now, just send an ephemeral message
-            await interaction.response.send_message("❌ Resposta incorreta!", ephemeral=True)
+            # If the answer is incorrect, inform the user. They cannot try again.
+            await interaction.response.send_message("❌ Resposta incorreta! Você não pode tentar novamente.", ephemeral=True)
 
 
 class Quiz(commands.Cog):
