@@ -17,7 +17,6 @@ Para que a plataforma funcione corretamente, é essencial configurar os seguinte
 | `/api/cron/process`                | Paga as apostas de partidas que já terminaram.                       | A cada **5 minutos**   |
 | `/api/cron/notify`                 | Envia notificações no Discord para jogos que começam em breve.        | A cada **5 minutos**   |
 | `/api/cron/mvp`                    | Finaliza as votações de MVP que já expiraram.                        | A cada **2 minutos**   |
-| `/api/cron/quiz-scheduler`         | Verifica se há quizzes agendados para serem iniciados.               | A cada **1 minuto**    |
 | `/api/cron/news`                   | Sincroniza os posts do canal de notícias do Discord com o site.      | A cada **1 hora**      |
 
 **Importante:**
