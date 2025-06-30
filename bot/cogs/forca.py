@@ -1,7 +1,7 @@
 
 import discord
-from discord.ext import commands, tasks
-from discord import app_commands
+from discord.ext import commands
+from discord import app_commands, ui
 import os
 from pymongo import MongoClient
 from dotenv import load_dotenv
@@ -28,7 +28,7 @@ def create_masked_word(word: str, guessed_letters: set) -> str:
         elif normalize_str(char) in guessed_letters:
             display += char
         else:
-            display += '_'
+            display += '⬜'
     return ' '.join(list(display))
 
 # --- Game State Class ---
@@ -50,9 +50,9 @@ class ForcaGame:
         self.player_lives = defaultdict(lambda: 5)
         
         self.is_active = False
-        self.message = None # The main game message to edit
-        self.timer_task = None
-        self.hint_task = None
+        self.message: discord.Message | None = None
+        self.view: 'ForcaGameView' | None = None
+        self.hint_task: asyncio.Task | None = None
 
     def start_round(self):
         if self.current_round >= self.max_rounds:
@@ -114,10 +114,65 @@ class ForcaGame:
         )
         
         if not description_override:
-            embed.add_field(name="Letras Erradas", value=' '.join(sorted(self.wrong_guesses)) or "Nenhuma", inline=False)
-            embed.set_footer(text="Digite uma letra no chat para adivinhar. Você tem 5 vidas.")
+            embed.add_field(name="Letras Erradas", value=' '.join(sorted(list(self.wrong_guesses))).upper() or "Nenhuma", inline=False)
+            embed.set_footer(text="Clique nas letras para adivinhar. Você tem 5 vidas por rodada.")
         
         return embed
+
+# --- UI View and Button ---
+class LetterButton(ui.Button['ForcaGameView']):
+    def __init__(self, letter: str):
+        super().__init__(label=letter.upper(), style=discord.ButtonStyle.secondary, custom_id=f"forca_{letter.upper()}")
+
+    async def callback(self, interaction: discord.Interaction):
+        assert self.view is not None
+        view: 'ForcaGameView' = self.view
+        game = view.game
+        user = interaction.user
+
+        result = game.make_guess(user.id, self.label)
+        
+        if result == "NO_LIVES":
+            await interaction.response.send_message("❤️ Você não tem mais vidas nesta rodada. Aguarde a próxima palavra!", ephemeral=True)
+            return
+
+        if result == "ALREADY_GUESSED":
+            await interaction.response.send_message("🤔 Esta letra já foi tentada.", ephemeral=True)
+            return
+            
+        self.disabled = True
+        
+        if result == "WRONG":
+            await interaction.response.send_message(f"❌ Letra errada! Você tem {game.player_lives[user.id]} vidas restantes.", ephemeral=True)
+        
+        if result == "CORRECT":
+            await interaction.response.send_message("✅ Letra correta!", ephemeral=True)
+
+        # Update the main message with the new state
+        await view.update_message()
+
+        if game.is_word_guessed():
+            await view.cog.handle_win(interaction, game)
+
+class ForcaGameView(ui.View):
+    def __init__(self, cog: 'Forca', game: 'ForcaGame'):
+        super().__init__(timeout=60.0)
+        self.cog = cog
+        self.game = game
+        self.game.view = self
+
+        letters = "QWERTYUIOPASDFGHJKLZXCVBNM"
+        for letter in letters:
+            self.add_item(LetterButton(letter))
+    
+    async def on_timeout(self):
+        # Ensure the game is still active for this view
+        if self.cog.active_games.get(self.game.channel.id) is self.game:
+             await self.cog.handle_timeout(self.game)
+
+    async def update_message(self):
+        if self.game.message:
+            await self.game.message.edit(embed=self.game.get_game_embed(), view=self)
 
 # --- Discord Cog Class ---
 class Forca(commands.Cog):
@@ -133,66 +188,107 @@ class Forca(commands.Cog):
 
     def cog_unload(self):
         for game in self.active_games.values():
-            if game.timer_task:
-                game.timer_task.cancel()
+            if game.view:
+                game.view.stop()
             if game.hint_task:
                 game.hint_task.cancel()
         self.client.close()
-    
-    async def end_game_session(self, channel_id, reason="Obrigado por jogar!"):
-        if channel_id in self.active_games:
-            game = self.active_games[channel_id]
-            if game.timer_task:
-                game.timer_task.cancel()
+
+    async def end_game_session(self, game: ForcaGame, reason="Obrigado por jogar!"):
+        if game.channel.id in self.active_games:
+            if game.view:
+                game.view.stop()
             if game.hint_task:
                 game.hint_task.cancel()
             
             embed = discord.Embed(title="🏁 Fim de Jogo!", description=reason, color=discord.Color.gold())
-            await game.channel.send(embed=embed)
-            del self.active_games[channel_id]
+            if game.message:
+                 await game.message.edit(embed=embed, view=None)
+            else:
+                await game.channel.send(embed=embed)
+            
+            del self.active_games[game.channel.id]
 
     async def start_new_round_or_end_game(self, game: ForcaGame):
         if not game.start_round():
-            await self.end_game_session(game.channel.id)
+            await self.end_game_session(game)
             return
 
+        view = ForcaGameView(self, game)
         embed = game.get_game_embed()
-        game.message = await game.channel.send(embed=embed)
+        message = await game.channel.send(embed=embed, view=view)
+        game.message = message
         
-        # Start timers
-        game.timer_task = asyncio.create_task(self.round_timeout(game.channel.id, game.current_round))
-        game.hint_task = asyncio.create_task(self.reveal_letter_hint(game.channel.id, game.current_round))
+        game.hint_task = asyncio.create_task(self.reveal_letter_hint(game))
 
-    async def round_timeout(self, channel_id, round_number):
-        await asyncio.sleep(60)
-        if channel_id in self.active_games and self.active_games[channel_id].current_round == round_number:
-            game = self.active_games[channel_id]
-            embed = game.get_game_embed(
-                title_override=f"Rodada {game.current_round-1} Encerrada!",
-                description_override=f"O tempo acabou! A palavra era **{game.current_word}**.",
-                color_override=discord.Color.red()
-            )
+    async def handle_win(self, interaction: discord.Interaction, game: ForcaGame):
+        if not game.is_active: return
+        game.is_active = False # Prevent multiple win triggers
+        
+        if game.view: game.view.stop()
+        if game.hint_task: game.hint_task.cancel()
+
+        prize = game.prize_per_round
+        new_transaction = {
+            "id": str(ObjectId()), "type": "Prêmio",
+            "description": f"Prêmio do jogo da Forca",
+            "amount": prize,
+            "date": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+            "status": "Concluído"
+        }
+        self.wallets_collection.update_one(
+            {"userId": str(interaction.user.id)},
+            {"$inc": {"balance": prize}, "$push": {"transactions": {"$each": [new_transaction], "$sort": {"date": -1}}}},
+            upsert=True
+        )
+
+        embed = game.get_game_embed(
+            title_override=f"🏆 {interaction.user.display_name} acertou!",
+            description_override=f"Parabéns! A palavra era **{game.current_word}**. Você ganhou **R$ {prize:.2f}**!",
+            color_override=discord.Color.green()
+        )
+        await interaction.message.edit(embed=embed, view=None)
+        
+        await asyncio.sleep(5)
+        await self.start_new_round_or_end_game(game)
+
+    async def handle_timeout(self, game: ForcaGame):
+        if not game.is_active: return
+        game.is_active = False
+        
+        if game.view: game.view.stop()
+        if game.hint_task: game.hint_task.cancel()
+
+        embed = game.get_game_embed(
+            title_override=f"Rodada {game.current_round} Encerrada!",
+            description_override=f"O tempo acabou! A palavra era **{game.current_word}**.",
+            color_override=discord.Color.red()
+        )
+        if game.message:
             await game.message.edit(embed=embed, view=None)
-            await asyncio.sleep(5)
-            await self.start_new_round_or_end_game(game)
-    
-    async def reveal_letter_hint(self, channel_id, round_number):
-        await asyncio.sleep(30)
-        if channel_id in self.active_games and self.active_games[channel_id].current_round == round_number:
-            game = self.active_games[channel_id]
-            
-            unrevealed_letters = [c for c in game.normalized_word if c != ' ' and c not in game.correct_guesses]
+
+        await asyncio.sleep(5)
+        await self.start_new_round_or_end_game(game)
+
+    async def reveal_letter_hint(self, game: ForcaGame):
+        try:
+            await asyncio.sleep(30)
+            if not game.is_active: return
+
+            unrevealed_letters = [c for c in game.normalized_word if c.isalpha() and c not in game.correct_guesses]
             if unrevealed_letters:
                 letter_to_reveal = random.choice(unrevealed_letters)
                 game.correct_guesses.add(letter_to_reveal)
                 
-                # Also add original cased letters
                 for i, char in enumerate(game.normalized_word):
                     if char == letter_to_reveal:
                         game.correct_guesses.add(game.current_word[i].lower())
                         
                 await game.channel.send(f"💡 **Dica de Letra:** A letra **'{letter_to_reveal.upper()}'** está na palavra!")
-                await game.message.edit(embed=game.get_game_embed())
+                if game.view:
+                    await game.view.update_message()
+        except asyncio.CancelledError:
+            return
 
     async def run_game(self, channel: discord.TextChannel):
         if not channel:
@@ -230,6 +326,12 @@ class Forca(commands.Cog):
             if not channel or not isinstance(channel, discord.TextChannel):
                 print(f"Forca schedule error: Channel with ID {channel_id} not found or is not a text channel.")
                 return
+            
+            # Check if a game is already active in that specific channel
+            if channel_id in self.active_games:
+                print(f"Forca schedule error: Game already active in scheduled channel {channel_id}.")
+                return
+
             await self.run_game(channel)
         except (ValueError, TypeError):
             print(f"Forca schedule error: Invalid channel ID '{channel_id_str}' in config.")
@@ -240,61 +342,7 @@ class Forca(commands.Cog):
         await interaction.response.send_message("Iniciando o jogo...", ephemeral=True)
         await self.run_game(interaction.channel)
 
-    @commands.Cog.listener()
-    async def on_message(self, message: discord.Message):
-        if message.author.bot or not message.guild:
-            return
-
-        channel_id = message.channel.id
-        if channel_id not in self.active_games:
-            return
-
-        game = self.active_games[channel_id]
-        if not game.is_active or len(message.content) != 1 or not message.content.isalpha():
-            return
-        
-        guess_result = game.make_guess(message.author.id, message.content)
-
-        if guess_result == "NO_LIVES":
-            await message.reply("Você não tem mais vidas nesta rodada.", delete_after=5, mention_author=False)
-            return
-        elif guess_result == "ALREADY_GUESSED":
-            await message.reply("Essa letra já foi tentada.", delete_after=5, mention_author=False)
-            return
-        
-        await game.message.edit(embed=game.get_game_embed())
-
-        if game.is_word_guessed():
-            # Stop timers for the current round
-            if game.timer_task:
-                game.timer_task.cancel()
-            if game.hint_task:
-                game.hint_task.cancel()
-            
-            # Award prize
-            prize = game.prize_per_round
-            new_transaction = {
-                "id": str(ObjectId()), "type": "Prêmio",
-                "description": f"Prêmio do jogo da Forca",
-                "amount": prize,
-                "date": datetime.datetime.now(datetime.timezone.utc).isoformat(),
-                "status": "Concluído"
-            }
-            self.wallets_collection.update_one(
-                {"userId": str(message.author.id)},
-                {"$inc": {"balance": prize}, "$push": {"transactions": {"$each": [new_transaction], "$sort": {"date": -1}}}},
-                upsert=True
-            )
-
-            embed = game.get_game_embed(
-                title_override=f"🏆 {message.author.display_name} acertou!",
-                description_override=f"Parabéns! A palavra era **{game.current_word}**. Você ganhou **R$ {prize:.2f}**!",
-                color_override=discord.Color.green()
-            )
-            await game.message.edit(embed=embed, view=None)
-            
-            await asyncio.sleep(5)
-            await self.start_new_round_or_end_game(game)
-
 async def setup(bot):
     await bot.add_cog(Forca(bot))
+
+    
