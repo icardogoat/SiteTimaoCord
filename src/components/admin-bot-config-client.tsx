@@ -56,7 +56,6 @@ const formSchema = z.object({
   mvpChannelId: z.string().optional(),
   levelUpChannelId: z.string().optional(),
   eventChannelId: z.string().optional(),
-  forcaChannelId: z.string().optional(),
   newsChannelId: z.string().optional(),
   newsMentionRoleId: z.string().optional(),
   adminRoleId: z.string().optional(),
@@ -96,7 +95,6 @@ export default function AdminBotConfigClient({ initialConfig, initialChannels, i
             mvpChannelId: initialConfig.mvpChannelId || "",
             levelUpChannelId: initialConfig.levelUpChannelId || "",
             eventChannelId: initialConfig.eventChannelId || "",
-            forcaChannelId: initialConfig.forcaChannelId || "",
             newsChannelId: initialConfig.newsChannelId || "",
             newsMentionRoleId: initialConfig.newsMentionRoleId || "",
             adminRoleId: initialConfig.adminRoleId || "",
@@ -127,7 +125,6 @@ export default function AdminBotConfigClient({ initialConfig, initialChannels, i
             mvpChannelId: '',
             levelUpChannelId: '',
             eventChannelId: '',
-            forcaChannelId: '',
             newsChannelId: '',
             newsMentionRoleId: '',
             adminRoleId: '',
@@ -152,7 +149,7 @@ export default function AdminBotConfigClient({ initialConfig, initialChannels, i
         setIsLoadingDetails(false);
     };
 
-    const handleTest = async (channelType: 'welcome' | 'log' | 'betting' | 'winners' | 'bolao' | 'mvp' | 'news' | 'levelUp' | 'event' | 'forca') => {
+    const handleTest = async (channelType: 'welcome' | 'log' | 'betting' | 'winners' | 'bolao' | 'mvp' | 'news' | 'levelUp' | 'event') => {
         const channelId = form.getValues(`${channelType}ChannelId` as keyof FormValues);
         if (!channelId) {
             toast({ title: "Nenhum canal selecionado", variant: "destructive" });
@@ -236,17 +233,6 @@ export default function AdminBotConfigClient({ initialConfig, initialChannels, i
                     }]
                 };
                 break;
-            case 'forca':
-                payload = {
-                    embeds: [{
-                        color: 0x64748B, // slate-500
-                        title: '✅ Teste do Canal da Forca ✅',
-                        description: 'Se você pode ver esta mensagem, o jogo da forca funcionará corretamente aqui!',
-                        footer: { text: 'Teste enviado pelo Painel Admin' },
-                        timestamp: new Date().toISOString(),
-                    }]
-                };
-                break;
         }
         
         setIsTesting(channelType);
@@ -272,7 +258,6 @@ export default function AdminBotConfigClient({ initialConfig, initialChannels, i
             mvpChannelId: values.mvpChannelId || '',
             levelUpChannelId: values.levelUpChannelId || '',
             eventChannelId: values.eventChannelId || '',
-            forcaChannelId: values.forcaChannelId || '',
             newsChannelId: values.newsChannelId || '',
             newsMentionRoleId: values.newsMentionRoleId || '',
             adminRoleId: values.adminRoleId || '',
@@ -683,43 +668,6 @@ export default function AdminBotConfigClient({ initialConfig, initialChannels, i
                                         </div>
                                          <FormDescription>
                                             Canal onde os eventos como o Quiz do Timão serão iniciados.
-                                        </FormDescription>
-                                    </FormItem>
-                                )}
-                            />
-                            <FormField
-                                control={form.control}
-                                name="forcaChannelId"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Canal da Forca</FormLabel>
-                                        <div className="flex items-center gap-2">
-                                            <Select onValueChange={field.onChange} value={field.value} disabled={channels.length === 0}>
-                                                <FormControl>
-                                                    <SelectTrigger>
-                                                        <SelectValue placeholder="Selecione um canal" />
-                                                    </SelectTrigger>
-                                                </FormControl>
-                                                <SelectContent>
-                                                    {channels.map(channel => (
-                                                        <SelectItem key={channel.id} value={channel.id}>
-                                                            #{channel.name}
-                                                        </SelectItem>
-                                                    ))}
-                                                </SelectContent>
-                                            </Select>
-                                            <Button 
-                                                type="button" 
-                                                variant="outline" 
-                                                onClick={() => handleTest('forca')}
-                                                disabled={!field.value || isTesting !== null}
-                                                aria-label="Testar canal da forca"
-                                            >
-                                                {isTesting === 'forca' ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Testar'}
-                                            </Button>
-                                        </div>
-                                        <FormDescription>
-                                            Canal onde o jogo da Forca será iniciado.
                                         </FormDescription>
                                     </FormItem>
                                 )}

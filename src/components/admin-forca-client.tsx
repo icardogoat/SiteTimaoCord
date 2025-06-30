@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState } from 'react';
@@ -12,7 +13,7 @@ import {
     getForcaWords,
     generateForcaWordByAI,
 } from '@/actions/forca-actions';
-import { updateForcaSchedule } from '@/actions/bot-config-actions';
+import { updateForcaSettings } from '@/actions/bot-config-actions';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import {
@@ -33,6 +34,7 @@ import {
 import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -49,9 +51,12 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Loader2, PlusCircle, Trash2, Edit, Sparkles, Puzzle, Clock } from 'lucide-react';
+import { Loader2, PlusCircle, Trash2, Edit, Sparkles, Puzzle, Clock, HelpCircle } from 'lucide-react';
 import type { ForcaGameWord } from '@/types';
 import { Separator } from './ui/separator';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
+import { type DiscordChannel } from '@/actions/bot-config-actions';
+import { Alert, AlertDescription, AlertTitle } from './ui/alert';
 
 const formSchema = z.object({
   id: z.string().optional(),
@@ -59,7 +64,8 @@ const formSchema = z.object({
   hint: z.string().min(1, "A dica é obrigatória.").max(100, "Dica muito longa."),
 });
 
-const scheduleFormSchema = z.object({
+const settingsFormSchema = z.object({
+    channelId: z.string().min(1, "É necessário selecionar um canal."),
     schedule: z.array(z.object({ value: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, "Formato inválido. Use HH:mm") })),
 });
 
@@ -68,15 +74,18 @@ type FormValues = z.infer<typeof formSchema>;
 interface AdminForcaClientProps {
     initialWords: ForcaGameWord[];
     initialSchedule: string[];
+    initialChannelId: string;
+    discordChannels: DiscordChannel[];
+    error: string | null;
 }
 
-export function AdminForcaClient({ initialWords, initialSchedule }: AdminForcaClientProps) {
+export function AdminForcaClient({ initialWords, initialSchedule, initialChannelId, discordChannels, error }: AdminForcaClientProps) {
     const { toast } = useToast();
     const [words, setWords] = useState(initialWords);
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState<string | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const [isScheduleSubmitting, setIsScheduleSubmitting] = useState(false);
+    const [isSettingsSubmitting, setIsSettingsSubmitting] = useState(false);
     const [isGenerating, setIsGenerating] = useState(false);
     const [aiTheme, setAiTheme] = useState('');
     const [currentWord, setCurrentWord] = useState<ForcaGameWord | null>(null);
@@ -86,15 +95,16 @@ export function AdminForcaClient({ initialWords, initialSchedule }: AdminForcaCl
         defaultValues: { word: '', hint: '' }
     });
 
-    const scheduleForm = useForm<z.infer<typeof scheduleFormSchema>>({
-        resolver: zodResolver(scheduleFormSchema),
+    const settingsForm = useForm<z.infer<typeof settingsFormSchema>>({
+        resolver: zodResolver(settingsFormSchema),
         defaultValues: {
+            channelId: initialChannelId,
             schedule: initialSchedule.map(s => ({ value: s })) || [],
         },
     });
 
      const { fields: scheduleFields, append: appendSchedule, remove: removeSchedule } = useFieldArray({
-        control: scheduleForm.control,
+        control: settingsForm.control,
         name: "schedule"
     });
 
@@ -143,15 +153,18 @@ export function AdminForcaClient({ initialWords, initialSchedule }: AdminForcaCl
         setIsSubmitting(false);
     };
     
-    const onScheduleSubmit = async (values: z.infer<typeof scheduleFormSchema>) => {
-        setIsScheduleSubmitting(true);
-        const result = await updateForcaSchedule(values.schedule.map(s => s.value));
+    const onSettingsSubmit = async (values: z.infer<typeof settingsFormSchema>) => {
+        setIsSettingsSubmitting(true);
+        const result = await updateForcaSettings({
+            schedule: values.schedule.map(s => s.value),
+            channelId: values.channelId,
+        });
         if (result.success) {
             toast({ title: "Sucesso!", description: result.message });
         } else {
             toast({ title: "Erro", description: result.message, variant: "destructive" });
         }
-        setIsScheduleSubmitting(false);
+        setIsSettingsSubmitting(false);
     };
 
     const handleDelete = async () => {
@@ -172,37 +185,69 @@ export function AdminForcaClient({ initialWords, initialSchedule }: AdminForcaCl
     <div className="space-y-6">
         <Card>
              <CardHeader>
-                <CardTitle className="flex items-center gap-2"><Clock /> Agendamento Global</CardTitle>
+                <CardTitle className="flex items-center gap-2"><Clock /> Agendamento e Canal</CardTitle>
                 <CardDescription>
-                    Defina horários para a Forca ser iniciada automaticamente. O bot irá sortear uma das palavras cadastradas.
+                    Defina o canal e os horários para a Forca ser iniciada automaticamente. O bot irá sortear uma das palavras cadastradas.
                 </CardDescription>
             </CardHeader>
              <CardContent>
-                <Form {...scheduleForm}>
-                    <form onSubmit={scheduleForm.handleSubmit(onScheduleSubmit)} className="space-y-4">
-                        <div className="space-y-2">
-                            {scheduleFields.map((field, index) => (
-                                <FormField
-                                    key={field.id}
-                                    control={scheduleForm.control}
-                                    name={`schedule.${index}.value`}
-                                    render={({ field }) => (
-                                        <FormItem className="flex items-center gap-2">
-                                            <FormControl><Input type="time" {...field} className="w-48" /></FormControl>
-                                            <Button type="button" variant="ghost" size="icon" onClick={() => removeSchedule(index)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-                            ))}
+                {error && (
+                    <Alert variant="destructive" className="mb-4">
+                        <HelpCircle className="h-4 w-4" />
+                        <AlertTitle>Erro de Configuração</AlertTitle>
+                        <AlertDescription>{error}</AlertDescription>
+                    </Alert>
+                )}
+                <Form {...settingsForm}>
+                    <form onSubmit={settingsForm.handleSubmit(onSettingsSubmit)} className="space-y-4">
+                         <FormField
+                            control={settingsForm.control}
+                            name="channelId"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Canal do Jogo</FormLabel>
+                                    <Select onValueChange={field.onChange} value={field.value} disabled={discordChannels.length === 0}>
+                                        <FormControl>
+                                            <SelectTrigger className="w-full md:w-1/2">
+                                                <SelectValue placeholder="Selecione um canal" />
+                                            </SelectTrigger>
+                                        </FormControl>
+                                        <SelectContent>
+                                            {discordChannels.map(c => <SelectItem key={c.id} value={c.id}>#{c.name}</SelectItem>)}
+                                        </SelectContent>
+                                    </Select>
+                                    <FormDescription>Canal onde o jogo da Forca será iniciado.</FormDescription>
+                                    <FormMessage />
+                                </FormItem>
+                            )}/>
+                        
+                        <div>
+                            <FormLabel>Horários</FormLabel>
+                            <div className="space-y-2 mt-2">
+                                {scheduleFields.map((field, index) => (
+                                    <FormField
+                                        key={field.id}
+                                        control={settingsForm.control}
+                                        name={`schedule.${index}.value`}
+                                        render={({ field }) => (
+                                            <FormItem className="flex items-center gap-2">
+                                                <FormControl><Input type="time" {...field} className="w-48" /></FormControl>
+                                                <Button type="button" variant="ghost" size="icon" onClick={() => removeSchedule(index)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                ))}
+                            </div>
                         </div>
+
                         <div className="flex flex-wrap gap-2">
                             <Button type="button" variant="outline" size="sm" onClick={() => appendSchedule({ value: '' })}>
                                 <PlusCircle className="mr-2 h-4 w-4" /> Adicionar Horário
                             </Button>
-                            <Button type="submit" size="sm" disabled={isScheduleSubmitting}>
-                                {isScheduleSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                Salvar Agenda
+                            <Button type="submit" size="sm" disabled={isSettingsSubmitting || !!error}>
+                                {isSettingsSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                Salvar Configurações
                             </Button>
                         </div>
                     </form>

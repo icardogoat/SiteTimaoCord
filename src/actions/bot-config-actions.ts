@@ -102,7 +102,6 @@ type UpdateConfigData = {
     mvpChannelId: string;
     levelUpChannelId: string;
     eventChannelId: string;
-    forcaChannelId: string;
     newsChannelId: string;
     newsMentionRoleId: string;
     adminRoleId: string;
@@ -151,7 +150,7 @@ export async function updatePlayerGameSchedule(schedule: string[]): Promise<{ su
     }
 }
 
-export async function updateForcaSchedule(schedule: string[]): Promise<{ success: boolean; message: string }> {
+export async function updateForcaSettings(data: { schedule: string[], channelId: string }): Promise<{ success: boolean; message: string }> {
     try {
         const client = await clientPromise;
         const db = client.db('timaocord_bot');
@@ -159,15 +158,15 @@ export async function updateForcaSchedule(schedule: string[]): Promise<{ success
 
         await configCollection.updateOne(
             { _id: new ObjectId(CONFIG_ID) },
-            { $set: { forcaSchedule: schedule } },
+            { $set: { forcaSchedule: data.schedule, forcaChannelId: data.channelId } },
             { upsert: true }
         );
 
         revalidatePath('/admin/forca');
-        return { success: true, message: 'Agenda da Forca salva com sucesso!' };
+        return { success: true, message: 'Configurações da Forca salvas com sucesso!' };
     } catch (error) {
-        console.error("Error updating forca schedule:", error);
-        return { success: false, message: 'Falha ao salvar a agenda.' };
+        console.error("Error updating forca settings:", error);
+        return { success: false, message: 'Falha ao salvar as configurações da Forca.' };
     }
 }
 
