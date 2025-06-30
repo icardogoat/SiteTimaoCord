@@ -45,7 +45,7 @@ interface ApiOdd {
 // Function to fetch fixtures for a given date from the external API
 async function fetchFixturesByLeagueAndDate(leagueId: number, season: number, date: string) {
     const apiKey = await getAvailableUpdateApiKey();
-    const url = `https://api-football-v1.p.rapidapi.com/v3/fixtures?league=${leagueId}&season=${season}&date=${date}`;
+    const url = `https://api-football-v1.p.rapidapi.com/v3/fixtures?league=${leagueId}&season=${season}&date=${date}&timezone=America/Sao_Paulo`;
     const options = {
         method: 'GET',
         headers: {
@@ -68,7 +68,7 @@ async function fetchFixturesByLeagueAndDate(leagueId: number, season: number, da
 // Function to fetch odds for a given league and date
 async function fetchOddsByLeagueAndDate(leagueId: number, season: number, date: string) {
     const apiKey = await getAvailableUpdateApiKey();
-    const url = `https://api-football-v1.p.rapidapi.com/v3/odds?league=${leagueId}&season=${season}&date=${date}&bookmaker=8`;
+    const url = `https://api-football-v1.p.rapidapi.com/v3/odds?league=${leagueId}&season=${season}&date=${date}&bookmaker=8&timezone=America/Sao_Paulo`;
     const options = {
         method: 'GET',
         headers: {
@@ -103,8 +103,10 @@ export async function updateFixturesFromApi() {
         return { success: true, message: msg };
     }
     
-    const today = new Date().toISOString().split('T')[0];
-    const tomorrowDate = new Date();
+    // Get dates based on São Paulo timezone
+    const saoPauloTime = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
+    const today = saoPauloTime.toISOString().split('T')[0];
+    const tomorrowDate = new Date(saoPauloTime);
     tomorrowDate.setDate(tomorrowDate.getDate() + 1);
     const tomorrow = tomorrowDate.toISOString().split('T')[0];
     const dates = [today, tomorrow];
@@ -120,14 +122,14 @@ export async function updateFixturesFromApi() {
                     fetchFixturesByLeagueAndDate(champ.leagueId, champ.season, date),
                     fetchOddsByLeagueAndDate(champ.leagueId, champ.season, date)
                 ]);
-                
-                // If there are no odds, there's nothing to bet on. Skip this batch.
-                if (!oddsResponse || oddsResponse.length === 0) {
-                    continue;
+
+                if (!fixturesResponse || fixturesResponse.length === 0) {
+                    continue; // No games for this league on this date
                 }
 
-                const fixturesMap = new Map(fixturesResponse.map(f => [f.fixture.id, f]));
-                
+                const oddsMap = new Map((oddsResponse as any[]).map((o: any) => [o.fixture.id, o]));
+
+                // Update championship logo/country if missing
                 const firstFixture = fixturesResponse[0];
                 if (firstFixture && (!champ.logo || !champ.country)) {
                      await championshipsCollection.updateOne(
@@ -139,25 +141,11 @@ export async function updateFixturesFromApi() {
                     );
                 }
                 
-                for (const oddData of oddsResponse) {
-                    const fixture = fixturesMap.get(oddData.fixture.id);
+                for (const fixture of fixturesResponse) {
+                    const isGameFinished = ['FT', 'AET', 'PEN'].includes(fixture.fixture.status.short);
+                    const isGameTerminated = ['PST', 'CANC', 'ABD', 'AWD', 'WO'].includes(fixture.fixture.status.short);
                     
-                    if (!fixture || ['FT', 'AET', 'PEN', 'PST', 'CANC', 'ABD', 'AWD', 'WO'].includes(fixture.fixture.status.short)) {
-                        continue;
-                    }
-                    
-                    const bookmaker = oddData.bookmakers.find((b: any) => b.id === 8);
-                    if (!bookmaker) continue;
-
-                    const markets: Market[] = bookmaker.bets.map((bet: ApiOdd) => ({
-                        name: bet.name,
-                        odds: bet.values.map(v => ({ label: v.value, value: v.odd }))
-                    })).map(translateMarketData);
-
-                    if (markets.length === 0) continue;
-
-                    const matchDocument = {
-                        _id: fixture.fixture.id,
+                    const updateFields: any = {
                         homeTeam: fixture.teams.home.name,
                         homeLogo: fixture.teams.home.logo,
                         awayTeam: fixture.teams.away.name,
@@ -166,13 +154,30 @@ export async function updateFixturesFromApi() {
                         timestamp: fixture.fixture.timestamp,
                         status: fixture.fixture.status.short,
                         goals: fixture.goals,
-                        isFinished: false,
-                        markets: markets
+                        isFinished: isGameFinished,
                     };
+                    
+                    // Only update markets if the game is still open for betting
+                    if (!isGameFinished && !isGameTerminated) {
+                        const oddData = oddsMap.get(fixture.fixture.id);
+                        if (oddData) {
+                            const bookmaker = oddData.bookmakers.find((b: any) => b.id === 8);
+                            if (bookmaker) {
+                                const markets: Market[] = bookmaker.bets.map((bet: ApiOdd) => ({
+                                    name: bet.name,
+                                    odds: bet.values.map(v => ({ label: v.value, value: v.odd }))
+                                })).map(translateMarketData);
+                                
+                                if (markets.length > 0) {
+                                    updateFields.markets = markets;
+                                }
+                            }
+                        }
+                    }
                     
                     const result = await matchesCollection.updateOne(
                         { _id: fixture.fixture.id },
-                        { $set: matchDocument },
+                        { $set: updateFields },
                         { upsert: true }
                     );
 
@@ -188,7 +193,7 @@ export async function updateFixturesFromApi() {
 
     await setLastUpdateTimestamp();
     
-    const message = `Optimized fixture update complete. New: ${newCount}, Updated: ${updatedCount}.`;
+    const message = `Fixture update complete. New: ${newCount}, Updated: ${updatedCount}.`;
     console.log(message);
     revalidatePath('/bet');
     return { success: true, message };
