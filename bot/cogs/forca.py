@@ -23,8 +23,8 @@ def normalize_str(s: str) -> str:
 def create_masked_word(word: str, guessed_letters: set) -> str:
     display = ""
     for char in word:
-        if char == ' ':
-            display += ' '
+        if not char.isalpha():
+            display += char
         elif normalize_str(char) in guessed_letters:
             display += char
         else:
@@ -91,7 +91,10 @@ class ForcaGame:
             return "WRONG"
 
     def is_word_guessed(self) -> bool:
-        return all((c == ' ' or normalize_str(c) in self.correct_guesses) for c in self.current_word)
+        for char in self.current_word:
+            if char.isalpha() and normalize_str(char) not in self.correct_guesses:
+                return False
+        return True
 
     def get_game_embed(self, title_override=None, description_override=None, color_override=None):
         if title_override:
