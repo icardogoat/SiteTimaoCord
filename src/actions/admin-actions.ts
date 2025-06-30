@@ -1316,6 +1316,11 @@ async function sendNewMvpNotification(voting: Omit<MvpVoting, '_id'>) {
 
 export async function createMvpVoting(matchId: number): Promise<{ success: boolean; message: string }> {
     try {
+        const session = await getServerSession(authOptions);
+        if (!session?.user?.admin) {
+            return { success: false, message: 'Acesso negado.' };
+        }
+        
         const client = await clientPromise;
         const db = client.db('timaocord');
         const matchesCollection = db.collection('matches');

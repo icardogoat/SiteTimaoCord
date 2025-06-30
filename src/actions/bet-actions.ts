@@ -41,6 +41,23 @@ export async function placeBet(betsInSlip: BetInSlip[], stake: number): Promise<
       const walletsCollection = db.collection('wallets');
       const betsCollection = db.collection('bets');
       const userStatsCollection = db.collection('user_stats');
+      const matchesCollection = db.collection('matches');
+
+      // --- Security Check: Validate matches are still open for betting ---
+      const nowTimestamp = Math.floor(Date.now() / 1000);
+      const matchIds = betsInSlip.map(b => b.matchId);
+      const matchesFromDb = await matchesCollection.find({ _id: { $in: matchIds } }, { session: mongoSession }).toArray();
+
+      if (matchesFromDb.length !== matchIds.length) {
+          throw new Error('Uma ou mais partidas na sua aposta não foram encontradas ou não estão mais disponíveis.');
+      }
+
+      for (const match of matchesFromDb) {
+          if (match.status !== 'NS' || match.timestamp < nowTimestamp) {
+              throw new Error(`Apostas para a partida ${match.homeTeam} vs ${match.awayTeam} já foram encerradas.`);
+          }
+      }
+      // --- End Security Check ---
 
       const userWallet = await walletsCollection.findOne({ userId }, { session: mongoSession });
 

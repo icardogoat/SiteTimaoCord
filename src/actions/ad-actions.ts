@@ -53,15 +53,6 @@ export async function claimDailyReward(): Promise<{ success: boolean; message: s
 
     const userId = session.user.discordId;
 
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    const userLastClaimed = session.user.dailyRewardLastClaimed ? new Date(session.user.dailyRewardLastClaimed) : null;
-    
-    if (userLastClaimed && userLastClaimed >= today) {
-        return { success: false, message: 'Você já resgatou sua recompensa diária hoje.' };
-    }
-
     const client = await clientPromise;
     const db = client.db('timaocord');
     const mongoSession = client.startSession();
@@ -73,6 +64,21 @@ export async function claimDailyReward(): Promise<{ success: boolean; message: s
             const usersCollection = db.collection('users');
             const walletsCollection = db.collection('wallets');
             
+            // Securely fetch user data from DB inside the transaction
+            const user = await usersCollection.findOne({ discordId: userId }, { session: mongoSession });
+
+            if (!user) {
+                throw new Error("Usuário não encontrado.");
+            }
+            
+            // Check last claim date from the database, not the potentially stale session
+            const today = new Date();
+            today.setUTCHours(0, 0, 0, 0); // Use UTC hours for consistent comparison
+            const userLastClaimed = user.dailyRewardLastClaimed ? new Date(user.dailyRewardLastClaimed) : null;
+            if (userLastClaimed && userLastClaimed >= today) {
+                throw new Error('Você já resgatou sua recompensa diária hoje.');
+            }
+
             // Give reward
              const newTransaction: Transaction = {
                 id: new ObjectId().toString(),
@@ -89,12 +95,12 @@ export async function claimDailyReward(): Promise<{ success: boolean; message: s
                     $inc: { balance: DAILY_REWARD_AMOUNT },
                     $push: { transactions: { $each: [newTransaction], $sort: { date: -1 } } },
                 },
-                { session: mongoSession }
+                { session: mongoSession, upsert: true }
             );
 
             // Update user's last claimed date
             await usersCollection.updateOne(
-                { discordId: userId },
+                { _id: user._id },
                 { $set: { dailyRewardLastClaimed: new Date() } },
                 { session: mongoSession }
             );
@@ -111,9 +117,8 @@ export async function claimDailyReward(): Promise<{ success: boolean; message: s
         
         return { success: false, message: 'A transação falhou.' };
 
-    } catch (error) {
-        console.error(`Error claiming daily reward for user ${userId}:`, error);
+    } catch (error: any) {
         await mongoSession.endSession();
-        return { success: false, message: 'Ocorreu um erro ao resgatar a recompensa.' };
+        return { success: false, message: error.message || 'Ocorreu um erro ao resgatar a recompensa.' };
     }
 }
