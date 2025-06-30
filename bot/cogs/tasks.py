@@ -82,12 +82,17 @@ class Tasks(commands.Cog):
     @tasks.loop(minutes=1.0)
     async def check_for_scheduled_forca_games(self):
         try:
-            forca_cog = self.bot.get_cog('Forca')
-            if not forca_cog or forca_cog.is_game_active():
+            bot_config = self.bot_config_collection.find_one({"_id": BOT_CONFIG_ID})
+            if not bot_config or not bot_config.get("forcaChannelId"):
                 return
 
-            bot_config = self.bot_config_collection.find_one({"_id": BOT_CONFIG_ID})
-            if not bot_config:
+            forca_channel_id = int(bot_config.get("forcaChannelId"))
+
+            forca_cog = self.bot.get_cog('Forca')
+            if not forca_cog:
+                return
+
+            if forca_channel_id in forca_cog.active_games:
                 return
 
             schedule = bot_config.get("forcaSchedule", [])

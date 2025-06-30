@@ -136,9 +136,6 @@ class Forca(commands.Cog):
                 game.hint_task.cancel()
         self.client.close()
     
-    def is_game_active(self):
-        return len(self.active_games) > 0
-
     async def end_game_session(self, channel_id, reason="Obrigado por jogar!"):
         if channel_id in self.active_games:
             game = self.active_games[channel_id]
