@@ -56,6 +56,7 @@ import type { PlayerGuessingGame } from '@/types';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from './ui/badge';
+import { Label } from '@/components/ui/label';
 
 const gameFormSchema = z.object({
   id: z.string().optional(),
@@ -288,9 +289,9 @@ export function AdminPlayerGameClient({ initialGames, error }: AdminPlayerGameCl
                                 <Label>Dicas</Label>
                                 <div className="space-y-2 mt-2">
                                     {fields.map((field, index) => (
-                                         <FormField key={field.id} control={form.control} name={`hints.${index}`} render={({ field }) => (
+                                         <FormField key={field.id} control={form.control} name={`hints.${index}`} render={({ field: optionField }) => (
                                             <FormItem className="flex items-center gap-2">
-                                                <FormControl><Textarea {...field} rows={1} placeholder={`Dica ${index + 1}`} /></FormControl>
+                                                <FormControl><Textarea {...optionField} rows={1} placeholder={`Dica ${index + 1}`} /></FormControl>
                                                 <Button type="button" variant="ghost" size="icon" onClick={() => remove(index)} disabled={fields.length <= 1}><Trash2 className="h-4 w-4 text-destructive" /></Button>
                                             </FormItem>
                                         )}/>
