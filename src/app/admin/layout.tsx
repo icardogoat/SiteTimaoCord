@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 import { useMemo, useState, useEffect } from "react";
 import {
-    Bot, Home, Megaphone, Receipt, Server, Settings, ShoppingBag, Star, Ticket, Trophy, Users, FilePen, Tv, PartyPopper, Layers, Gift, QrCode, HelpCircle, BarChart, BrainCircuit,
+    Bot, Home, Megaphone, Receipt, Server, Settings, ShoppingBag, Star, Ticket, Trophy, Users, FilePen, Tv, PartyPopper, Layers, Gift, QrCode, HelpCircle, BarChart, BrainCircuit, Puzzle,
 } from "lucide-react";
 import { useSession, signOut } from "next-auth/react";
 import {
@@ -68,6 +68,7 @@ const allNavGroups = [
         { href: "/admin/events", label: "Eventos", icon: PartyPopper, adminOnly: true },
         { href: "/admin/quiz", label: "Quiz", icon: HelpCircle, adminOnly: true },
         { href: "/admin/player-game", label: "Quem é o Jogador?", icon: BrainCircuit, adminOnly: true },
+        { href: "/admin/forca", label: "Forca", icon: Puzzle, adminOnly: true },
     ]
   },
   {

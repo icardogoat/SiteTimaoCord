@@ -1,5 +1,4 @@
 
-
 import type { ObjectId } from "mongodb";
 
 export type Team = {
@@ -535,4 +534,12 @@ export type PlayerGuessingGame = {
     winnerId?: string;
     winnerName?: string;
     winnerAvatar?: string;
+};
+
+export type ForcaGameWord = {
+  _id: string | ObjectId;
+  word: string;
+  hint: string;
+  createdBy: string; // admin userId
+  createdAt: Date | string;
 };
