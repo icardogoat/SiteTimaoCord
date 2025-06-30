@@ -9,6 +9,7 @@ from dotenv import load_dotenv
 from bson.objectid import ObjectId
 import asyncio
 import unicodedata
+import re
 
 load_dotenv()
 
@@ -31,8 +32,13 @@ class PlayerGame(commands.Cog):
         self.client.close()
         
     def normalize_str(self, s: str) -> str:
+        # Decompose characters into base + combining characters (e.g., 'á' -> 'a' + '´')
         s = ''.join(c for c in unicodedata.normalize('NFD', s) if unicodedata.category(c) != 'Mn')
-        return s.lower().strip()
+        # Remove all non-alphanumeric characters (except spaces), convert to lowercase
+        s = re.sub(r'[^a-z0-9\s]', '', s.lower())
+        # Collapse multiple spaces into one and strip leading/trailing space
+        s = re.sub(r'\s+', ' ', s).strip()
+        return s
 
     async def start_game_if_active(self, active_game):
         self.active_game_id = active_game['_id']

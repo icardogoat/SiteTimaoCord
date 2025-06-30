@@ -101,13 +101,15 @@ class Tasks(commands.Cog):
             for scheduled_time in schedule:
                 if scheduled_time == current_time_str:
                     if last_triggers.get(scheduled_time) != current_day_str:
-                        # Time to trigger!
-                        candidate_games = list(self.player_games_collection.find({"status": {"$in": ["draft", "finished"]}}))
+                        # Time to trigger! Find a random game to start.
+                        pipeline = [{"$sample": {"size": 1}}]
+                        candidate_games = list(self.player_games_collection.aggregate(pipeline))
+                        
                         if not candidate_games:
-                            print(f"Scheduled player game at {scheduled_time} found no draft games to run.")
+                            print(f"Scheduled player game at {scheduled_time} found no games to run.")
                             continue
                         
-                        game_to_start = random.choice(candidate_games)
+                        game_to_start = candidate_games[0]
                         
                         print(f"Triggering scheduled player game: {game_to_start['playerName']} ({game_to_start['_id']})")
                         
