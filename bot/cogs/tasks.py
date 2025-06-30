@@ -102,7 +102,7 @@ class Tasks(commands.Cog):
                 if scheduled_time == current_time_str:
                     if last_triggers.get(scheduled_time) != current_day_str:
                         # Time to trigger!
-                        candidate_games = list(self.player_games_collection.find({"status": "draft"}))
+                        candidate_games = list(self.player_games_collection.find({"status": {"$in": ["draft", "finished"]}}))
                         if not candidate_games:
                             print(f"Scheduled player game at {scheduled_time} found no draft games to run.")
                             continue
@@ -111,10 +111,17 @@ class Tasks(commands.Cog):
                         
                         print(f"Triggering scheduled player game: {game_to_start['playerName']} ({game_to_start['_id']})")
                         
-                        # Activate game
+                        # Activate game and clear previous winner data for reusability
                         self.player_games_collection.update_one(
                             {"_id": game_to_start['_id']},
-                            {"$set": {"status": "active"}}
+                            {
+                                "$set": {"status": "active"},
+                                "$unset": {
+                                    "winnerId": "",
+                                    "winnerName": "",
+                                    "winnerAvatar": "",
+                                }
+                            }
                         )
                         
                         # Update global schedule trigger

@@ -61,6 +61,8 @@ import { Badge } from './ui/badge';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import type { DiscordChannel } from '@/actions/bot-config-actions';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
+
 
 const gameFormSchema = z.object({
   id: z.string().optional(),
@@ -213,13 +215,66 @@ export function AdminPlayerGameClient({ initialGames, discordChannels, error, in
         setIsSubmitting(false);
     }
     
-    const getStatusBadge = (status: PlayerGuessingGame['status']) => {
+    const getStatusBadge = (status: PlayerGuessingGame['status'], winnerName?: string) => {
         switch(status) {
             case 'active': return <Badge>Ativo</Badge>;
-            case 'finished': return <Badge variant="secondary">Finalizado</Badge>;
+            case 'finished': 
+                return winnerName 
+                    ? <Badge variant="secondary">Finalizado (Vencedor: {winnerName})</Badge>
+                    : <Badge variant="secondary">Finalizado (Sem vencedor)</Badge>;
             case 'draft': return <Badge variant="outline">Rascunho</Badge>;
         }
     }
+    
+    const availableGames = games.filter(g => g.status === 'draft' || g.status === 'finished');
+    const activeGames = games.filter(g => g.status === 'active');
+
+    const renderTable = (data: PlayerGuessingGame[]) => (
+         <Table>
+            <TableHeader>
+                <TableRow>
+                    <TableHead>Jogador</TableHead>
+                    <TableHead className="text-center">Canal</TableHead>
+                    <TableHead className="text-center">Prêmio</TableHead>
+                    <TableHead className="text-center">Status</TableHead>
+                    <TableHead className="text-right">Ações</TableHead>
+                </TableRow>
+            </TableHeader>
+            <TableBody>
+                {data.length > 0 ? data.map(game => (
+                    <TableRow key={game._id.toString()}>
+                        <TableCell className="font-medium">{game.playerName}</TableCell>
+                        <TableCell className="text-center text-sm text-muted-foreground">
+                            {discordChannels.find(c => c.id === game.channelId)?.name ?? 'Nenhum'}
+                        </TableCell>
+                        <TableCell className="text-center font-mono">R$ {game.prizeAmount.toFixed(2)}</TableCell>
+                        <TableCell className="text-center">{getStatusBadge(game.status, game.winnerName)}</TableCell>
+                        <TableCell className="text-right space-x-2">
+                             {(game.status === 'draft' || game.status === 'finished') && (
+                                <Button size="sm" onClick={() => handleStatusChange(game, 'active')} disabled={isSubmitting || !!error}>
+                                    <Play className="mr-2 h-4 w-4" /> Iniciar
+                                </Button>
+                            )}
+                             {game.status === 'active' && (
+                                <Button size="sm" variant="secondary" onClick={() => handleStatusChange(game, 'draft')} disabled={isSubmitting}>
+                                    <Pause className="mr-2 h-4 w-4" /> Pausar
+                                </Button>
+                            )}
+                            <Button variant="outline" size="icon" onClick={() => handleOpenDialog(game)}><Edit className="h-4 w-4" /></Button>
+                            <Button variant="destructive" size="icon" onClick={() => setIsDeleteDialogOpen(game._id.toString())}><Trash2 className="h-4 w-4" /></Button>
+                        </TableCell>
+                    </TableRow>
+                )) : (
+                    <TableRow>
+                        <TableCell colSpan={5} className="text-center h-24 text-muted-foreground">
+                             <Gamepad2 className="mx-auto h-8 w-8 mb-2" />
+                            Nenhum jogo encontrado nesta categoria.
+                        </TableCell>
+                    </TableRow>
+                )}
+            </TableBody>
+        </Table>
+    );
 
     return (
     <div className="space-y-6">
@@ -227,7 +282,7 @@ export function AdminPlayerGameClient({ initialGames, discordChannels, error, in
              <CardHeader>
                 <CardTitle className="flex items-center gap-2"><Clock /> Agendamento Global</CardTitle>
                 <CardDescription>
-                    Defina horários para o jogo ser iniciado automaticamente. O bot irá sortear um dos jogos em "Rascunho" para iniciar.
+                    Defina horários para o jogo ser iniciado automaticamente. O bot irá sortear um dos jogos "Disponíveis" para iniciar.
                 </CardDescription>
             </CardHeader>
              <CardContent>
@@ -268,7 +323,7 @@ export function AdminPlayerGameClient({ initialGames, discordChannels, error, in
                 <div className="flex justify-between items-center">
                     <div>
                         <CardTitle>Banco de Jogos</CardTitle>
-                        <CardDescription>Crie e gerencie os jogos de adivinhação. Apenas jogos em "Rascunho" serão sorteados para o agendamento.</CardDescription>
+                        <CardDescription>Crie e gerencie os jogos de adivinhação.</CardDescription>
                     </div>
                     <Button onClick={() => handleOpenDialog(null)}><PlusCircle className="mr-2 h-4 w-4" /> Novo Jogo</Button>
                 </div>
@@ -281,50 +336,38 @@ export function AdminPlayerGameClient({ initialGames, discordChannels, error, in
                         <AlertDescription>{error}</AlertDescription>
                     </Alert>
                 )}
-                <Table>
-                    <TableHeader>
-                        <TableRow>
-                            <TableHead>Jogador</TableHead>
-                            <TableHead className="text-center">Canal</TableHead>
-                            <TableHead className="text-center">Prêmio</TableHead>
-                            <TableHead className="text-center">Status</TableHead>
-                            <TableHead className="text-right">Ações</TableHead>
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        {games.length > 0 ? games.map(game => (
-                            <TableRow key={game._id.toString()}>
-                                <TableCell className="font-medium">{game.playerName}</TableCell>
-                                <TableCell className="text-center text-sm text-muted-foreground">
-                                    {discordChannels.find(c => c.id === game.channelId)?.name ?? 'Nenhum'}
-                                </TableCell>
-                                <TableCell className="text-center font-mono">R$ {game.prizeAmount.toFixed(2)}</TableCell>
-                                <TableCell className="text-center">{getStatusBadge(game.status)}</TableCell>
-                                <TableCell className="text-right space-x-2">
-                                     {game.status === 'draft' && (
-                                        <Button size="sm" onClick={() => handleStatusChange(game, 'active')} disabled={isSubmitting || !!error}>
-                                            <Play className="mr-2 h-4 w-4" /> Iniciar
-                                        </Button>
-                                    )}
-                                     {game.status === 'active' && (
-                                        <Button size="sm" variant="secondary" onClick={() => handleStatusChange(game, 'draft')} disabled={isSubmitting}>
-                                            <Pause className="mr-2 h-4 w-4" /> Pausar
-                                        </Button>
-                                    )}
-                                    <Button variant="outline" size="icon" onClick={() => handleOpenDialog(game)}><Edit className="h-4 w-4" /></Button>
-                                    <Button variant="destructive" size="icon" onClick={() => setIsDeleteDialogOpen(game._id.toString())}><Trash2 className="h-4 w-4" /></Button>
-                                </TableCell>
-                            </TableRow>
-                        )) : (
-                            <TableRow>
-                                <TableCell colSpan={5} className="text-center h-24 text-muted-foreground">
-                                     <Gamepad2 className="mx-auto h-8 w-8 mb-2" />
-                                    Nenhum jogo criado.
-                                </TableCell>
-                            </TableRow>
-                        )}
-                    </TableBody>
-                </Table>
+                 <Tabs defaultValue="available" className="w-full">
+                    <TabsList className="grid w-full grid-cols-2">
+                        <TabsTrigger value="available">Disponíveis ({availableGames.length})</TabsTrigger>
+                        <TabsTrigger value="active">Em Andamento ({activeGames.length})</TabsTrigger>
+                    </TabsList>
+                    <TabsContent value="available">
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>Jogos Disponíveis</CardTitle>
+                                <CardDescription>
+                                    Estes jogos estão prontos para serem iniciados manualmente ou selecionados pelo agendador.
+                                </CardDescription>
+                            </CardHeader>
+                            <CardContent className="p-0">
+                                {renderTable(availableGames)}
+                            </CardContent>
+                        </Card>
+                    </TabsContent>
+                    <TabsContent value="active">
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>Jogo em Andamento</CardTitle>
+                                <CardDescription>
+                                    Este é o jogo que está ativo no Discord.
+                                </CardDescription>
+                            </CardHeader>
+                            <CardContent className="p-0">
+                                {renderTable(activeGames)}
+                            </CardContent>
+                        </Card>
+                    </TabsContent>
+                </Tabs>
             </CardContent>
         </Card>
 
