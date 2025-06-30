@@ -301,7 +301,7 @@ export const getTopInviters = cache(async (): Promise<InviterRanking[]> => {
                 }
             },
             { $sort: { inviteCount: -1 } },
-            { $limit: 10 },
+            { $limit: 50 },
             {
                 $lookup: {
                     from: 'users',

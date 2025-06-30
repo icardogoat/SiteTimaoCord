@@ -181,6 +181,7 @@ class Forca(commands.Cog):
         self.client = MongoClient(os.getenv('MONGODB_URI'))
         self.db = self.client.timaocord
         self.bot_db = self.client.timaocord_bot
+        self.users_collection = self.db.users
         self.words_collection = self.db.forca_words
         self.wallets_collection = self.db.wallets
         self.bot_config_collection = self.bot_db.config
@@ -229,6 +230,8 @@ class Forca(commands.Cog):
         if game.hint_task: game.hint_task.cancel()
 
         prize = game.prize_per_round
+        user_id_str = str(interaction.user.id)
+
         new_transaction = {
             "id": str(ObjectId()), "type": "Prêmio",
             "description": f"Prêmio do jogo da Forca",
@@ -237,9 +240,14 @@ class Forca(commands.Cog):
             "status": "Concluído"
         }
         self.wallets_collection.update_one(
-            {"userId": str(interaction.user.id)},
+            {"userId": user_id_str},
             {"$inc": {"balance": prize}, "$push": {"transactions": {"$each": [new_transaction], "$sort": {"date": -1}}}},
             upsert=True
+        )
+
+        self.users_collection.update_one(
+            {"discordId": user_id_str},
+            {"$addToSet": {"unlockedAchievements": "win_forca"}}
         )
 
         embed = game.get_game_embed(
@@ -344,5 +352,3 @@ class Forca(commands.Cog):
 
 async def setup(bot):
     await bot.add_cog(Forca(bot))
-
-    

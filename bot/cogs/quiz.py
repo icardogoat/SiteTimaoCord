@@ -105,6 +105,11 @@ class Quiz(commands.Cog):
             },
             upsert=True
         )
+
+        self.users_collection.update_one(
+            {"discordId": user_id},
+            {"$addToSet": {"unlockedAchievements": "win_quiz"}}
+        )
     
     async def start_quiz_flow(self, quiz_id: str, interaction: discord.Interaction = None):
         """ The main logic for running a quiz. Can be called by a command or a task. """

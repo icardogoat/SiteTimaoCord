@@ -135,6 +135,11 @@ class PlayerGame(commands.Cog):
                     {"$inc": {"balance": prize}, "$push": {"transactions": {"$each": [new_transaction], "$sort": {"date": -1}}}},
                     upsert=True
                 )
+                self.users_collection.update_one(
+                    {"discordId": user_id},
+                    {"$addToSet": {"unlockedAchievements": "win_player_game"}}
+                )
+
         else: # No winner
             embed = discord.Embed(
                 title="🏁 Jogo Finalizado!",

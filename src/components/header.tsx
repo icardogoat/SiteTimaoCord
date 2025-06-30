@@ -197,13 +197,13 @@ export function Header() {
                   MVP
               </Link>
               <Link 
-                  href="/convites" 
+                  href="/ranking" 
                   className={cn(
                       "transition-colors hover:text-foreground",
-                      pathname === "/convites" ? "text-foreground font-semibold" : "text-muted-foreground"
+                      pathname === "/ranking" ? "text-foreground font-semibold" : "text-muted-foreground"
                   )}
               >
-                  Convites
+                  Rankings
               </Link>
               <Link 
                   href="/store" 
@@ -324,12 +324,6 @@ export function Header() {
                 <Link href="/ranking">
                   <Trophy className="mr-2 h-4 w-4" />
                   <span>Ranking</span>
-                </Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link href="/convites">
-                  <UserPlus className="mr-2 h-4 w-4" />
-                  <span>Convites</span>
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>

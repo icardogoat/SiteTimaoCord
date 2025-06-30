@@ -3,7 +3,7 @@
 
 import clientPromise from '@/lib/mongodb';
 import {
-    AlertCircle, AlertTriangle, Award, Badge, BarChart2, Calendar, Clock, Combine, CornerRightUp, Crown, DollarSign, Eye, FileMinus, Flag, Flame, Gem, Gift, Goal, Heart, Layers, Medal, MinusCircle, Rocket, Send, Shield, ShieldCheck, ShieldOff, ShoppingCart, Slash, Star, StarHalf, Swords, Target, TrendingUp, Trophy, Umbrella, UserPlus, Users2, Wallet, XCircle, Zap
+    AlertCircle, AlertTriangle, Award, Badge, BarChart2, BrainCircuit, Calendar, Clock, Combine, CornerRightUp, Crown, DollarSign, Eye, FileMinus, Flag, Flame, Gem, Gift, Goal, Heart, HelpCircle, Layers, Medal, MinusCircle, Puzzle, Rocket, Send, Shield, ShieldCheck, ShieldOff, ShoppingCart, Slash, Star, StarHalf, Swords, Target, TrendingUp, Trophy, Umbrella, UserPlus, Users2, Wallet, XCircle, Zap
 } from 'lucide-react';
 import { revalidatePath } from 'next/cache';
 import type { Notification } from '@/types';
@@ -64,6 +64,11 @@ const allAchievementsList: Achievement[] = [
     { id: 'first_mvp_vote', name: 'Olho de Tandera', description: 'Votou pela primeira vez no MVP da partida.', icon: Eye },
     { id: 'first_bolao', name: 'Pitonisa', description: 'Participou de um Bolão pela primeira vez.', icon: Swords },
     { id: 'event_participation', name: 'Festeiro', description: 'Participou de um evento especial de XP.', icon: Gift },
+
+    // === Conquistas de Minigames ===
+    { id: 'win_quiz', name: 'Gênio do Timão', description: 'Venceu uma rodada de Quiz.', icon: HelpCircle },
+    { id: 'win_player_game', name: 'Detetive da Bola', description: 'Acertou o jogador misterioso.', icon: BrainCircuit },
+    { id: 'win_forca', name: 'Mestre das Palavras', description: 'Venceu uma rodada do jogo da Forca.', icon: Puzzle },
 
     // === Conquistas de Apostas em Mercados Específicos ===
     { id: 'bet_derby', name: 'Clássico é Clássico', description: 'Apostou em um clássico do futebol.', icon: Target },
