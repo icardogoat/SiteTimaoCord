@@ -29,6 +29,7 @@ export async function getBotConfig(): Promise<Partial<BotConfig>> {
                 mvpChannelId: '',
                 levelUpChannelId: '',
                 eventChannelId: '',
+                forcaChannelId: '',
                 newsChannelId: '',
                 newsMentionRoleId: '',
                 adminRoleId: '',
@@ -36,6 +37,7 @@ export async function getBotConfig(): Promise<Partial<BotConfig>> {
                 postCreatorRoleId: '',
                 streamViewerRoleId: '',
                 playerGameSchedule: [],
+                forcaSchedule: [],
             };
         }
 
@@ -51,6 +53,7 @@ export async function getBotConfig(): Promise<Partial<BotConfig>> {
             mvpChannelId: config.mvpChannelId || '',
             levelUpChannelId: config.levelUpChannelId || '',
             eventChannelId: config.eventChannelId || '',
+            forcaChannelId: config.forcaChannelId || '',
             newsChannelId: config.newsChannelId || '',
             newsMentionRoleId: config.newsMentionRoleId || '',
             adminRoleId: config.adminRoleId || '',
@@ -58,7 +61,9 @@ export async function getBotConfig(): Promise<Partial<BotConfig>> {
             postCreatorRoleId: config.postCreatorRoleId || '',
             streamViewerRoleId: config.streamViewerRoleId || '',
             playerGameSchedule: config.playerGameSchedule || [],
+            forcaSchedule: config.forcaSchedule || [],
             playerGameLastScheduledTriggers: config.playerGameLastScheduledTriggers || {},
+            forcaLastScheduledTriggers: config.forcaLastScheduledTriggers || {},
         };
     } catch (error) {
         console.error("Error fetching bot config:", error);
@@ -73,6 +78,7 @@ export async function getBotConfig(): Promise<Partial<BotConfig>> {
             mvpChannelId: '',
             levelUpChannelId: '',
             eventChannelId: '',
+            forcaChannelId: '',
             newsChannelId: '',
             newsMentionRoleId: '',
             adminRoleId: '',
@@ -80,6 +86,7 @@ export async function getBotConfig(): Promise<Partial<BotConfig>> {
             postCreatorRoleId: '',
             streamViewerRoleId: '',
             playerGameSchedule: [],
+            forcaSchedule: [],
         };
     }
 }
@@ -95,6 +102,7 @@ type UpdateConfigData = {
     mvpChannelId: string;
     levelUpChannelId: string;
     eventChannelId: string;
+    forcaChannelId: string;
     newsChannelId: string;
     newsMentionRoleId: string;
     adminRoleId: string;
@@ -139,6 +147,26 @@ export async function updatePlayerGameSchedule(schedule: string[]): Promise<{ su
         return { success: true, message: 'Agenda de jogos salva com sucesso!' };
     } catch (error) {
         console.error("Error updating player game schedule:", error);
+        return { success: false, message: 'Falha ao salvar a agenda.' };
+    }
+}
+
+export async function updateForcaSchedule(schedule: string[]): Promise<{ success: boolean; message: string }> {
+    try {
+        const client = await clientPromise;
+        const db = client.db('timaocord_bot');
+        const configCollection = db.collection('config');
+
+        await configCollection.updateOne(
+            { _id: new ObjectId(CONFIG_ID) },
+            { $set: { forcaSchedule: schedule } },
+            { upsert: true }
+        );
+
+        revalidatePath('/admin/forca');
+        return { success: true, message: 'Agenda da Forca salva com sucesso!' };
+    } catch (error) {
+        console.error("Error updating forca schedule:", error);
         return { success: false, message: 'Falha ao salvar a agenda.' };
     }
 }

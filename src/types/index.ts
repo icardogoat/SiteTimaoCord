@@ -293,15 +293,18 @@ export type BotConfig = {
   bolaoChannelId: string;
   mvpChannelId: string;
   levelUpChannelId?: string;
+  eventChannelId?: string;
+  forcaChannelId?: string;
   newsChannelId: string;
   newsMentionRoleId: string;
   adminRoleId: string;
   vipRoleIds: string[];
   postCreatorRoleId?: string;
   streamViewerRoleId?: string;
-  eventChannelId?: string;
   playerGameSchedule?: string[];
+  forcaSchedule?: string[];
   playerGameLastScheduledTriggers?: Record<string, string>;
+  forcaLastScheduledTriggers?: Record<string, string>;
 };
 
 export type ApiKeyEntry = {

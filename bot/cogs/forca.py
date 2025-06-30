@@ -121,9 +121,11 @@ class Forca(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
         self.client = MongoClient(os.getenv('MONGODB_URI'))
-        self.db = client.db('timaocord')
+        self.db = self.client.timaocord
+        self.bot_db = self.client.timaocord_bot
         self.words_collection = self.db.forca_words
         self.wallets_collection = self.db.wallets
+        self.bot_config_collection = self.bot_db.config
         self.active_games = {} # channel_id -> ForcaGame instance
 
     def cog_unload(self):
@@ -133,6 +135,9 @@ class Forca(commands.Cog):
             if game.hint_task:
                 game.hint_task.cancel()
         self.client.close()
+    
+    def is_game_active(self):
+        return len(self.active_games) > 0
 
     async def end_game_session(self, channel_id, reason="Obrigado por jogar!"):
         if channel_id in self.active_games:
@@ -189,27 +194,51 @@ class Forca(commands.Cog):
                 await game.channel.send(f"💡 **Dica de Letra:** A letra **'{letter_to_reveal.upper()}'** está na palavra!")
                 await game.message.edit(embed=game.get_game_embed())
 
-    @app_commands.command(name="iniciar_forca", description="[Admin] Inicia o jogo da Forca neste canal.")
-    @app_commands.checks.has_permissions(administrator=True)
-    async def iniciar_forca(self, interaction: discord.Interaction):
-        channel_id = interaction.channel_id
-        if channel_id in self.active_games:
-            await interaction.response.send_message("❌ Um jogo da forca já está ativo neste canal.", ephemeral=True)
+    async def run_game(self, channel: discord.TextChannel):
+        if not channel:
+            print("Forca: Invalid channel provided.")
+            return
+
+        if channel.id in self.active_games:
+            await channel.send("❌ Um jogo da forca já está ativo neste canal.", delete_after=10)
             return
 
         words_cursor = self.words_collection.aggregate([{"$sample": {"size": 3}}])
         words = list(words_cursor)
         if len(words) < 3:
-            await interaction.response.send_message("❌ Não há palavras suficientes no banco de dados para iniciar (mínimo 3).", ephemeral=True)
+            await channel.send("❌ Não há palavras suficientes no banco de dados para iniciar (mínimo 3).", delete_after=10)
             return
-
-        await interaction.response.send_message("✅ Iniciando o jogo da Forca com 3 rodadas! Preparem-se...", ephemeral=True)
         
-        game = ForcaGame(interaction.channel, words)
-        self.active_games[channel_id] = game
+        await channel.send("✅ Iniciando o jogo da Forca com 3 rodadas! Preparem-se...")
+
+        game = ForcaGame(channel, words)
+        self.active_games[channel.id] = game
         
         await asyncio.sleep(2)
         await self.start_new_round_or_end_game(game)
+    
+    async def run_scheduled_game(self):
+        config_doc = self.bot_config_collection.find_one({"_id": ObjectId('669fdb5a907548817b848c48')})
+        if not config_doc or not config_doc.get('forcaChannelId'):
+            print("Forca schedule error: Forca Channel ID is not configured.")
+            return
+        
+        channel_id_str = config_doc.get('forcaChannelId')
+        try:
+            channel_id = int(channel_id_str)
+            channel = self.bot.get_channel(channel_id)
+            if not channel or not isinstance(channel, discord.TextChannel):
+                print(f"Forca schedule error: Channel with ID {channel_id} not found or is not a text channel.")
+                return
+            await self.run_game(channel)
+        except (ValueError, TypeError):
+            print(f"Forca schedule error: Invalid channel ID '{channel_id_str}' in config.")
+        
+    @app_commands.command(name="iniciar_forca", description="[Admin] Inicia o jogo da Forca neste canal.")
+    @app_commands.checks.has_permissions(administrator=True)
+    async def iniciar_forca(self, interaction: discord.Interaction):
+        await interaction.response.send_message("Iniciando o jogo...", ephemeral=True)
+        await self.run_game(interaction.channel)
 
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):

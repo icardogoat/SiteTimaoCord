@@ -2,7 +2,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useToast } from '@/hooks/use-toast';
@@ -12,6 +12,7 @@ import {
     getForcaWords,
     generateForcaWordByAI,
 } from '@/actions/forca-actions';
+import { updateForcaSchedule } from '@/actions/bot-config-actions';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import {
@@ -48,7 +49,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Loader2, PlusCircle, Trash2, Edit, Sparkles, Puzzle } from 'lucide-react';
+import { Loader2, PlusCircle, Trash2, Edit, Sparkles, Puzzle, Clock } from 'lucide-react';
 import type { ForcaGameWord } from '@/types';
 import { Separator } from './ui/separator';
 
@@ -58,14 +59,24 @@ const formSchema = z.object({
   hint: z.string().min(1, "A dica é obrigatória.").max(100, "Dica muito longa."),
 });
 
+const scheduleFormSchema = z.object({
+    schedule: z.array(z.object({ value: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, "Formato inválido. Use HH:mm") })),
+});
+
 type FormValues = z.infer<typeof formSchema>;
 
-export function AdminForcaClient({ initialWords }: { initialWords: ForcaGameWord[] }) {
+interface AdminForcaClientProps {
+    initialWords: ForcaGameWord[];
+    initialSchedule: string[];
+}
+
+export function AdminForcaClient({ initialWords, initialSchedule }: AdminForcaClientProps) {
     const { toast } = useToast();
     const [words, setWords] = useState(initialWords);
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState<string | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [isScheduleSubmitting, setIsScheduleSubmitting] = useState(false);
     const [isGenerating, setIsGenerating] = useState(false);
     const [aiTheme, setAiTheme] = useState('');
     const [currentWord, setCurrentWord] = useState<ForcaGameWord | null>(null);
@@ -73,6 +84,18 @@ export function AdminForcaClient({ initialWords }: { initialWords: ForcaGameWord
     const form = useForm<FormValues>({
         resolver: zodResolver(formSchema),
         defaultValues: { word: '', hint: '' }
+    });
+
+    const scheduleForm = useForm<z.infer<typeof scheduleFormSchema>>({
+        resolver: zodResolver(scheduleFormSchema),
+        defaultValues: {
+            schedule: initialSchedule.map(s => ({ value: s })) || [],
+        },
+    });
+
+     const { fields: scheduleFields, append: appendSchedule, remove: removeSchedule } = useFieldArray({
+        control: scheduleForm.control,
+        name: "schedule"
     });
 
     const handleGenerateByAI = async () => {
@@ -119,6 +142,17 @@ export function AdminForcaClient({ initialWords }: { initialWords: ForcaGameWord
         }
         setIsSubmitting(false);
     };
+    
+    const onScheduleSubmit = async (values: z.infer<typeof scheduleFormSchema>) => {
+        setIsScheduleSubmitting(true);
+        const result = await updateForcaSchedule(values.schedule.map(s => s.value));
+        if (result.success) {
+            toast({ title: "Sucesso!", description: result.message });
+        } else {
+            toast({ title: "Erro", description: result.message, variant: "destructive" });
+        }
+        setIsScheduleSubmitting(false);
+    };
 
     const handleDelete = async () => {
         if (!isDeleteDialogOpen) return;
@@ -135,7 +169,47 @@ export function AdminForcaClient({ initialWords }: { initialWords: ForcaGameWord
     };
     
     return (
-    <>
+    <div className="space-y-6">
+        <Card>
+             <CardHeader>
+                <CardTitle className="flex items-center gap-2"><Clock /> Agendamento Global</CardTitle>
+                <CardDescription>
+                    Defina horários para a Forca ser iniciada automaticamente. O bot irá sortear uma das palavras cadastradas.
+                </CardDescription>
+            </CardHeader>
+             <CardContent>
+                <Form {...scheduleForm}>
+                    <form onSubmit={scheduleForm.handleSubmit(onScheduleSubmit)} className="space-y-4">
+                        <div className="space-y-2">
+                            {scheduleFields.map((field, index) => (
+                                <FormField
+                                    key={field.id}
+                                    control={scheduleForm.control}
+                                    name={`schedule.${index}.value`}
+                                    render={({ field }) => (
+                                        <FormItem className="flex items-center gap-2">
+                                            <FormControl><Input type="time" {...field} className="w-48" /></FormControl>
+                                            <Button type="button" variant="ghost" size="icon" onClick={() => removeSchedule(index)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                            ))}
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                            <Button type="button" variant="outline" size="sm" onClick={() => appendSchedule({ value: '' })}>
+                                <PlusCircle className="mr-2 h-4 w-4" /> Adicionar Horário
+                            </Button>
+                            <Button type="submit" size="sm" disabled={isScheduleSubmitting}>
+                                {isScheduleSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                Salvar Agenda
+                            </Button>
+                        </div>
+                    </form>
+                </Form>
+            </CardContent>
+        </Card>
+
         <Card>
             <CardHeader>
                 <div className="flex justify-between items-center">
@@ -235,6 +309,6 @@ export function AdminForcaClient({ initialWords }: { initialWords: ForcaGameWord
                 </AlertDialogFooter>
             </AlertDialogContent>
       </AlertDialog>
-    </>
+    </div>
     );
 }
