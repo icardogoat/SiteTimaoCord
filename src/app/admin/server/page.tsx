@@ -2,9 +2,9 @@
 'use server';
 
 import { getBotConfig, getGuildDetails, getRoleMemberCounts } from '@/actions/bot-config-actions';
-import { getDbStats } from '@/actions/admin-actions';
+import { getDbStats, getMemberActivityStats } from '@/actions/admin-actions';
 import { AdminServerPanelClient } from '@/components/admin-server-panel-client';
-import type { GuildDetails, RoleWithMemberCount, DbStats } from '@/types';
+import type { GuildDetails, RoleWithMemberCount, DbStats, MemberActivityStats } from '@/types';
 
 export default async function AdminServerPage() {
     const config = await getBotConfig();
@@ -12,13 +12,15 @@ export default async function AdminServerPage() {
     let guildDetails: GuildDetails | null = null;
     let rolesWithCounts: RoleWithMemberCount[] = [];
     let dbStats: DbStats | null = null;
+    let activityStats: MemberActivityStats | null = null;
     let error: string | null = null;
 
     if (config.guildId) {
-        const [detailsResult, rolesResult, dbStatsResult] = await Promise.all([
+        const [detailsResult, rolesResult, dbStatsResult, activityResult] = await Promise.all([
             getGuildDetails(config.guildId),
             getRoleMemberCounts(config.guildId),
             getDbStats(),
+            getMemberActivityStats(),
         ]);
 
         if (detailsResult.success && detailsResult.data) {
@@ -41,6 +43,13 @@ export default async function AdminServerPage() {
             error = error ? `${error}\n${dbError}` : dbError;
         }
 
+        if (activityResult.success && activityResult.data) {
+            activityStats = activityResult.data;
+        } else {
+            const activityError = activityResult.error ?? 'Falha ao carregar estatísticas de atividade de membros.';
+            error = error ? `${error}\n${activityError}` : activityError;
+        }
+
     } else {
         error = "O ID do Servidor não está configurado. Por favor, configure na aba 'Bot'.";
     }
@@ -50,6 +59,7 @@ export default async function AdminServerPage() {
             initialGuildDetails={guildDetails}
             initialRolesWithCounts={rolesWithCounts}
             initialDbStats={dbStats}
+            initialActivityStats={activityStats}
             error={error}
         />
     );

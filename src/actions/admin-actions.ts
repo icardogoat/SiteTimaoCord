@@ -2,7 +2,7 @@
 'use server';
 
 import clientPromise from '@/lib/mongodb';
-import type { Post, AuthorInfo, PlacedBet, Transaction, UserRanking, MvpVoting, MvpPlayer, MvpTeamLineup, Notification, StoreItem, Bolao, Advertisement, UserInventoryItem, PurchaseAdminView, BetVolumeData, ProfitLossData, SiteEvent, LevelThreshold, DbStats, UserStats, RecentUser, PromoCode, Championship } from '@/types';
+import type { Post, AuthorInfo, PlacedBet, Transaction, UserRanking, MvpVoting, MvpPlayer, MvpTeamLineup, Notification, StoreItem, Bolao, Advertisement, UserInventoryItem, PurchaseAdminView, BetVolumeData, ProfitLossData, SiteEvent, LevelThreshold, DbStats, UserStats, RecentUser, PromoCode, Championship, MemberActivityStats } from '@/types';
 import { ObjectId, WithId } from 'mongodb';
 import { revalidatePath } from 'next/cache';
 import { getBotConfig } from './bot-config-actions';
@@ -273,7 +273,7 @@ export async function getAdminBets(): Promise<BetAdminView[]> {
             userName: bet.userDetails.name,
             userEmail: bet.userDetails.email,
             matchDescription: bet.bets.length > 1 
-                ? `${bet.bets.length} seleções` 
+                ? `Múltipla (${bet.bets.length} seleções)` 
                 : `${bet.bets[0].teamA} vs ${bet.bets[0].teamB}`,
             selections: bet.bets.map((s: any) => `${s.selection} @ ${s.oddValue}`).join(', '),
             stake: bet.stake,
@@ -2263,6 +2263,83 @@ export async function getDbStats(): Promise<{ success: boolean; data?: DbStats, 
         const errorMessage = (error instanceof Error) ? error.message : "An unknown error occurred.";
         console.error("Error fetching DB stats:", error);
         return { success: false, error: `Failed to fetch database statistics: ${errorMessage}` };
+    }
+}
+
+export async function getMemberActivityStats(): Promise<{ success: boolean; data?: MemberActivityStats, error?: string }> {
+    try {
+        const client = await clientPromise;
+        const db = client.db('timaocord');
+        const activityCollection = db.collection('member_activity');
+
+        const now = new Date();
+        const todayStart = new Date(now);
+        todayStart.setUTCHours(0, 0, 0, 0);
+
+        const sevenDaysAgo = new Date(now);
+        sevenDaysAgo.setDate(now.getDate() - 7);
+        sevenDaysAgo.setUTCHours(0, 0, 0, 0);
+
+        const thirtyDaysAgo = new Date(now);
+        thirtyDaysAgo.setDate(now.getDate() - 30);
+        thirtyDaysAgo.setUTCHours(0, 0, 0, 0);
+
+        const [dailyJoins, dailyLeaves, weeklyJoins, weeklyLeaves, monthlyJoins, monthlyLeaves, chartData] = await Promise.all([
+            activityCollection.countDocuments({ type: 'join', timestamp: { $gte: todayStart } }),
+            activityCollection.countDocuments({ type: 'leave', timestamp: { $gte: todayStart } }),
+            activityCollection.countDocuments({ type: 'join', timestamp: { $gte: sevenDaysAgo } }),
+            activityCollection.countDocuments({ type: 'leave', timestamp: { $gte: sevenDaysAgo } }),
+            activityCollection.countDocuments({ type: 'join', timestamp: { $gte: thirtyDaysAgo } }),
+            activityCollection.countDocuments({ type: 'leave', timestamp: { $gte: thirtyDaysAgo } }),
+            activityCollection.aggregate([
+                { $match: { timestamp: { $gte: thirtyDaysAgo } } },
+                {
+                    $group: {
+                        _id: { 
+                            date: { $dateToString: { format: "%Y-%m-%d", date: "$timestamp", timezone: "America/Sao_Paulo" } },
+                            type: '$type'
+                        },
+                        count: { $sum: 1 }
+                    }
+                },
+                {
+                    $group: {
+                        _id: '$_id.date',
+                        activities: { $push: { type: '$_id.type', count: '$count' } }
+                    }
+                },
+                {
+                    $project: {
+                        date: '$_id',
+                        joins: { $ifNull: [{ $arrayElemAt: [{ $filter: { input: '$activities', as: 'a', cond: { $eq: ['$$a.type', 'join'] } } }, 0] }, { count: 0 }] },
+                        leaves: { $ifNull: [{ $arrayElemAt: [{ $filter: { input: '$activities', as: 'a', cond: { $eq: ['$$a.type', 'leave'] } } }, 0] }, { count: 0 }] }
+                    }
+                },
+                 {
+                    $project: {
+                        _id: 0,
+                        date: 1,
+                        joins: '$joins.count',
+                        leaves: '$leaves.count',
+                    }
+                },
+                { $sort: { date: 1 } }
+            ]).toArray()
+        ]);
+        
+        const stats: MemberActivityStats = {
+            daily: { joins: dailyJoins, leaves: dailyLeaves },
+            weekly: { joins: weeklyJoins, leaves: weeklyLeaves, net: weeklyJoins - weeklyLeaves },
+            monthly: { joins: monthlyJoins, leaves: monthlyLeaves, net: monthlyJoins - monthlyLeaves },
+            chartData: chartData.map((d: any) => ({...d, date: new Date(d.date).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', timeZone: 'UTC' }) }))
+        };
+
+        return { success: true, data: stats };
+
+    } catch (error) {
+        const errorMessage = (error instanceof Error) ? error.message : "An unknown error occurred.";
+        console.error("Error fetching member activity stats:", error);
+        return { success: false, error: `Failed to fetch activity statistics: ${errorMessage}` };
     }
 }
 

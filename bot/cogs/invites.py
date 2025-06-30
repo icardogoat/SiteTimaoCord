@@ -16,6 +16,7 @@ class Invites(commands.Cog):
         self.db = self.client.timaocord
         self.invites_collection = self.db.invites
         self.users_collection = self.db.users
+        self.member_activity_collection = self.db.member_activity
         # Cache for guild invites: {guild_id: {invite_code: uses}}
         self.invite_cache = defaultdict(dict)
 
@@ -48,6 +49,14 @@ class Invites(commands.Cog):
     async def on_member_join(self, member: discord.Member):
         if member.bot:
             return
+
+        # Record join event
+        self.member_activity_collection.insert_one({
+            "guildId": str(member.guild.id),
+            "userId": str(member.id),
+            "type": "join",
+            "timestamp": datetime.datetime.now(datetime.timezone.utc)
+        })
 
         try:
             # 1. Get the current invites for the guild
@@ -92,6 +101,18 @@ class Invites(commands.Cog):
             print(f"Cannot track invites in {member.guild.name} due to missing permissions.")
         except Exception as e:
             print(f"An error occurred in on_member_join: {e}")
+
+    @commands.Cog.listener()
+    async def on_member_remove(self, member: discord.Member):
+        if member.bot:
+            return
+        
+        self.member_activity_collection.insert_one({
+            "guildId": str(member.guild.id),
+            "userId": str(member.id),
+            "type": "leave",
+            "timestamp": datetime.datetime.now(datetime.timezone.utc)
+        })
 
     @commands.Cog.listener()
     async def on_invite_create(self, invite: discord.Invite):

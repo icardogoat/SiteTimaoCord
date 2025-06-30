@@ -3,7 +3,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import type { GuildDetails, RoleWithMemberCount, DbStats } from "@/types";
+import type { GuildDetails, RoleWithMemberCount, DbStats, MemberActivityStats } from "@/types";
 import { Users, UserCheck, Gem, Calendar, Terminal, Database, ServerCrash, Trash2, Loader2 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -14,17 +14,31 @@ import { useToast } from "@/hooks/use-toast";
 import { Button } from "./ui/button";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "./ui/alert-dialog";
 import { cleanupOldData } from "@/actions/admin-actions";
+import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts"
+import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@/components/ui/chart"
 
 interface AdminServerPanelClientProps {
     initialGuildDetails: GuildDetails | null;
     initialRolesWithCounts: RoleWithMemberCount[];
     initialDbStats: DbStats | null;
+    initialActivityStats: MemberActivityStats | null;
     error: string | null;
 }
 
+const activityChartConfig = {
+    joins: {
+        label: "Entradas",
+        color: "hsl(var(--chart-2))",
+    },
+    leaves: {
+        label: "Saídas",
+        color: "hsl(var(--chart-5))",
+    },
+} satisfies ChartConfig;
+
 const formatNumber = (num: number) => new Intl.NumberFormat('pt-BR').format(num);
 
-export function AdminServerPanelClient({ initialGuildDetails, initialRolesWithCounts, initialDbStats, error }: AdminServerPanelClientProps) {
+export function AdminServerPanelClient({ initialGuildDetails, initialRolesWithCounts, initialDbStats, initialActivityStats, error }: AdminServerPanelClientProps) {
     const { toast } = useToast();
     const [isCleaning, setIsCleaning] = useState(false);
     const [isCleanDialogOpen, setIsCleanDialogOpen] = useState(false);
@@ -60,6 +74,52 @@ export function AdminServerPanelClient({ initialGuildDetails, initialRolesWithCo
     const dbUsagePercent = initialDbStats ? (parseFloat(initialDbStats.dataSize) / 512) * 100 : 0;
     const isDbFull = dbUsagePercent > 90;
     
+    const renderNetGrowth = (value: number) => {
+        const color = value > 0 ? 'text-green-500' : value < 0 ? 'text-red-500' : 'text-muted-foreground';
+        const sign = value > 0 ? '+' : '';
+        return <span className={color}>{sign}{formatNumber(value)}</span>;
+    }
+
+    const activityStatsContent = initialActivityStats && (
+        <Card className="lg:col-span-3">
+            <CardHeader>
+                <CardTitle className="flex items-center gap-2"><UserCheck /> Atividade de Membros</CardTitle>
+                <CardDescription>
+                    Visão geral de entradas e saídas de membros no servidor do Discord nos últimos 30 dias.
+                </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-center">
+                    <Card className="p-4">
+                        <p className="text-sm text-muted-foreground">Hoje</p>
+                        <p className="text-2xl font-bold">{renderNetGrowth(initialActivityStats.daily.joins - initialActivityStats.daily.leaves)}</p>
+                        <p className="text-xs text-muted-foreground"><span className="text-green-500">+{initialActivityStats.daily.joins}</span> / <span className="text-red-500">-{initialActivityStats.daily.leaves}</span></p>
+                    </Card>
+                    <Card className="p-4">
+                        <p className="text-sm text-muted-foreground">Últimos 7 dias</p>
+                        <p className="text-2xl font-bold">{renderNetGrowth(initialActivityStats.weekly.net)}</p>
+                        <p className="text-xs text-muted-foreground"><span className="text-green-500">+{initialActivityStats.weekly.joins}</span> / <span className="text-red-500">-{initialActivityStats.weekly.leaves}</span></p>
+                    </Card>
+                    <Card className="p-4">
+                        <p className="text-sm text-muted-foreground">Últimos 30 dias</p>
+                        <p className="text-2xl font-bold">{renderNetGrowth(initialActivityStats.monthly.net)}</p>
+                        <p className="text-xs text-muted-foreground"><span className="text-green-500">+{initialActivityStats.monthly.joins}</span> / <span className="text-red-500">-{initialActivityStats.monthly.leaves}</span></p>
+                    </Card>
+                </div>
+                <ChartContainer config={activityChartConfig} className="h-[250px] w-full">
+                    <BarChart accessibilityLayer data={initialActivityStats.chartData}>
+                        <CartesianGrid vertical={false} />
+                        <XAxis dataKey="date" tickLine={false} tickMargin={10} axisLine={false} />
+                        <YAxis />
+                        <ChartTooltip content={<ChartTooltipContent />} />
+                        <Bar dataKey="joins" fill="var(--color-joins)" radius={4} name="Entradas" />
+                        <Bar dataKey="leaves" fill="var(--color-leaves)" radius={4} name="Saídas" />
+                    </BarChart>
+                </ChartContainer>
+            </CardContent>
+        </Card>
+    );
+
     const dbStatsContent = initialDbStats && (
          <Card className="lg:col-span-3">
             <CardHeader>
@@ -241,6 +301,8 @@ export function AdminServerPanelClient({ initialGuildDetails, initialRolesWithCo
                 )}
                 
                 {dbStatsContent}
+
+                {activityStatsContent}
 
                 <Card>
                     <CardHeader>
