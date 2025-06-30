@@ -11,6 +11,7 @@ import { Trophy, Medal, Zap, Wallet, UserPlus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { UserRanking, ActiveBettorRanking, TopLevelUserRanking, RichestUserRanking, InviterRanking } from "@/types";
 import { Button } from './ui/button';
+import { AvatarFallbackText } from './avatar-fallback-text';
 
 const ITEMS_PER_PAGE = 10;
 
@@ -47,7 +48,7 @@ const WinnersTable = ({ data }: { data: UserRanking[] }) => (
                         <div className="flex items-center gap-3">
                             <Avatar className={cn(user.isVip && "ring-2 ring-vip")}>
                                 <AvatarImage src={user.avatar ?? undefined} alt={user.name} data-ai-hint="user avatar" />
-                                <AvatarFallback>{user.name.substring(0, 2).toUpperCase()}</AvatarFallback>
+                                <AvatarFallback><AvatarFallbackText name={user.name} /></AvatarFallback>
                             </Avatar>
                             <span className="font-medium">{user.name}</span>
                         </div>
@@ -84,7 +85,7 @@ const RichestTable = ({ data }: { data: RichestUserRanking[] }) => (
                         <div className="flex items-center gap-3">
                             <Avatar className={cn(user.isVip && "ring-2 ring-vip")}>
                                 <AvatarImage src={user.avatar ?? undefined} alt={user.name} data-ai-hint="user avatar" />
-                                <AvatarFallback>{user.name.substring(0, 2).toUpperCase()}</AvatarFallback>
+                                <AvatarFallback><AvatarFallbackText name={user.name} /></AvatarFallback>
                             </Avatar>
                             <span className="font-medium">{user.name}</span>
                         </div>
@@ -121,7 +122,7 @@ const MostActiveTable = ({ data }: { data: ActiveBettorRanking[] }) => (
                         <div className="flex items-center gap-3">
                             <Avatar className={cn(user.isVip && "ring-2 ring-vip")}>
                                 <AvatarImage src={user.avatar ?? undefined} alt={user.name} data-ai-hint="user avatar" />
-                                <AvatarFallback>{user.name.substring(0, 2).toUpperCase()}</AvatarFallback>
+                                <AvatarFallback><AvatarFallbackText name={user.name} /></AvatarFallback>
                             </Avatar>
                             <span className="font-medium">{user.name}</span>
                         </div>
@@ -159,7 +160,7 @@ const TopLevelsTable = ({ data }: { data: TopLevelUserRanking[] }) => (
                         <div className="flex items-center gap-3">
                             <Avatar className={cn(user.isVip && "ring-2 ring-vip")}>
                                 <AvatarImage src={user.avatar ?? undefined} alt={user.name} data-ai-hint="user avatar" />
-                                <AvatarFallback>{user.name.substring(0, 2).toUpperCase()}</AvatarFallback>
+                                <AvatarFallback><AvatarFallbackText name={user.name} /></AvatarFallback>
                             </Avatar>
                             <span className="font-medium">{user.name}</span>
                         </div>
@@ -197,7 +198,7 @@ const InvitersTable = ({ data }: { data: InviterRanking[] }) => (
                         <div className="flex items-center gap-3">
                             <Avatar className={cn(user.isVip && "ring-2 ring-vip")}>
                                 <AvatarImage src={user.avatar ?? undefined} alt={user.name} data-ai-hint="user avatar" />
-                                <AvatarFallback>{user.name.substring(0, 2).toUpperCase()}</AvatarFallback>
+                                <AvatarFallback><AvatarFallbackText name={user.name} /></AvatarFallback>
                             </Avatar>
                             <span className="font-medium">{user.name}</span>
                         </div>
