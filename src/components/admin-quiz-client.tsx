@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState } from 'react';
@@ -246,7 +245,6 @@ export function AdminQuizClient({ initialQuizzes, discordChannels, discordRoles,
                                 <Select onValueChange={field.onChange} value={field.value || ''} disabled={discordRoles.length === 0}>
                                     <FormControl><SelectTrigger><SelectValue placeholder="Selecione um cargo" /></SelectTrigger></FormControl>
                                     <SelectContent>
-                                        <SelectItem value="">Nenhum</SelectItem>
                                         {discordRoles.map(role => (
                                             <SelectItem key={role.id} value={role.id}>@{role.name}</SelectItem>
                                         ))}
